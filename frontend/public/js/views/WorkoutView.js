@@ -240,105 +240,137 @@ export default class WorkoutView {
             return;
         }
 
-        // Выводим карточки добавленных упражнений
-        // ... внутри renderWorkoutExercises() ...
-        
-        container.innerHTML = this.activeExercises.map((ex, exIndex) => {
-            
-            // 1. ПРОВЕРЯЕМ ТИП УПРАЖНЕНИЯ
-            const isCardio = ex.exercise_type === 'cardio';
+        // 1. Разбиваем плоский массив на ГРУППЫ
+        let htmlBlocks = [];
+        let currentGroup = [];
 
-            // 2. ГЕНЕРИРУЕМ ЗАГОЛОВКИ ТАБЛИЦЫ
-            const headerHTML = isCardio 
-                ? `<div class="set-header">
-                        <div>П-Д</div>
-                        <div>ВРЕМЯ (мин)</div>
-                        <div>ДИСТАНЦИЯ (м)</div>
-                        <div>✓</div>
-                   </div>`
-                : `<div class="set-header">
-                        <div>П-Д</div>
-                        <div>ВЕС (кг)</div>
-                        <div>ПОВТОРЫ</div>
-                        <div>✓</div>
-                   </div>`;
+        this.activeExercises.forEach((ex, exIndex) => {
+            if (ex.isSuperset && exIndex > 0) {
+                currentGroup.push({ ex, index: exIndex });
+            } else {
+                if (currentGroup.length > 0) htmlBlocks.push(currentGroup);
+                currentGroup = [{ ex, index: exIndex }];
+            }
+        });
+        if (currentGroup.length > 0) htmlBlocks.push(currentGroup);
 
-            // 3. ГЕНЕРИРУЕМ ИНПУТЫ (Подходы)
-            const setsHTML = ex.sets.map((set, setIndex) => {
-                if (isCardio) {
-                    return `
-                        <div class="set-row" data-ex-index="${exIndex}" data-set-index="${setIndex}">
-                            <div class="set-number">${setIndex + 1}</div>
-                            <input type="number" class="set-input weight-input" placeholder="мин" value="${set.weight || ''}" ${set.completed ? 'disabled' : ''}>
-                            <input type="number" class="set-input reps-input" placeholder="метры" value="${set.reps || ''}" ${set.completed ? 'disabled' : ''}>
-                            <button class="set-check ${set.completed ? 'completed' : ''}">✓</button>
-                        </div>
-                    `;
+        // 2. Рендерим
+        container.innerHTML = htmlBlocks.map(group => {
+            const isSupersetGroup = group.length > 1;
+
+            const cardsHTML = group.map((item, idxInGroup) => {
+                const ex = item.ex;
+                const exIndex = item.index;
+                const isCardio = ex.exercise_type === 'cardio';
+
+                const headerHTML = isCardio 
+                    ? `<div class="set-header"><div>П-Д</div><div>ВРЕМЯ (мин)</div><div>ДИСТАНЦИЯ (м)</div><div>✓</div></div>`
+                    : `<div class="set-header"><div>П-Д</div><div>ВЕС (кг)</div><div>ПОВТОРЫ</div><div>✓</div></div>`;
+
+                const setsHTML = ex.sets.map((set, setIndex) => `
+                    <div class="set-row" data-ex-index="${exIndex}" data-set-index="${setIndex}">
+                        <div class="set-number">${setIndex + 1}</div>
+                        <input type="number" class="set-input weight-input" placeholder="${isCardio ? 'мин' : 'кг'}" value="${set.weight || ''}" ${set.completed ? 'disabled' : ''}>
+                        <input type="number" class="set-input reps-input" placeholder="${isCardio ? 'метры' : 'раз'}" value="${set.reps || ''}" ${set.completed ? 'disabled' : ''}>
+                        <button class="set-check ${set.completed ? 'completed' : ''}">✓</button>
+                    </div>
+                `).join('');
+
+                // 🔥 ВИЗУАЛЬНАЯ МАГИЯ: Склеиваем карточки суперсета в одну!
+                const cardClass = isSupersetGroup ? 'card superset-card' : 'card';
+                let inlineStyle = `position: relative; `;
+                
+                if (isSupersetGroup) {
+                    inlineStyle += `margin-bottom: 0; `; // Убираем отступ между ними
+                    // Скругляем только верх самого первого и низ самого последнего
+                    if (idxInGroup === 0) inlineStyle += `border-radius: 16px 16px 0 0; `;
+                    else if (idxInGroup === group.length - 1) inlineStyle += `border-radius: 0 0 16px 16px; `;
+                    else inlineStyle += `border-radius: 0; `;
+
+                    // Рисуем пунктир между упражнениями
+                    if (idxInGroup < group.length - 1) inlineStyle += `border-bottom: 1px dashed var(--border-color); `;
                 } else {
-                    return `
-                        <div class="set-row" data-ex-index="${exIndex}" data-set-index="${setIndex}">
-                            <div class="set-number">${setIndex + 1}</div>
-                            <input type="number" class="set-input weight-input" placeholder="кг" value="${set.weight || ''}" ${set.completed ? 'disabled' : ''}>
-                            <input type="number" class="set-input reps-input" placeholder="раз" value="${set.reps || ''}" ${set.completed ? 'disabled' : ''}>
-                            <button class="set-check ${set.completed ? 'completed' : ''}">✓</button>
-                        </div>
-                    `;
+                    inlineStyle += `margin-bottom: 15px; border-radius: 16px; `;
                 }
+
+                // Бирка Суперсета рисуется только 1 раз в самом верху группы
+                const supersetBadge = (isSupersetGroup && idxInGroup === 0)
+                    ? `<div style="color: var(--accent-color); font-size: 13px; font-weight: bold; margin-bottom: 10px;">🔗 Суперсет</div>`
+                    : '';
+
+                return `
+                    <div class="${cardClass} exercise-item-data" data-original-index="${exIndex}" style="${inlineStyle}">
+                        ${supersetBadge}
+
+                        <h4 style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="drag-handle" style="cursor: grab; font-size: 24px; color: var(--text-secondary); padding: 0 5px;">≡</span>
+                                <span>${exIndex + 1}. ${ex.name} <span style="font-size: 12px; color: var(--text-secondary); font-weight: normal;">${isCardio ? '🏃' : '🏋️'}</span></span>
+                            </div>
+                            <button class="menu-toggle-btn" data-index="${exIndex}" style="background: none; border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer;">⋮</button>
+                        </h4>
+
+                        <div class="exercise-menu" id="menu-${exIndex}">
+                            ${exIndex > 0 ? `
+                            <button class="menu-item toggle-superset-btn" data-index="${exIndex}">
+                                🔗 ${ex.isSuperset ? 'Открепить суперсет' : 'Объединить с предыдущим'}
+                            </button>` : ''}
+                            <button class="menu-item danger delete-exercise-btn" data-index="${exIndex}">
+                                🗑️ Удалить упражнение
+                            </button>
+                        </div>
+
+                        ${headerHTML}
+                        <div class="sets-container">
+                            ${setsHTML}
+                        </div>
+                        <button class="add-set-btn" data-ex-index="${exIndex}">+ Добавить подход</button>
+                    </div>
+                `;
             }).join('');
 
-            return `
-                <div class="card" style="margin-bottom: 15px;">
-                    <h4 style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="drag-handle" style="cursor: grab; font-size: 24px; color: var(--text-secondary); padding: 0 5px;">≡</span>
-                            <span>${exIndex + 1}. ${ex.name} <span style="font-size: 12px; color: var(--text-secondary); font-weight: normal;">${isCardio ? '🏃' : '🏋️'}</span></span>
-                        </div>
-                        <button style="background: none; border: none; color: var(--text-secondary); font-size: 18px;">⋮</button>
-                    </h4>
-
-                    ${headerHTML}
-
-                    <div class="sets-container">
-                        ${setsHTML}
-                    </div>
-
-                    <button class="add-set-btn" data-ex-index="${exIndex}">+ Добавить подход</button>
-                </div>
-            `;
+            // Убрали gap между карточками внутри контейнера, так как они теперь слиплись
+            return `<div class="sortable-group" style="display: flex; flex-direction: column; margin-bottom: 15px;">${cardsHTML}</div>`;
         }).join('');
 
-        // Важно! После каждой перерисовки нужно заново повесить "слушателей" на новые кнопки
         this.bindSetEvents();
         this.initSortable();
     }
-    // НОВЫЙ МЕТОД: Инициализация Drag & Drop (с защитой от двойного вызова)
+    // НОВЫЙ МЕТОД: Инициализация Drag & Drop (с умной сортировкой групп)
     initSortable() {
         const container = this.container.querySelector('#workout-exercises-container');
         
         if (!container || this.activeExercises.length === 0) return;
 
         if (typeof Sortable !== 'undefined') {
-            // 1. ЕСЛИ УЖЕ ЕСТЬ АКТИВНЫЙ SORTABLE - УБИВАЕМ ЕГО
             if (this.sortableInstance) {
                 this.sortableInstance.destroy();
             }
 
-            // 2. СОЗДАЕМ НОВЫЙ И ЗАПОМИНАЕМ ЕГО В this.sortableInstance
             this.sortableInstance = Sortable.create(container, {
                 handle: '.drag-handle', 
                 animation: 150,         
                 
-                onEnd: (evt) => {
-                    const oldIndex = evt.oldIndex;
-                    const newIndex = evt.newIndex;
+                onEnd: () => {
+                    // Читаем НОВЫЙ порядок прямо с экрана (по DOM-элементам)
+                    const newOrderEls = container.querySelectorAll('.exercise-item-data');
+                    const newExercises = [];
+                    
+                    newOrderEls.forEach(el => {
+                        const originalIndex = parseInt(el.dataset.originalIndex);
+                        newExercises.push(this.activeExercises[originalIndex]);
+                    });
 
-                    if (oldIndex !== newIndex) {
-                        const movedExercise = this.activeExercises.splice(oldIndex, 1)[0];
-                        this.activeExercises.splice(newIndex, 0, movedExercise);
-
-                        this.saveLocalState();
-                        this.renderWorkoutExercises();
+                    // Защита от бага: самое первое упражнение на экране не может быть суперсетом
+                    if (newExercises.length > 0) {
+                        newExercises[0].isSuperset = false;
                     }
+
+                    // Перезаписываем массив в памяти новым порядком
+                    this.activeExercises = newExercises;
+                    
+                    this.saveLocalState();
+                    this.renderWorkoutExercises();
                 }
             });
         }
@@ -399,5 +431,59 @@ export default class WorkoutView {
                 this.renderWorkoutExercises();
             });
         });
+        // ... (после блока checkBtns.forEach) ...
+
+        // 1. Открытие/закрытие меню "Три точки"
+        const menuToggleBtns = this.container.querySelectorAll('.menu-toggle-btn');
+        menuToggleBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = e.target.dataset.index;
+                const menu = this.container.querySelector(`#menu-${index}`);
+                const isActive = menu.classList.contains('active');
+                
+                // Закрываем все открытые меню
+                this.container.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
+                
+                // Если оно не было активно, открываем
+                if (!isActive) {
+                    menu.classList.add('active');
+                }
+                e.stopPropagation(); // Не даем клику уйти дальше
+            });
+        });
+
+        // 2. Логика объединения в Суперсет
+        const toggleSupersetBtns = this.container.querySelectorAll('.toggle-superset-btn');
+        toggleSupersetBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                // Меняем статус суперсета на противоположный
+                this.activeExercises[index].isSuperset = !this.activeExercises[index].isSuperset;
+                this.saveLocalState();
+                this.renderWorkoutExercises();
+            });
+        });
+
+        // 3. Логика удаления упражнения
+        const deleteBtns = this.container.querySelectorAll('.delete-exercise-btn');
+        deleteBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                if (confirm('Точно удалить это упражнение?')) {
+                    // Вырезаем упражнение из памяти
+                    this.activeExercises.splice(index, 1);
+                    this.saveLocalState();
+                    this.renderWorkoutExercises();
+                }
+            });
+        });
+
+        // 4. Закрытие меню при клике в любое пустое место на экране
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.menu-toggle-btn') && !e.target.closest('.exercise-menu')) {
+                const menus = this.container.querySelectorAll('.exercise-menu');
+                if (menus) menus.forEach(m => m.classList.remove('active'));
+            }
+        }, { once: true }); // Вешаем только на 1 клик, чтобы не засорять память
     }
 }

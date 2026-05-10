@@ -254,3 +254,67 @@ body {
     cursor: pointer; 
     margin-top: 5px; 
 }
+/* 10. МЕНЮ УПРАЖНЕНИЙ (Три точки) */
+.exercise-menu {
+    position: absolute;
+    right: 20px;
+    margin-top: 10px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    overflow: hidden;
+    display: none; /* Скрыто по умолчанию */
+    flex-direction: column;
+    width: 200px;
+}
+
+.exercise-menu.active {
+    display: flex;
+}
+
+.menu-item {
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menu-item:last-child {
+    border-bottom: none;
+}
+
+.menu-item:hover {
+    background: var(--bg-color);
+}
+
+.menu-item.danger {
+    color: #ff3b30;
+}
+
+/* 11. ВИЗУАЛ СУПЕРСЕТОВ */
+/* Специальная рамка для упражнений в суперсете */
+.card.superset-card {
+    border-left: 4px solid var(--accent-color);
+    border-radius: 0 16px 16px 0;
+    margin-top: -10px; /* Прижимаем к предыдущему упражнению */
+}
+
+/* Визуальная сцепка (скрепка) между упражнениями */
+.superset-link {
+    text-align: left;
+    margin-left: 20px;
+    margin-top: -15px;
+    margin-bottom: 5px;
+    color: var(--accent-color);
+    font-size: 12px;
+    font-weight: bold;
+}
