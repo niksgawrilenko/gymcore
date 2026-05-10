@@ -255,8 +255,11 @@ export default class WorkoutView {
 
             return `
                 <div class="card" style="margin-bottom: 15px;">
-                    <h4 style="margin-bottom: 15px; display: flex; justify-content: space-between;">
-                        <span>${exIndex + 1}. ${ex.name}</span>
+                    <h4 style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="drag-handle" style="cursor: grab; font-size: 24px; color: var(--text-secondary); padding: 0 5px;">≡</span>
+                            <span>${exIndex + 1}. ${ex.name}</span>
+                        </div>
                         <button style="background: none; border: none; color: var(--text-secondary); font-size: 18px;">⋮</button>
                     </h4>
 
@@ -278,8 +281,40 @@ export default class WorkoutView {
 
         // Важно! После каждой перерисовки нужно заново повесить "слушателей" на новые кнопки
         this.bindSetEvents();
+        this.initSortable();
     }
+    // НОВЫЙ МЕТОД: Инициализация Drag & Drop (с защитой от двойного вызова)
+    initSortable() {
+        const container = this.container.querySelector('#workout-exercises-container');
+        
+        if (!container || this.activeExercises.length === 0) return;
 
+        if (typeof Sortable !== 'undefined') {
+            // 1. ЕСЛИ УЖЕ ЕСТЬ АКТИВНЫЙ SORTABLE - УБИВАЕМ ЕГО
+            if (this.sortableInstance) {
+                this.sortableInstance.destroy();
+            }
+
+            // 2. СОЗДАЕМ НОВЫЙ И ЗАПОМИНАЕМ ЕГО В this.sortableInstance
+            this.sortableInstance = Sortable.create(container, {
+                handle: '.drag-handle', 
+                animation: 150,         
+                
+                onEnd: (evt) => {
+                    const oldIndex = evt.oldIndex;
+                    const newIndex = evt.newIndex;
+
+                    if (oldIndex !== newIndex) {
+                        const movedExercise = this.activeExercises.splice(oldIndex, 1)[0];
+                        this.activeExercises.splice(newIndex, 0, movedExercise);
+
+                        this.saveLocalState();
+                        this.renderWorkoutExercises();
+                    }
+                }
+            });
+        }
+    }
     // НОВЫЙ МЕТОД: Обработка кликов внутри карточек
     bindSetEvents() {
         const addSetBtns = this.container.querySelectorAll('.add-set-btn');
