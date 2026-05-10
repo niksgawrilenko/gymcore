@@ -16,7 +16,20 @@ export class ApiClient {
         }
     }
     
-    // В будущем сюда легко добавятся методы:
-    // async createWorkout(data) { ... }
-    // async saveSets(data) { ... }
+    async saveWorkout(workoutData) {
+        try {
+            const response = await fetch(`${this.baseURL}/workouts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(workoutData) // Превращаем наш State в строку
+            });
+            if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error("Ошибка при сохранении:", error);
+            throw error;
+        }
+    }
 }

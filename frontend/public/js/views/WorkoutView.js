@@ -23,6 +23,9 @@ export default class WorkoutView {
                 <button id="addExerciseBtn" class="primary-btn" style="margin-top: 20px; background-color: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">
                     + Добавить упражнение
                 </button>
+                <button id="finishWorkoutBtn" class="primary-btn" style="margin-top: 15px; background-color: #34c759;">
+                    Завершить тренировку
+                </button>
             </section>
 
             <div id="exerciseModal" class="modal-overlay">
@@ -56,6 +59,44 @@ export default class WorkoutView {
         closeBtn.addEventListener('click', () => {
             modal.classList.remove('active');
         });
+
+        // ... (где-то под обработчиками шторки в bindEvents)
+        
+        const finishBtn = this.container.querySelector('#finishWorkoutBtn');
+        if(finishBtn) {
+            finishBtn.addEventListener('click', async () => {
+                if (this.activeExercises.length === 0) {
+                    alert('Добавьте хотя бы одно упражнение!');
+                    return;
+                }
+
+                // Меняем текст кнопки, чтобы показать процесс
+                finishBtn.innerText = 'Сохранение...';
+                finishBtn.disabled = true;
+
+                // Собираем данные
+                const workoutData = {
+                    title: 'Тренировка Upper/Lower', // Пока хардкодим название
+                    exercises: this.activeExercises
+                };
+
+                try {
+                    // Отправляем на бэкенд
+                    const response = await this.api.saveWorkout(workoutData);
+                    if (response.success) {
+                        // Если всё ок - возвращаем на главный экран
+                        window.location.hash = ''; 
+                    } else {
+                        alert('Ошибка сохранения: ' + response.error);
+                    }
+                } catch (error) {
+                    alert('Ошибка сети!');
+                } finally {
+                    finishBtn.innerText = 'Завершить тренировку';
+                    finishBtn.disabled = false;
+                }
+            });
+        }
     }
 
     // Метод: Идем на бэкенд за списком упражнений
