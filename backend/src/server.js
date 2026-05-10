@@ -1,25 +1,19 @@
-require('dotenv').config(); // Подключаем чтение из .env
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+
+// Импортируем наше подключение и функцию миграции
+const { pool, initDB } = require('./db');
 
 const app = express();
-// Берем порт из .env или используем 5000 как запасной
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 
-// Берем настройки БД из .env
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT,
-});
-
+// 1. Маршрут: Статус сервера
 app.get('/api/status', async (req, res) => {
     try {
-        const dbResponse = await pool.query('SELECT NOW() as db_time, version() as db_version');
+        const dbResponse = await pool.query('SELECT NOW() as db_time');
         res.json({
             success: true,
             message: 'GymCore Backend (Secure Mode) is connected!',
@@ -31,9 +25,23 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`=================================`);
-    console.log(`🚀 Сервер GymCore запущен!`);
-    console.log(`🌐 Адрес API: http://localhost:${port}/api/status`);
-    console.log(`=================================`);
+// 2. Маршрут: Получение упражнений
+app.get('/api/exercises', async (req, res) => {
+    try {
+        const dbResponse = await pool.query('SELECT * FROM exercises ORDER BY name ASC');
+        res.json({ success: true, data: dbResponse.rows });
+    } catch (error) {
+        console.error('Ошибка получения упражнений:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Сначала инициализируем базу данных, а только потом запускаем сервер
+initDB().then(() => {
+    app.listen(port, () => {
+        console.log(`=================================`);
+        console.log(`🚀 Сервер GymCore запущен!`);
+        console.log(`🌐 Адрес API: http://localhost:${port}/api/status`);
+        console.log(`=================================`);
+    });
 });

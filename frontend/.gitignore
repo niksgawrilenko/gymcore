@@ -4,7 +4,7 @@ backend/node_modules/
 frontend/node_modules/
 
 # Секретные файлы (пароли и порты)
-.env
+backend/.env
 
 # Логи
 npm-debug.log*
