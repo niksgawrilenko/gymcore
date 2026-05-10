@@ -36,7 +36,8 @@ app.get('/api/exercises', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-// Получение истории тренировок (сортировка от новых к старым)
+
+// 3. Получение истории тренировок (сортировка от новых к старым)
 app.get('/api/workouts', async (req, res) => {
     try {
         const dbResponse = await pool.query(`
@@ -51,7 +52,8 @@ app.get('/api/workouts', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-// Получение списка шаблонов
+
+// 4. Получение списка шаблонов
 app.get('/api/templates', async (req, res) => {
     try {
         const dbResponse = await pool.query('SELECT * FROM templates ORDER BY id ASC');
@@ -61,7 +63,8 @@ app.get('/api/templates', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-// Получить конкретный шаблон с его упражнениями
+
+// 5. Получить конкретный шаблон с его упражнениями
 app.get('/api/templates/:id', async (req, res) => {
     try {
         const templateId = req.params.id;
@@ -88,10 +91,11 @@ app.get('/api/templates/:id', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-// НОВЫЙ МАРШРУТ: Сохранение тренировки
+
+// 6. ОБНОВЛЕННЫЙ МАРШРУТ: Сохранение тренировки
 app.post('/api/workouts', async (req, res) => {
-    // Получаем данные от фронтенда
-    const { title, exercises } = req.body;
+    // Получаем данные от фронтенда (добавили template_id)
+    const { title, template_id, exercises } = req.body;
     
     // Подключаемся для сложной операции (Транзакции)
     const client = await pool.connect(); 
@@ -99,10 +103,10 @@ app.post('/api/workouts', async (req, res) => {
     try {
         await client.query('BEGIN'); // Начинаем запись. Если где-то будет ошибка, всё отменится
 
-        // 1. Создаем запись о тренировке в календаре
+        // 1. Создаем запись о тренировке в календаре (теперь с привязкой к ID шаблона)
         const workoutRes = await client.query(
-            'INSERT INTO workouts (title) VALUES ($1) RETURNING id',
-            [title || 'Новая тренировка']
+            'INSERT INTO workouts (title, template_id) VALUES ($1, $2) RETURNING id',
+            [title || 'Новая тренировка', template_id || null]
         );
         const workoutId = workoutRes.rows[0].id;
 
@@ -110,9 +114,10 @@ app.post('/api/workouts', async (req, res) => {
         for (let i = 0; i < exercises.length; i++) {
             const ex = exercises[i];
             
+            // ИЗМЕНЕННЫЙ ЗАПРОС: Добавили сохранение superset_id
             const weRes = await client.query(
-                'INSERT INTO workout_exercises (workout_id, exercise_id, sort_order) VALUES ($1, $2, $3) RETURNING id',
-                [workoutId, ex.id, i]
+                'INSERT INTO workout_exercises (workout_id, exercise_id, sort_order, superset_id) VALUES ($1, $2, $3, $4) RETURNING id',
+                [workoutId, ex.id, i, ex.superset_id || null]
             );
             const weId = weRes.rows[0].id;
 
@@ -138,6 +143,7 @@ app.post('/api/workouts', async (req, res) => {
         client.release();
     }
 });
+
 // Сначала инициализируем базу данных, а только потом запускаем сервер
 initDB().then(() => {
     app.listen(port, () => {

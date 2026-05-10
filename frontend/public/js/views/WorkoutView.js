@@ -163,18 +163,47 @@ export default class WorkoutView {
                 finishBtn.innerText = 'Сохранение...';
                 finishBtn.disabled = true;
 
-                // ТЕПЕРЬ ПЕРЕДАЕМ ПРАВИЛЬНЫЕ ДАННЫЕ В БАЗУ
+                // ЛОГИКА ГЕНЕРАЦИИ СУПЕРСЕТОВ ДЛЯ БАЗЫ
+                let currentSupersetId = null;
+                const preparedExercises = this.activeExercises.map((ex, index) => {
+                    const nextEx = this.activeExercises[index + 1];
+                    
+                    // Если это упражнение помечено как суперсет, оно приклеивается к предыдущему.
+                    // Если следующее упражнение помечено как суперсет — значит, текущее является началом цепочки.
+                    
+                    if (nextEx && nextEx.isSuperset) {
+                        // Если у нас еще нет активного ID для этой группы, создаем его
+                        if (!currentSupersetId) currentSupersetId = `ss_${Date.now()}_${index}`;
+                    } else if (!ex.isSuperset) {
+                        // Если текущее не суперсет и следующее не суперсет — цепочка закончилась
+                        currentSupersetId = null;
+                    }
+                    
+                    // Если это последнее упражнение в суперсете (isSuperset = true, а следующее - нет),
+                    // используем текущий ID и зануляем его для следующего одиночного упражнения.
+                    const finalId = ex.isSuperset || (nextEx && nextEx.isSuperset) ? currentSupersetId : null;
+                    if (ex.isSuperset && (!nextEx || !nextEx.isSuperset)) {
+                        currentSupersetId = null; 
+                    }
+
+                    return {
+                        ...ex,
+                        superset_id: finalId
+                    };
+                });
+
                 const workoutData = {
-                    title: this.workoutTitle, // <--- Подставляем имя шаблона
-                    template_id: this.templateId, // <--- И его ID
-                    exercises: this.activeExercises
+                    title: this.workoutTitle,
+                    template_id: this.templateId,
+                    exercises: preparedExercises // Отправляем упражнения с проставленными ID суперсетов
                 };
 
                 try {
                     const response = await this.api.saveWorkout(workoutData);
                     if (response.success) {
-                        clearInterval(this.timerInterval); // Останавливаем таймер
-                        window.location.hash = ''; // Возвращаемся на главную
+                        clearInterval(this.timerInterval);
+                        localStorage.removeItem('gymcore_active_workout'); 
+                        window.location.hash = ''; 
                     } else {
                         alert('Ошибка сохранения: ' + response.error);
                     }
