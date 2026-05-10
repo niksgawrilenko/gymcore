@@ -15,6 +15,30 @@ export class ApiClient {
             throw error;
         }
     }
+    // ... после метода getExercises() добавь:
+
+    async getWorkouts() {
+        try {
+            const response = await fetch(`${this.baseURL}/workouts`);
+            if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error("API Error:", error);
+            throw error;
+        }
+    }
+    // ... после метода getWorkouts() добавь:
+    
+    async getTemplates() {
+        try {
+            const response = await fetch(`${this.baseURL}/templates`);
+            if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error("Ошибка загрузки шаблонов:", error);
+            throw error;
+        }
+    }
     
     async saveWorkout(workoutData) {
         try {

@@ -36,6 +36,31 @@ app.get('/api/exercises', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+// Получение истории тренировок (сортировка от новых к старым)
+app.get('/api/workouts', async (req, res) => {
+    try {
+        const dbResponse = await pool.query(`
+            SELECT id, title, workout_date 
+            FROM workouts 
+            ORDER BY workout_date DESC 
+            LIMIT 50
+        `);
+        res.json({ success: true, data: dbResponse.rows });
+    } catch (error) {
+        console.error('Ошибка получения истории:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+// Получение списка шаблонов
+app.get('/api/templates', async (req, res) => {
+    try {
+        const dbResponse = await pool.query('SELECT * FROM templates ORDER BY id ASC');
+        res.json({ success: true, data: dbResponse.rows });
+    } catch (error) {
+        console.error('Ошибка получения шаблонов:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 // НОВЫЙ МАРШРУТ: Сохранение тренировки
 app.post('/api/workouts', async (req, res) => {
     // Получаем данные от фронтенда

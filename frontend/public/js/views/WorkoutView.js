@@ -1,11 +1,15 @@
-// frontend/public/js/views/WorkoutView.js
 export default class WorkoutView {
     constructor(container, api) {
         this.container = container;
         this.api = api;
         
-        // Состояние нашей тренировки (State)
+        // Читаем, какую тренировку выбрал юзер (или ставим по умолчанию)
+        this.workoutTitle = sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка';
+        this.templateId = sessionStorage.getItem('currentTemplateId') || null;
+        
         this.activeExercises = []; 
+        this.startTime = Date.now(); // Запоминаем время старта
+        this.timerInterval = null;
         
         this.render();
     }
@@ -14,8 +18,8 @@ export default class WorkoutView {
         this.container.innerHTML = `
             <section style="padding-bottom: 80px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 class="section-title" style="margin: 0;">Тренировка</h2>
-                    <span style="color: var(--text-secondary); font-weight: bold;">00:00</span>
+                    <h2 class="section-title" style="margin: 0;">${this.workoutTitle}</h2>
+                    <span id="workoutTimer" style="color: var(--text-secondary); font-weight: bold;">00:00</span>
                 </div>
                 
                 <div id="workout-exercises-container"></div>
@@ -23,6 +27,7 @@ export default class WorkoutView {
                 <button id="addExerciseBtn" class="primary-btn" style="margin-top: 20px; background-color: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">
                     + Добавить упражнение
                 </button>
+
                 <button id="finishWorkoutBtn" class="primary-btn" style="margin-top: 15px; background-color: #34c759;">
                     Завершить тренировку
                 </button>
@@ -42,8 +47,31 @@ export default class WorkoutView {
         `;
 
         this.bindEvents();
+        this.startTimer(); // Запускаем таймер!
+        this.renderWorkoutExercises();
     }
 
+    // НОВЫЙ МЕТОД: Логика таймера
+    startTimer() {
+        const timerElement = this.container.querySelector('#workoutTimer');
+        
+        this.timerInterval = setInterval(() => {
+            // Если мы ушли с экрана тренировки, останавливаем таймер в фоне
+            if (!document.body.contains(timerElement)) {
+                clearInterval(this.timerInterval);
+                return;
+            }
+
+            // Считаем разницу в секундах
+            const diffInSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+            const minutes = String(Math.floor(diffInSeconds / 60)).padStart(2, '0');
+            const seconds = String(diffInSeconds % 60).padStart(2, '0');
+            
+            timerElement.innerText = `${minutes}:${seconds}`;
+        }, 1000);
+    }
+    
+    // ... (остальные методы addExerciseToWorkout, renderWorkoutExercises оставляем без изменений)
     bindEvents() {
         const addBtn = this.container.querySelector('#addExerciseBtn');
         const closeBtn = this.container.querySelector('#closeModalBtn');
@@ -70,22 +98,21 @@ export default class WorkoutView {
                     return;
                 }
 
-                // Меняем текст кнопки, чтобы показать процесс
                 finishBtn.innerText = 'Сохранение...';
                 finishBtn.disabled = true;
 
-                // Собираем данные
+                // ТЕПЕРЬ ПЕРЕДАЕМ ПРАВИЛЬНЫЕ ДАННЫЕ В БАЗУ
                 const workoutData = {
-                    title: 'Тренировка Upper/Lower', // Пока хардкодим название
+                    title: this.workoutTitle, // <--- Подставляем имя шаблона
+                    template_id: this.templateId, // <--- И его ID
                     exercises: this.activeExercises
                 };
 
                 try {
-                    // Отправляем на бэкенд
                     const response = await this.api.saveWorkout(workoutData);
                     if (response.success) {
-                        // Если всё ок - возвращаем на главный экран
-                        window.location.hash = ''; 
+                        clearInterval(this.timerInterval); // Останавливаем таймер
+                        window.location.hash = ''; // Возвращаемся на главную
                     } else {
                         alert('Ошибка сохранения: ' + response.error);
                     }
