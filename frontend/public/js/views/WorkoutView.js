@@ -1,21 +1,18 @@
+// frontend/public/js/views/WorkoutView.js
 export default class WorkoutView {
     constructor(container, api) {
         this.container = container;
         this.api = api;
         
-        // 1. ПРОВЕРЯЕМ, ЕСТЬ ЛИ НЕДОДЕЛАННАЯ ТРЕНИРОВКА В ПАМЯТИ
         const savedState = localStorage.getItem('gymcore_active_workout');
         
         if (savedState) {
-            // ВОССТАНАВЛИВАЕМ ИЗ ПАМЯТИ
             const parsedState = JSON.parse(savedState);
             this.workoutTitle = parsedState.workoutTitle;
             this.templateId = parsedState.templateId;
             this.activeExercises = parsedState.activeExercises;
-            this.startTime = parsedState.startTime;
-            console.log('Восстановлена прерванная тренировка');
+            this.startTime = parsedState.startTime; // Это также служит датой тренировки
         } else {
-            // ЕСЛИ НЕТ - НАЧИНАЕМ НОВУЮ
             this.workoutTitle = sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка';
             this.templateId = sessionStorage.getItem('currentTemplateId') || null;
             this.activeExercises = []; 
@@ -23,19 +20,15 @@ export default class WorkoutView {
         }
 
         this.timerInterval = null;
-        
         this.render();
 
-        // 2. ЕСЛИ ЭТО НОВАЯ ТРЕНИРОВКА С ШАБЛОНОМ - ГРУЗИМ УПРАЖНЕНИЯ
         if (!savedState) {
             this.loadTemplateData(); 
         } else {
-            // ЕСЛИ ВОССТАНОВИЛИ - ПРОСТО РИСУЕМ
             this.renderWorkoutExercises();
         }
     }
 
-    // НОВЫЙ МЕТОД: Сохраняет всё в память телефона
     saveLocalState() {
         const state = {
             workoutTitle: this.workoutTitle,
@@ -47,11 +40,24 @@ export default class WorkoutView {
     }
 
     render() {
+        // Форматируем дату для input datetime-local
+        const date = new Date(this.startTime);
+        const tzOffset = date.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(date - tzOffset)).toISOString().slice(0, 16);
+
         this.container.innerHTML = `
             <section style="padding-bottom: 80px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 class="section-title" style="margin: 0;">${this.workoutTitle}</h2>
-                    <span id="workoutTimer" style="color: var(--text-secondary); font-weight: bold;">00:00</span>
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="workoutTitleInput" 
+                        style="font-size: 24px; font-weight: bold; width: 100%; background: none; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-primary); padding: 5px 0; outline: none; margin-bottom: 10px;" 
+                        value="${this.workoutTitle}" placeholder="Название тренировки">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <input type="datetime-local" id="workoutDateInput" 
+                            style="background: var(--surface-color); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 10px; font-size: 14px; outline: none;" 
+                            value="${localISOTime}">
+                        <span id="workoutTimer" style="color: var(--text-secondary); font-weight: bold; font-family: monospace; font-size: 18px;">00:00</span>
+                    </div>
                 </div>
                 
                 <div id="workout-exercises-container">
@@ -82,54 +88,41 @@ export default class WorkoutView {
 
         this.bindEvents();
         this.startTimer(); 
-
     }
 
-    // НОВЫЙ МЕТОД: Автозагрузка упражнений из шаблона
     async loadTemplateData() {
         if (!this.templateId) {
             this.renderWorkoutExercises();
             return;
         }
-
         try {
             const response = await this.api.getTemplateById(this.templateId);
             if (response.success) {
-                const templateExercises = response.data.exercises;
-                this.activeExercises = templateExercises.map(ex => ({
+                this.activeExercises = response.data.exercises.map(ex => ({
                     id: ex.id,
                     name: ex.name,
                     category: ex.category,
-                    exercise_type: ex.exercise_type, // <--- МЫ ЗАБЫЛИ ЭТУ СТРОЧКУ!
+                    exercise_type: ex.exercise_type,
                     sets: [{ weight: '', reps: '', completed: false }]
                 }));
-                
                 this.saveLocalState();
                 this.renderWorkoutExercises();
             }
         } catch (error) {
             console.error('Ошибка загрузки шаблона:', error);
-            this.container.querySelector('#workout-exercises-container').innerHTML = 
-                '<div class="card empty-state" style="color: red;">Ошибка загрузки шаблона</div>';
         }
     }
 
-    // НОВЫЙ МЕТОД: Логика таймера
     startTimer() {
         const timerElement = this.container.querySelector('#workoutTimer');
-        
         this.timerInterval = setInterval(() => {
-            // Если мы ушли с экрана тренировки, останавливаем таймер в фоне
             if (!document.body.contains(timerElement)) {
                 clearInterval(this.timerInterval);
                 return;
             }
-
-            // Считаем разницу в секундах
             const diffInSeconds = Math.floor((Date.now() - this.startTime) / 1000);
-            const minutes = String(Math.floor(diffInSeconds / 60)).padStart(2, '0');
-            const seconds = String(diffInSeconds % 60).padStart(2, '0');
-            
+            const minutes = String(Math.floor(Math.max(0, diffInSeconds) / 60)).padStart(2, '0');
+            const seconds = String(Math.floor(Math.max(0, diffInSeconds) % 60)).padStart(2, '0');
             timerElement.innerText = `${minutes}:${seconds}`;
         }, 1000);
     }
@@ -138,19 +131,29 @@ export default class WorkoutView {
         const addBtn = this.container.querySelector('#addExerciseBtn');
         const closeBtn = this.container.querySelector('#closeModalBtn');
         const modal = this.container.querySelector('#exerciseModal');
+        const titleInput = this.container.querySelector('#workoutTitleInput');
+        const dateInput = this.container.querySelector('#workoutDateInput');
 
-        // Открытие шторки
-        addBtn.addEventListener('click', () => {
-            modal.classList.add('active');
-            this.loadExercisesIntoModal(); // Загружаем список из БД
+        // Живое редактирование заголовка
+        titleInput.addEventListener('input', (e) => {
+            this.workoutTitle = e.target.value;
+            this.saveLocalState();
         });
 
-        // Закрытие шторки
+        // Изменение даты тренировки
+        dateInput.addEventListener('change', (e) => {
+            this.startTime = new Date(e.target.value).getTime();
+            this.saveLocalState();
+        });
+
+        addBtn.addEventListener('click', () => {
+            modal.classList.add('active');
+            this.loadExercisesIntoModal();
+        });
+
         closeBtn.addEventListener('click', () => {
             modal.classList.remove('active');
         });
-
-        // ... (где-то под обработчиками шторки в bindEvents)
         
         const finishBtn = this.container.querySelector('#finishWorkoutBtn');
         if(finishBtn) {
@@ -163,39 +166,26 @@ export default class WorkoutView {
                 finishBtn.innerText = 'Сохранение...';
                 finishBtn.disabled = true;
 
-                // ЛОГИКА ГЕНЕРАЦИИ СУПЕРСЕТОВ ДЛЯ БАЗЫ
+                // Подготовка суперсетов
                 let currentSupersetId = null;
                 const preparedExercises = this.activeExercises.map((ex, index) => {
                     const nextEx = this.activeExercises[index + 1];
-                    
-                    // Если это упражнение помечено как суперсет, оно приклеивается к предыдущему.
-                    // Если следующее упражнение помечено как суперсет — значит, текущее является началом цепочки.
-                    
                     if (nextEx && nextEx.isSuperset) {
-                        // Если у нас еще нет активного ID для этой группы, создаем его
                         if (!currentSupersetId) currentSupersetId = `ss_${Date.now()}_${index}`;
                     } else if (!ex.isSuperset) {
-                        // Если текущее не суперсет и следующее не суперсет — цепочка закончилась
                         currentSupersetId = null;
                     }
-                    
-                    // Если это последнее упражнение в суперсете (isSuperset = true, а следующее - нет),
-                    // используем текущий ID и зануляем его для следующего одиночного упражнения.
                     const finalId = ex.isSuperset || (nextEx && nextEx.isSuperset) ? currentSupersetId : null;
-                    if (ex.isSuperset && (!nextEx || !nextEx.isSuperset)) {
-                        currentSupersetId = null; 
-                    }
+                    if (ex.isSuperset && (!nextEx || !nextEx.isSuperset)) currentSupersetId = null;
 
-                    return {
-                        ...ex,
-                        superset_id: finalId
-                    };
+                    return { ...ex, superset_id: finalId };
                 });
 
                 const workoutData = {
                     title: this.workoutTitle,
                     template_id: this.templateId,
-                    exercises: preparedExercises // Отправляем упражнения с проставленными ID суперсетов
+                    workout_date: new Date(this.startTime), // Отправляем выбранную дату
+                    exercises: preparedExercises
                 };
 
                 try {
@@ -217,13 +207,13 @@ export default class WorkoutView {
         }
     }
 
-    // Метод: Идем на бэкенд за списком упражнений
     async loadExercisesIntoModal() {
         const modalList = this.container.querySelector('#modalList');
+        const modal = this.container.querySelector('#exerciseModal'); // Добавили определение модалки здесь
+
         try {
             const response = await this.api.getExercises();
             if (response.success) {
-                // Рисуем список
                 modalList.innerHTML = response.data.map(ex => `
                     <div class="exercise-list-item" data-id="${ex.id}" data-name="${ex.name}" data-type="${ex.exercise_type}">
                         <div style="font-weight: 600;">${ex.name}</div>
@@ -231,48 +221,41 @@ export default class WorkoutView {
                     </div>
                 `).join('');
 
-                const items = modalList.querySelectorAll('.exercise-list-item');
-                items.forEach(item => {
+                modalList.querySelectorAll('.exercise-list-item').forEach(item => {
                     item.addEventListener('click', () => {
                         this.addExerciseToWorkout({
                             id: item.dataset.id,
                             name: item.dataset.name,
-                            exercise_type: item.dataset.type // <--- ПЕРЕДАЕМ ТИП!
+                            exercise_type: item.dataset.type
                         });
-                        this.container.querySelector('#exerciseModal').classList.remove('active');
+                        // Теперь переменная modal определена, и шторка скроется
+                        modal.classList.remove('active');
                     });
                 });
             }
         } catch (error) {
-            modalList.innerHTML = '<div style="color: red; text-align: center;">Ошибка загрузки</div>';
+            modalList.innerHTML = '<div style="text-align: center; padding: 20px;">Ошибка загрузки упражнений</div>';
         }
     }
 
-
-    // Метод: Добавляем выбранное упражнение в текущую тренировку
     addExerciseToWorkout(exercise) {
         this.activeExercises.push({
             ...exercise,
-            // Сразу добавляем один пустой подход для удобства
             sets: [{ weight: '', reps: '', completed: false }] 
         });
         this.saveLocalState();
         this.renderWorkoutExercises();
     }
 
-    // Метод: Перерисовка экрана тренировки
     renderWorkoutExercises() {
         const container = this.container.querySelector('#workout-exercises-container');
-        
         if (this.activeExercises.length === 0) {
             container.innerHTML = '<div class="card empty-state">Список пуст. Добавьте упражнение.</div>';
             return;
         }
 
-        // 1. Разбиваем плоский массив на ГРУППЫ
         let htmlBlocks = [];
         let currentGroup = [];
-
         this.activeExercises.forEach((ex, exIndex) => {
             if (ex.isSuperset && exIndex > 0) {
                 currentGroup.push({ ex, index: exIndex });
@@ -283,236 +266,142 @@ export default class WorkoutView {
         });
         if (currentGroup.length > 0) htmlBlocks.push(currentGroup);
 
-        // 2. Рендерим
         container.innerHTML = htmlBlocks.map(group => {
             const isSupersetGroup = group.length > 1;
-
             const cardsHTML = group.map((item, idxInGroup) => {
                 const ex = item.ex;
                 const exIndex = item.index;
                 const isCardio = ex.exercise_type === 'cardio';
-
                 const headerHTML = isCardio 
-                    ? `<div class="set-header"><div>П-Д</div><div>ВРЕМЯ (мин)</div><div>ДИСТАНЦИЯ (м)</div><div>✓</div></div>`
-                    : `<div class="set-header"><div>П-Д</div><div>ВЕС (кг)</div><div>ПОВТОРЫ</div><div>✓</div></div>`;
+                    ? `<div class="set-header"><div>П-Д</div><div>ВРЕМЯ</div><div>МЕТРЫ</div><div>✓</div></div>`
+                    : `<div class="set-header"><div>П-Д</div><div>ВЕС</div><div>ПОВТОРЫ</div><div>✓</div></div>`;
 
                 const setsHTML = ex.sets.map((set, setIndex) => `
                     <div class="set-row" data-ex-index="${exIndex}" data-set-index="${setIndex}">
                         <div class="set-number">${setIndex + 1}</div>
-                        <input type="number" class="set-input weight-input" placeholder="${isCardio ? 'мин' : 'кг'}" value="${set.weight || ''}" ${set.completed ? 'disabled' : ''}>
-                        <input type="number" class="set-input reps-input" placeholder="${isCardio ? 'метры' : 'раз'}" value="${set.reps || ''}" ${set.completed ? 'disabled' : ''}>
+                        <input type="number" class="set-input weight-input" placeholder="${isCardio ? 'мин' : 'кг'}" value="${set.weight || ''}">
+                        <input type="number" class="set-input reps-input" placeholder="${isCardio ? 'м' : 'раз'}" value="${set.reps || ''}">
                         <button class="set-check ${set.completed ? 'completed' : ''}">✓</button>
                     </div>
                 `).join('');
 
-                // 🔥 ВИЗУАЛЬНАЯ МАГИЯ: Склеиваем карточки суперсета в одну!
                 const cardClass = isSupersetGroup ? 'card superset-card' : 'card';
-                let inlineStyle = `position: relative; `;
-                
+                let style = `position: relative; `;
                 if (isSupersetGroup) {
-                    inlineStyle += `margin-bottom: 0; `; // Убираем отступ между ними
-                    // Скругляем только верх самого первого и низ самого последнего
-                    if (idxInGroup === 0) inlineStyle += `border-radius: 16px 16px 0 0; `;
-                    else if (idxInGroup === group.length - 1) inlineStyle += `border-radius: 0 0 16px 16px; `;
-                    else inlineStyle += `border-radius: 0; `;
-
-                    // Рисуем пунктир между упражнениями
-                    if (idxInGroup < group.length - 1) inlineStyle += `border-bottom: 1px dashed var(--border-color); `;
+                    style += `margin-bottom: 0; `;
+                    if (idxInGroup === 0) style += `border-radius: 16px 16px 0 0; `;
+                    else if (idxInGroup === group.length - 1) style += `border-radius: 0 0 16px 16px; `;
+                    else style += `border-radius: 0; `;
+                    if (idxInGroup < group.length - 1) style += `border-bottom: 1px dashed var(--border-color); `;
                 } else {
-                    inlineStyle += `margin-bottom: 15px; border-radius: 16px; `;
+                    style += `margin-bottom: 15px; border-radius: 16px; `;
                 }
 
-                // Бирка Суперсета рисуется только 1 раз в самом верху группы
-                const supersetBadge = (isSupersetGroup && idxInGroup === 0)
-                    ? `<div style="color: var(--accent-color); font-size: 13px; font-weight: bold; margin-bottom: 10px;">🔗 Суперсет</div>`
-                    : '';
-
                 return `
-                    <div class="${cardClass} exercise-item-data" data-original-index="${exIndex}" style="${inlineStyle}">
-                        ${supersetBadge}
-
+                    <div class="${cardClass} exercise-item-data" data-original-index="${exIndex}" style="${style}">
+                        ${(isSupersetGroup && idxInGroup === 0) ? `<div style="color: var(--accent-color); font-size: 13px; font-weight: bold; margin-bottom: 10px;">🔗 Суперсет</div>` : ''}
                         <h4 style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <span class="drag-handle" style="cursor: grab; font-size: 24px; color: var(--text-secondary); padding: 0 5px;">≡</span>
-                                <span>${exIndex + 1}. ${ex.name} <span style="font-size: 12px; color: var(--text-secondary); font-weight: normal;">${isCardio ? '🏃' : '🏋️'}</span></span>
+                                <span>${exIndex + 1}. ${ex.name} ${isCardio ? '🏃' : '🏋️'}</span>
                             </div>
                             <button class="menu-toggle-btn" data-index="${exIndex}" style="background: none; border: none; color: var(--text-secondary); font-size: 18px; cursor: pointer;">⋮</button>
                         </h4>
-
                         <div class="exercise-menu" id="menu-${exIndex}">
-                            ${exIndex > 0 ? `
-                            <button class="menu-item toggle-superset-btn" data-index="${exIndex}">
-                                🔗 ${ex.isSuperset ? 'Открепить суперсет' : 'Объединить с предыдущим'}
-                            </button>` : ''}
-                            <button class="menu-item danger delete-exercise-btn" data-index="${exIndex}">
-                                🗑️ Удалить упражнение
-                            </button>
+                            ${exIndex > 0 ? `<button class="menu-item toggle-superset-btn" data-index="${exIndex}">🔗 ${ex.isSuperset ? 'Открепить' : 'Суперсет'}</button>` : ''}
+                            <button class="menu-item danger delete-exercise-btn" data-index="${exIndex}">🗑 Удалить</button>
                         </div>
-
                         ${headerHTML}
-                        <div class="sets-container">
-                            ${setsHTML}
-                        </div>
-                        <button class="add-set-btn" data-ex-index="${exIndex}">+ Добавить подход</button>
+                        <div class="sets-container">${setsHTML}</div>
+                        <button class="add-set-btn" data-ex-index="${exIndex}">+ Подход</button>
                     </div>
                 `;
             }).join('');
-
-            // Убрали gap между карточками внутри контейнера, так как они теперь слиплись
             return `<div class="sortable-group" style="display: flex; flex-direction: column; margin-bottom: 15px;">${cardsHTML}</div>`;
         }).join('');
 
         this.bindSetEvents();
         this.initSortable();
     }
-    // НОВЫЙ МЕТОД: Инициализация Drag & Drop (с умной сортировкой групп)
+
     initSortable() {
         const container = this.container.querySelector('#workout-exercises-container');
-        
-        if (!container || this.activeExercises.length === 0) return;
+        if (!container || this.activeExercises.length === 0 || typeof Sortable === 'undefined') return;
+        if (this.sortableInstance) this.sortableInstance.destroy();
 
-        if (typeof Sortable !== 'undefined') {
-            if (this.sortableInstance) {
-                this.sortableInstance.destroy();
+        this.sortableInstance = Sortable.create(container, {
+            handle: '.drag-handle', animation: 150,
+            onEnd: () => {
+                const newOrderEls = container.querySelectorAll('.exercise-item-data');
+                this.activeExercises = Array.from(newOrderEls).map(el => this.activeExercises[parseInt(el.dataset.originalIndex)]);
+                if (this.activeExercises.length > 0) this.activeExercises[0].isSuperset = false;
+                this.saveLocalState();
+                this.renderWorkoutExercises();
             }
-
-            this.sortableInstance = Sortable.create(container, {
-                handle: '.drag-handle', 
-                animation: 150,         
-                
-                onEnd: () => {
-                    // Читаем НОВЫЙ порядок прямо с экрана (по DOM-элементам)
-                    const newOrderEls = container.querySelectorAll('.exercise-item-data');
-                    const newExercises = [];
-                    
-                    newOrderEls.forEach(el => {
-                        const originalIndex = parseInt(el.dataset.originalIndex);
-                        newExercises.push(this.activeExercises[originalIndex]);
-                    });
-
-                    // Защита от бага: самое первое упражнение на экране не может быть суперсетом
-                    if (newExercises.length > 0) {
-                        newExercises[0].isSuperset = false;
-                    }
-
-                    // Перезаписываем массив в памяти новым порядком
-                    this.activeExercises = newExercises;
-                    
-                    this.saveLocalState();
-                    this.renderWorkoutExercises();
-                }
-            });
-        }
+        });
     }
-    // НОВЫЙ МЕТОД: Обработка кликов внутри карточек
+
     bindSetEvents() {
-        const addSetBtns = this.container.querySelectorAll('.add-set-btn');
-        addSetBtns.forEach(btn => {
+        this.container.querySelectorAll('.add-set-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const exIndex = e.target.dataset.exIndex;
-                this.activeExercises[exIndex].sets.push({ weight: '', reps: '', completed: false });
-                
-                this.saveLocalState(); // <--- СОХРАНЯЕМ
-                this.renderWorkoutExercises();
-            });
-        });
-
-        // НОВОЕ: Сохраняем вес и повторы ПРЯМО ВО ВРЕМЯ ВВОДА
-        const weightInputs = this.container.querySelectorAll('.weight-input');
-        const repsInputs = this.container.querySelectorAll('.reps-input');
-
-        weightInputs.forEach(input => {
-            input.addEventListener('input', (e) => {
-                const row = e.target.closest('.set-row');
-                this.activeExercises[row.dataset.exIndex].sets[row.dataset.setIndex].weight = e.target.value;
-                this.saveLocalState(); // <--- СОХРАНЯЕМ КАЖДУЮ ЦИФРУ
-            });
-        });
-
-        repsInputs.forEach(input => {
-            input.addEventListener('input', (e) => {
-                const row = e.target.closest('.set-row');
-                this.activeExercises[row.dataset.exIndex].sets[row.dataset.setIndex].reps = e.target.value;
-                this.saveLocalState(); // <--- СОХРАНЯЕМ КАЖДУЮ ЦИФРУ
-            });
-        });
-
-        const checkBtns = this.container.querySelectorAll('.set-check');
-        checkBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const row = e.target.closest('.set-row');
-                const exIndex = row.dataset.exIndex;
-                const setIndex = row.dataset.setIndex;
-
-                // Считываем то, что юзер ввел в инпуты
-                const weightVal = row.querySelector('.weight-input').value;
-                const repsVal = row.querySelector('.reps-input').value;
-
-                // Сохраняем значения в наш State (память)
-                this.activeExercises[exIndex].sets[setIndex].weight = weightVal;
-                this.activeExercises[exIndex].sets[setIndex].reps = repsVal;
-                
-                // Переключаем статус "Выполнено" (true/false)
-                this.activeExercises[exIndex].sets[setIndex].completed = !this.activeExercises[exIndex].sets[setIndex].completed;
-                
-                // Сохраняем и перерисовываем
+                this.activeExercises[e.target.dataset.exIndex].sets.push({ weight: '', reps: '', completed: false });
                 this.saveLocalState();
                 this.renderWorkoutExercises();
             });
         });
-        // ... (после блока checkBtns.forEach) ...
 
-        // 1. Открытие/закрытие меню "Три точки"
-        const menuToggleBtns = this.container.querySelectorAll('.menu-toggle-btn');
-        menuToggleBtns.forEach(btn => {
+        ['weight-input', 'reps-input'].forEach(cls => {
+            this.container.querySelectorAll(`.${cls}`).forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const row = e.target.closest('.set-row');
+                    const field = cls.split('-')[0];
+                    this.activeExercises[row.dataset.exIndex].sets[row.dataset.setIndex][field] = e.target.value;
+                    this.saveLocalState();
+                });
+            });
+        });
+
+        this.container.querySelectorAll('.set-check').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const index = e.target.dataset.index;
-                const menu = this.container.querySelector(`#menu-${index}`);
-                const isActive = menu.classList.contains('active');
-                
-                // Закрываем все открытые меню
+                const row = e.target.closest('.set-row');
+                const set = this.activeExercises[row.dataset.exIndex].sets[row.dataset.setIndex];
+                set.completed = !set.completed;
+                this.saveLocalState();
+                this.renderWorkoutExercises();
+            });
+        });
+
+        this.container.querySelectorAll('.menu-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const menu = this.container.querySelector(`#menu-${e.target.dataset.index}`);
+                const wasActive = menu.classList.contains('active');
                 this.container.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
-                
-                // Если оно не было активно, открываем
-                if (!isActive) {
-                    menu.classList.add('active');
-                }
-                e.stopPropagation(); // Не даем клику уйти дальше
+                if (!wasActive) menu.classList.add('active');
+                e.stopPropagation();
             });
         });
 
-        // 2. Логика объединения в Суперсет
-        const toggleSupersetBtns = this.container.querySelectorAll('.toggle-superset-btn');
-        toggleSupersetBtns.forEach(btn => {
+        this.container.querySelectorAll('.toggle-superset-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const index = parseInt(e.target.dataset.index);
-                // Меняем статус суперсета на противоположный
-                this.activeExercises[index].isSuperset = !this.activeExercises[index].isSuperset;
+                const ex = this.activeExercises[parseInt(e.target.dataset.index)];
+                ex.isSuperset = !ex.isSuperset;
                 this.saveLocalState();
                 this.renderWorkoutExercises();
             });
         });
 
-        // 3. Логика удаления упражнения
-        const deleteBtns = this.container.querySelectorAll('.delete-exercise-btn');
-        deleteBtns.forEach(btn => {
+        this.container.querySelectorAll('.delete-exercise-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const index = parseInt(e.target.dataset.index);
-                if (confirm('Точно удалить это упражнение?')) {
-                    // Вырезаем упражнение из памяти
-                    this.activeExercises.splice(index, 1);
+                if (confirm('Удалить упражнение?')) {
+                    this.activeExercises.splice(parseInt(e.target.dataset.index), 1);
                     this.saveLocalState();
                     this.renderWorkoutExercises();
                 }
             });
         });
 
-        // 4. Закрытие меню при клике в любое пустое место на экране
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.menu-toggle-btn') && !e.target.closest('.exercise-menu')) {
-                const menus = this.container.querySelectorAll('.exercise-menu');
-                if (menus) menus.forEach(m => m.classList.remove('active'));
-            }
-        }, { once: true }); // Вешаем только на 1 клик, чтобы не засорять память
+        document.addEventListener('click', () => {
+            this.container.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
+        }, { once: true });
     }
 }

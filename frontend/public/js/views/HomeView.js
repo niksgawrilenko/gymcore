@@ -114,13 +114,13 @@ export default class HomeView {
                         hour: '2-digit', minute: '2-digit' 
                     });
                     return `
-                        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                        <a href="#workout-detail?id=${workout.id}" class="card" style="display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit;">
                             <div>
                                 <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">${workout.title}</div>
                                 <div style="color: var(--text-secondary); font-size: 13px;">📅 ${formattedDate}</div>
                             </div>
                             <div style="color: var(--accent-color); font-weight: bold;">></div>
-                        </div>
+                        </a>
                     `;
                 }).join('');
             } else {

@@ -67,4 +67,27 @@ export class ApiClient {
             throw error;
         }
     }
+    async getWorkoutDetail(id) {
+        try {
+            const response = await fetch(`${this.baseURL}/workouts/${id}`);
+            if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error("Ошибка загрузки деталей тренировки:", error);
+            throw error;
+        }
+    }
+    async deleteWorkout(id) {
+        const response = await fetch(`${this.baseURL}/workouts/${id}`, { method: 'DELETE' });
+        return await response.json();
+    }
+
+    async updateWorkout(id, data) {
+        const response = await fetch(`${this.baseURL}/workouts/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    }
 }
