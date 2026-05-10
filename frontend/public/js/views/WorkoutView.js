@@ -82,8 +82,7 @@ export default class WorkoutView {
 
         this.bindEvents();
         this.startTimer(); 
-        // ВНИМАНИЕ: this.renderWorkoutExercises() отсюда убрали, 
-        // так как теперь его вызывает loadTemplateData()
+
     }
 
     // НОВЫЙ МЕТОД: Автозагрузка упражнений из шаблона
@@ -196,19 +195,19 @@ export default class WorkoutView {
             if (response.success) {
                 // Рисуем список
                 modalList.innerHTML = response.data.map(ex => `
-                    <div class="exercise-list-item" data-id="${ex.id}" data-name="${ex.name}">
+                    <div class="exercise-list-item" data-id="${ex.id}" data-name="${ex.name}" data-type="${ex.exercise_type}">
                         <div style="font-weight: 600;">${ex.name}</div>
                         <div style="color: var(--text-secondary); font-size: 12px;">${ex.category}</div>
                     </div>
                 `).join('');
 
-                // Вешаем клик на каждое упражнение в списке
                 const items = modalList.querySelectorAll('.exercise-list-item');
                 items.forEach(item => {
                     item.addEventListener('click', () => {
                         this.addExerciseToWorkout({
                             id: item.dataset.id,
-                            name: item.dataset.name
+                            name: item.dataset.name,
+                            exercise_type: item.dataset.type // <--- ПЕРЕДАЕМ ТИП!
                         });
                         this.container.querySelector('#exerciseModal').classList.remove('active');
                     });
@@ -241,34 +240,62 @@ export default class WorkoutView {
         }
 
         // Выводим карточки добавленных упражнений
+        // ... внутри renderWorkoutExercises() ...
+        
         container.innerHTML = this.activeExercises.map((ex, exIndex) => {
             
-            // Генерируем HTML для каждого подхода внутри этого упражнения
-            const setsHTML = ex.sets.map((set, setIndex) => `
-                <div class="set-row" data-ex-index="${exIndex}" data-set-index="${setIndex}">
-                    <div class="set-number">${setIndex + 1}</div>
-                    <input type="number" class="set-input weight-input" placeholder="кг" value="${set.weight}" ${set.completed ? 'disabled' : ''}>
-                    <input type="number" class="set-input reps-input" placeholder="раз" value="${set.reps}" ${set.completed ? 'disabled' : ''}>
-                    <button class="set-check ${set.completed ? 'completed' : ''}">✓</button>
-                </div>
-            `).join('');
+            // 1. ПРОВЕРЯЕМ ТИП УПРАЖНЕНИЯ
+            const isCardio = ex.exercise_type === 'cardio';
+
+            // 2. ГЕНЕРИРУЕМ ЗАГОЛОВКИ ТАБЛИЦЫ
+            const headerHTML = isCardio 
+                ? `<div class="set-header">
+                        <div>П-Д</div>
+                        <div>ВРЕМЯ (мин)</div>
+                        <div>ДИСТАНЦИЯ (м)</div>
+                        <div>✓</div>
+                   </div>`
+                : `<div class="set-header">
+                        <div>П-Д</div>
+                        <div>ВЕС (кг)</div>
+                        <div>ПОВТОРЫ</div>
+                        <div>✓</div>
+                   </div>`;
+
+            // 3. ГЕНЕРИРУЕМ ИНПУТЫ (Подходы)
+            const setsHTML = ex.sets.map((set, setIndex) => {
+                if (isCardio) {
+                    return `
+                        <div class="set-row" data-ex-index="${exIndex}" data-set-index="${setIndex}">
+                            <div class="set-number">${setIndex + 1}</div>
+                            <input type="number" class="set-input weight-input" placeholder="мин" value="${set.weight || ''}" ${set.completed ? 'disabled' : ''}>
+                            <input type="number" class="set-input reps-input" placeholder="метры" value="${set.reps || ''}" ${set.completed ? 'disabled' : ''}>
+                            <button class="set-check ${set.completed ? 'completed' : ''}">✓</button>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="set-row" data-ex-index="${exIndex}" data-set-index="${setIndex}">
+                            <div class="set-number">${setIndex + 1}</div>
+                            <input type="number" class="set-input weight-input" placeholder="кг" value="${set.weight || ''}" ${set.completed ? 'disabled' : ''}>
+                            <input type="number" class="set-input reps-input" placeholder="раз" value="${set.reps || ''}" ${set.completed ? 'disabled' : ''}>
+                            <button class="set-check ${set.completed ? 'completed' : ''}">✓</button>
+                        </div>
+                    `;
+                }
+            }).join('');
 
             return `
                 <div class="card" style="margin-bottom: 15px;">
                     <h4 style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span class="drag-handle" style="cursor: grab; font-size: 24px; color: var(--text-secondary); padding: 0 5px;">≡</span>
-                            <span>${exIndex + 1}. ${ex.name}</span>
+                            <span>${exIndex + 1}. ${ex.name} <span style="font-size: 12px; color: var(--text-secondary); font-weight: normal;">${isCardio ? '🏃' : '🏋️'}</span></span>
                         </div>
                         <button style="background: none; border: none; color: var(--text-secondary); font-size: 18px;">⋮</button>
                     </h4>
 
-                    <div class="set-header">
-                        <div>П-Д</div>
-                        <div>ВЕС (кг)</div>
-                        <div>ПОВТОРЫ</div>
-                        <div>✓</div>
-                    </div>
+                    ${headerHTML}
 
                     <div class="sets-container">
                         ${setsHTML}
