@@ -3,15 +3,47 @@ export default class WorkoutView {
         this.container = container;
         this.api = api;
         
-        // Читаем, какую тренировку выбрал юзер (или ставим по умолчанию)
-        this.workoutTitle = sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка';
-        this.templateId = sessionStorage.getItem('currentTemplateId') || null;
+        // 1. ПРОВЕРЯЕМ, ЕСТЬ ЛИ НЕДОДЕЛАННАЯ ТРЕНИРОВКА В ПАМЯТИ
+        const savedState = localStorage.getItem('gymcore_active_workout');
         
-        this.activeExercises = []; 
-        this.startTime = Date.now(); // Запоминаем время старта
+        if (savedState) {
+            // ВОССТАНАВЛИВАЕМ ИЗ ПАМЯТИ
+            const parsedState = JSON.parse(savedState);
+            this.workoutTitle = parsedState.workoutTitle;
+            this.templateId = parsedState.templateId;
+            this.activeExercises = parsedState.activeExercises;
+            this.startTime = parsedState.startTime;
+            console.log('Восстановлена прерванная тренировка');
+        } else {
+            // ЕСЛИ НЕТ - НАЧИНАЕМ НОВУЮ
+            this.workoutTitle = sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка';
+            this.templateId = sessionStorage.getItem('currentTemplateId') || null;
+            this.activeExercises = []; 
+            this.startTime = Date.now();
+        }
+
         this.timerInterval = null;
         
         this.render();
+
+        // 2. ЕСЛИ ЭТО НОВАЯ ТРЕНИРОВКА С ШАБЛОНОМ - ГРУЗИМ УПРАЖНЕНИЯ
+        if (!savedState) {
+            this.loadTemplateData(); 
+        } else {
+            // ЕСЛИ ВОССТАНОВИЛИ - ПРОСТО РИСУЕМ
+            this.renderWorkoutExercises();
+        }
+    }
+
+    // НОВЫЙ МЕТОД: Сохраняет всё в память телефона
+    saveLocalState() {
+        const state = {
+            workoutTitle: this.workoutTitle,
+            templateId: this.templateId,
+            activeExercises: this.activeExercises,
+            startTime: this.startTime
+        };
+        localStorage.setItem('gymcore_active_workout', JSON.stringify(state));
     }
 
     render() {
@@ -22,7 +54,9 @@ export default class WorkoutView {
                     <span id="workoutTimer" style="color: var(--text-secondary); font-weight: bold;">00:00</span>
                 </div>
                 
-                <div id="workout-exercises-container"></div>
+                <div id="workout-exercises-container">
+                    <div style="text-align: center; color: var(--text-secondary); padding: 20px;">Загрузка упражнений...</div>
+                </div>
                 
                 <button id="addExerciseBtn" class="primary-btn" style="margin-top: 20px; background-color: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">
                     + Добавить упражнение
@@ -47,8 +81,37 @@ export default class WorkoutView {
         `;
 
         this.bindEvents();
-        this.startTimer(); // Запускаем таймер!
-        this.renderWorkoutExercises();
+        this.startTimer(); 
+        // ВНИМАНИЕ: this.renderWorkoutExercises() отсюда убрали, 
+        // так как теперь его вызывает loadTemplateData()
+    }
+
+    // НОВЫЙ МЕТОД: Автозагрузка упражнений из шаблона
+    async loadTemplateData() {
+        if (!this.templateId) {
+            this.renderWorkoutExercises();
+            return;
+        }
+
+        try {
+            const response = await this.api.getTemplateById(this.templateId);
+            if (response.success) {
+                const templateExercises = response.data.exercises;
+                this.activeExercises = templateExercises.map(ex => ({
+                    id: ex.id,
+                    name: ex.name,
+                    category: ex.category,
+                    sets: [{ weight: '', reps: '', completed: false }]
+                }));
+                
+                this.saveLocalState(); // <--- СОХРАНЯЕМ СРАЗУ ПОСЛЕ ЗАГРУЗКИ ШАБЛОНА
+                this.renderWorkoutExercises();
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки шаблона:', error);
+            this.container.querySelector('#workout-exercises-container').innerHTML = 
+                '<div class="card empty-state" style="color: red;">Ошибка загрузки шаблона</div>';
+        }
     }
 
     // НОВЫЙ МЕТОД: Логика таймера
@@ -71,7 +134,6 @@ export default class WorkoutView {
         }, 1000);
     }
     
-    // ... (остальные методы addExerciseToWorkout, renderWorkoutExercises оставляем без изменений)
     bindEvents() {
         const addBtn = this.container.querySelector('#addExerciseBtn');
         const closeBtn = this.container.querySelector('#closeModalBtn');
@@ -157,8 +219,6 @@ export default class WorkoutView {
         }
     }
 
-    // Метод: Добавляем выбранное упражнение в текущую тренировку
-    // ... (весь верхний код класса до addExerciseToWorkout остается без изменений)
 
     // Метод: Добавляем выбранное упражнение в текущую тренировку
     addExerciseToWorkout(exercise) {
@@ -167,7 +227,7 @@ export default class WorkoutView {
             // Сразу добавляем один пустой подход для удобства
             sets: [{ weight: '', reps: '', completed: false }] 
         });
-        
+        this.saveLocalState();
         this.renderWorkoutExercises();
     }
 
@@ -222,18 +282,37 @@ export default class WorkoutView {
 
     // НОВЫЙ МЕТОД: Обработка кликов внутри карточек
     bindSetEvents() {
-        // 1. Обработка клика "+ Добавить подход"
         const addSetBtns = this.container.querySelectorAll('.add-set-btn');
         addSetBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const exIndex = e.target.dataset.exIndex;
-                // Добавляем пустой подход в State и перерисовываем
                 this.activeExercises[exIndex].sets.push({ weight: '', reps: '', completed: false });
+                
+                this.saveLocalState(); // <--- СОХРАНЯЕМ
                 this.renderWorkoutExercises();
             });
         });
 
-        // 2. Обработка клика по галочке "✓"
+        // НОВОЕ: Сохраняем вес и повторы ПРЯМО ВО ВРЕМЯ ВВОДА
+        const weightInputs = this.container.querySelectorAll('.weight-input');
+        const repsInputs = this.container.querySelectorAll('.reps-input');
+
+        weightInputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const row = e.target.closest('.set-row');
+                this.activeExercises[row.dataset.exIndex].sets[row.dataset.setIndex].weight = e.target.value;
+                this.saveLocalState(); // <--- СОХРАНЯЕМ КАЖДУЮ ЦИФРУ
+            });
+        });
+
+        repsInputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const row = e.target.closest('.set-row');
+                this.activeExercises[row.dataset.exIndex].sets[row.dataset.setIndex].reps = e.target.value;
+                this.saveLocalState(); // <--- СОХРАНЯЕМ КАЖДУЮ ЦИФРУ
+            });
+        });
+
         const checkBtns = this.container.querySelectorAll('.set-check');
         checkBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -251,10 +330,50 @@ export default class WorkoutView {
                 
                 // Переключаем статус "Выполнено" (true/false)
                 this.activeExercises[exIndex].sets[setIndex].completed = !this.activeExercises[exIndex].sets[setIndex].completed;
-
-                // Перерисовываем UI (чтобы инпуты заблокировались, а кнопка стала зеленой)
+                
+                // Сохраняем и перерисовываем
+                this.saveLocalState();
                 this.renderWorkoutExercises();
             });
         });
+
+        const finishBtn = this.container.querySelector('#finishWorkoutBtn');
+
+        if(finishBtn) {
+            finishBtn.addEventListener('click', async () => {
+                if (this.activeExercises.length === 0) {
+                    alert('Добавьте хотя бы одно упражнение!');
+                    return;
+                }
+
+                finishBtn.innerText = 'Сохранение...';
+                finishBtn.disabled = true;
+
+                const workoutData = {
+                    title: this.workoutTitle,
+                    template_id: this.templateId,
+                    exercises: this.activeExercises
+                };
+
+                try {
+                    const response = await this.api.saveWorkout(workoutData);
+                    if (response.success) {
+                        clearInterval(this.timerInterval);
+                        
+                        // САМОЕ ВАЖНОЕ: ТРЕНИРОВКА ОКОНЧЕНА, ОЧИЩАЕМ ПАМЯТЬ!
+                        localStorage.removeItem('gymcore_active_workout'); 
+                        
+                        window.location.hash = ''; 
+                    } else {
+                        alert('Ошибка сохранения: ' + response.error);
+                    }
+                } catch (error) {
+                    alert('Ошибка сети!');
+                } finally {
+                    finishBtn.innerText = 'Завершить тренировку';
+                    finishBtn.disabled = false;
+                }
+            });
+        }
     }
 }

@@ -61,6 +61,33 @@ app.get('/api/templates', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+// Получить конкретный шаблон с его упражнениями
+app.get('/api/templates/:id', async (req, res) => {
+    try {
+        const templateId = req.params.id;
+        
+        // 1. Получаем инфу о самом шаблоне
+        const tplRes = await pool.query('SELECT * FROM templates WHERE id = $1', [templateId]);
+        if (tplRes.rows.length === 0) return res.status(404).json({ success: false, error: 'Шаблон не найден' });
+        
+        const template = tplRes.rows[0];
+
+        // 2. Получаем упражнения, привязанные к этому шаблону
+        const exRes = await pool.query(`
+            SELECT e.id, e.name, e.category, e.exercise_type, te.sort_order 
+            FROM template_exercises te
+            JOIN exercises e ON te.exercise_id = e.id
+            WHERE te.template_id = $1
+            ORDER BY te.sort_order ASC
+        `, [templateId]);
+
+        template.exercises = exRes.rows; // Добавляем массив упражнений в объект шаблона
+        
+        res.json({ success: true, data: template });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 // НОВЫЙ МАРШРУТ: Сохранение тренировки
 app.post('/api/workouts', async (req, res) => {
     // Получаем данные от фронтенда

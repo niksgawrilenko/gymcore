@@ -39,7 +39,18 @@ export class ApiClient {
             throw error;
         }
     }
-    
+    // ... после метода getTemplates() добавь:
+
+    async getTemplateById(id) {
+        try {
+            const response = await fetch(`${this.baseURL}/templates/${id}`);
+            if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            console.error("Ошибка загрузки данных шаблона:", error);
+            throw error;
+        }
+    }
     async saveWorkout(workoutData) {
         try {
             const response = await fetch(`${this.baseURL}/workouts`, {

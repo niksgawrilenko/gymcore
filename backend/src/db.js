@@ -9,34 +9,38 @@ const pool = new Pool({
 });
 
 const initDB = async () => {
-    // ВАЖНО: На этапе разработки мы удаляем старые таблицы, если они есть,
-    // чтобы применить новую архитектуру. CASCADE удаляет все связанные данные.
     const dropOldTablesQuery = `
         DROP TABLE IF EXISTS sets CASCADE;
         DROP TABLE IF EXISTS workout_exercises CASCADE;
         DROP TABLE IF EXISTS workouts CASCADE;
+        DROP TABLE IF EXISTS template_exercises CASCADE; -- Новая таблица
         DROP TABLE IF EXISTS templates CASCADE;
         DROP TABLE IF EXISTS exercises CASCADE;
     `;
 
     const createTablesQuery = `
-        -- 1. Справочник упражнений
         CREATE TABLE exercises (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255) UNIQUE NOT NULL,
             category VARCHAR(100) DEFAULT 'Общее',
-            exercise_type VARCHAR(50) DEFAULT 'strength', -- 'strength' или 'cardio'
+            exercise_type VARCHAR(50) DEFAULT 'strength',
             is_custom BOOLEAN DEFAULT FALSE
         );
 
-        -- 2. Шаблоны тренировок
         CREATE TABLE templates (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255) UNIQUE NOT NULL,
             description TEXT
         );
 
-        -- 3. Журнал тренировок
+        -- НОВАЯ ТАБЛИЦА: Какие упражнения лежат в шаблоне
+        CREATE TABLE template_exercises (
+            id SERIAL PRIMARY KEY,
+            template_id INTEGER REFERENCES templates(id) ON DELETE CASCADE,
+            exercise_id INTEGER REFERENCES exercises(id),
+            sort_order INTEGER
+        );
+
         CREATE TABLE workouts (
             id SERIAL PRIMARY KEY,
             workout_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -45,30 +49,27 @@ const initDB = async () => {
             notes TEXT
         );
 
-        -- 4. Блок упражнений в тренировке (связующее звено)
         CREATE TABLE workout_exercises (
             id SERIAL PRIMARY KEY,
             workout_id INTEGER REFERENCES workouts(id) ON DELETE CASCADE,
             exercise_id INTEGER REFERENCES exercises(id),
             sort_order INTEGER,
-            superset_id VARCHAR(50) -- Идентификатор для объединения в суперсеты
+            superset_id VARCHAR(50)
         );
 
-        -- 5. Подходы
         CREATE TABLE sets (
             id SERIAL PRIMARY KEY,
             workout_exercise_id INTEGER REFERENCES workout_exercises(id) ON DELETE CASCADE,
             set_order INTEGER,
             weight DECIMAL(6, 2),
             reps INTEGER,
-            duration_sec INTEGER, -- Время в секундах для кардио
-            distance_m INTEGER,   -- Дистанция в метрах для кардио
-            is_warmup BOOLEAN DEFAULT FALSE
+            duration_sec INTEGER,
+            distance_m INTEGER,
+            completed BOOLEAN DEFAULT FALSE -- Добавили статус выполнения
         );
     `;
 
     const seedDataQuery = `
-        -- Добавляем твои реальные упражнения
         INSERT INTO exercises (name, category, exercise_type) VALUES 
         ('Дорожка', 'Кардио', 'cardio'),
         ('Орбитрек', 'Кардио', 'cardio'),
@@ -91,18 +92,34 @@ const initDB = async () => {
         ('Икры сидя', 'Ноги', 'strength')
         ON CONFLICT (name) DO NOTHING;
 
-        -- Добавляем базовые шаблоны
         INSERT INTO templates (name, description) VALUES
         ('Верх', 'Тренировка верхней части тела'),
         ('Нижняя и ноги', 'Тренировка ног и низа спины')
         ON CONFLICT (name) DO NOTHING;
+
+        -- ПРИВЯЗЫВАЕМ УПРАЖНЕНИЯ К ШАБЛОНАМ
+        -- Шаблон 1: Верх (ID = 1)
+        INSERT INTO template_exercises (template_id, exercise_id, sort_order)
+        SELECT 1, id, 1 FROM exercises WHERE name = 'Дорожка' UNION ALL
+        SELECT 1, id, 2 FROM exercises WHERE name = 'Жим штанги лежа' UNION ALL
+        SELECT 1, id, 3 FROM exercises WHERE name = 'Тяга сверху широким' UNION ALL
+        SELECT 1, id, 4 FROM exercises WHERE name = 'Пэг-дек' UNION ALL
+        SELECT 1, id, 5 FROM exercises WHERE name = 'Гребля';
+
+        -- Шаблон 2: Нижняя и ноги (ID = 2)
+        INSERT INTO template_exercises (template_id, exercise_id, sort_order)
+        SELECT 2, id, 1 FROM exercises WHERE name = 'Орбитрек' UNION ALL
+        SELECT 2, id, 2 FROM exercises WHERE name = 'Разгибание ног' UNION ALL
+        SELECT 2, id, 3 FROM exercises WHERE name = 'Горизонт. жим ногами' UNION ALL
+        SELECT 2, id, 4 FROM exercises WHERE name = 'Сгибание ног' UNION ALL
+        SELECT 2, id, 5 FROM exercises WHERE name = 'Выпады в смите';
     `;
 
     try {
         await pool.query(dropOldTablesQuery);
         await pool.query(createTablesQuery);
         await pool.query(seedDataQuery);
-        console.log('✅ Новая гибкая структура БД успешно создана и заполнена!');
+        console.log('✅ База пересобрана! Добавлены template_exercises.');
     } catch (error) {
         console.error('❌ Ошибка инициализации БД:', error);
     }
