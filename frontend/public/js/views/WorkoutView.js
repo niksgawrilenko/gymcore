@@ -100,10 +100,11 @@ export default class WorkoutView {
                     id: ex.id,
                     name: ex.name,
                     category: ex.category,
+                    exercise_type: ex.exercise_type, // <--- МЫ ЗАБЫЛИ ЭТУ СТРОЧКУ!
                     sets: [{ weight: '', reps: '', completed: false }]
                 }));
                 
-                this.saveLocalState(); // <--- СОХРАНЯЕМ СРАЗУ ПОСЛЕ ЗАГРУЗКИ ШАБЛОНА
+                this.saveLocalState();
                 this.renderWorkoutExercises();
             }
         } catch (error) {
@@ -398,44 +399,5 @@ export default class WorkoutView {
                 this.renderWorkoutExercises();
             });
         });
-
-        const finishBtn = this.container.querySelector('#finishWorkoutBtn');
-
-        if(finishBtn) {
-            finishBtn.addEventListener('click', async () => {
-                if (this.activeExercises.length === 0) {
-                    alert('Добавьте хотя бы одно упражнение!');
-                    return;
-                }
-
-                finishBtn.innerText = 'Сохранение...';
-                finishBtn.disabled = true;
-
-                const workoutData = {
-                    title: this.workoutTitle,
-                    template_id: this.templateId,
-                    exercises: this.activeExercises
-                };
-
-                try {
-                    const response = await this.api.saveWorkout(workoutData);
-                    if (response.success) {
-                        clearInterval(this.timerInterval);
-                        
-                        // САМОЕ ВАЖНОЕ: ТРЕНИРОВКА ОКОНЧЕНА, ОЧИЩАЕМ ПАМЯТЬ!
-                        localStorage.removeItem('gymcore_active_workout'); 
-                        
-                        window.location.hash = ''; 
-                    } else {
-                        alert('Ошибка сохранения: ' + response.error);
-                    }
-                } catch (error) {
-                    alert('Ошибка сети!');
-                } finally {
-                    finishBtn.innerText = 'Завершить тренировку';
-                    finishBtn.disabled = false;
-                }
-            });
-        }
     }
 }

@@ -63,6 +63,7 @@ export default class HomeView {
 
         // Старт пустой тренировки (очищаем временную память)
         emptyBtn.addEventListener('click', () => {
+            localStorage.removeItem('gymcore_active_workout'); // <--- ДОБАВИТЬ ЭТО
             sessionStorage.removeItem('currentWorkoutTitle');
             sessionStorage.removeItem('currentTemplateId');
             window.location.hash = '#workout';
@@ -86,7 +87,7 @@ export default class HomeView {
                 const templateCards = templateList.querySelectorAll('.template-card');
                 templateCards.forEach(card => {
                     card.addEventListener('click', () => {
-                        // Сохраняем имя и ID во временную память и переходим на экран тренировки
+                        localStorage.removeItem('gymcore_active_workout'); // <--- ДОБАВИТЬ ЭТО
                         sessionStorage.setItem('currentWorkoutTitle', card.dataset.name);
                         sessionStorage.setItem('currentTemplateId', card.dataset.id);
                         window.location.hash = '#workout';
