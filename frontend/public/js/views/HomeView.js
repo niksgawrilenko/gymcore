@@ -8,10 +8,14 @@ export default class HomeView {
 
     render() {
         this.container.innerHTML = `
-            <section class="quick-actions">
+            <section class="quick-actions" style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="openTemplateModalBtn" class="primary-btn">
                     <span>+</span> Начать тренировку
                 </button>
+                
+                <a href="#exercises" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; font-weight: 600; font-size: 16px;">
+                    🏋️ База упражнений
+                </a>
             </section>
 
             <section class="recent-history">

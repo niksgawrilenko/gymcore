@@ -1,6 +1,7 @@
 // frontend/public/js/router.js
 import HomeView from './views/HomeView.js';
 import WorkoutEditorView from './views/WorkoutEditorView.js'; // 1. Импортируем наш новый единый класс
+import ExercisesView from './views/ExercisesView.js';
 
 export class Router {
     constructor(containerId, api) {
@@ -19,7 +20,9 @@ export class Router {
                 const params = new URLSearchParams(window.location.hash.split('?')[1]);
                 const id = params.get('id');
                 return new WorkoutEditorView(this.container, this.api, id); 
-            }
+            },
+            '#exercises': () => new ExercisesView(this.container, this.api)
+            
         };
 
         window.addEventListener('hashchange', () => this.handleRoute());
