@@ -17,6 +17,9 @@ export default class HomeView {
                 <a href="#exercises" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; font-weight: 600; font-size: 16px;">
                     🏋️ База упражнений
                 </a>
+                <a href="#templates" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; font-weight: 600; font-size: 16px;">
+                    📋 Мои программы (Шаблоны)
+                </a>
             </section>
 
             <section class="recent-history">
