@@ -4,7 +4,7 @@ export default class ExercisesView {
         this.container = container;
         this.api = api;
         this.exercises = [];
-        this.editingId = null; // Если null — создаем новое, если число — редактируем
+        this.editingId = null;
         this.render();
     }
 
@@ -17,6 +17,9 @@ export default class ExercisesView {
                 </div>
                 
                 <h2 style="margin-bottom: 15px; font-size: 24px;">База упражнений</h2>
+                
+                <input type="text" id="exSearchInput" class="set-input" placeholder="🔍 Поиск упражнения..." style="width: 100%; margin-bottom: 20px; text-align: left;">
+                
                 <div id="exercisesList"><div style="text-align:center; color: var(--text-secondary);">Загрузка...</div></div>
             </section>
 
@@ -68,40 +71,43 @@ export default class ExercisesView {
         try {
             const res = await this.api.getExercises();
             this.exercises = res.data;
-            
-            if (this.exercises.length === 0) {
-                list.innerHTML = '<div class="empty-state">Список пуст. Добавьте упражнение!</div>';
-                return;
-            }
-
-            // Группируем по категориям для красоты
-            const grouped = {};
-            this.exercises.forEach(ex => {
-                if (!grouped[ex.category]) grouped[ex.category] = [];
-                grouped[ex.category].push(ex);
-            });
-
-            list.innerHTML = Object.keys(grouped).map(category => `
-                <div style="margin-bottom: 20px;">
-                    <h4 style="margin-bottom: 10px; color: var(--text-secondary); font-size: 14px; text-transform: uppercase; padding-left: 5px;">${category}</h4>
-                    ${grouped[category].map(ex => `
-                        <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 12px 16px;">
-                            <div>
-                                <div style="font-weight: 600; font-size: 16px;">${ex.name}</div>
-                                <div style="color: var(--text-secondary); font-size: 12px; margin-top: 4px;">${ex.exercise_type === 'cardio' ? '🏃 Кардио' : '🏋️ Силовое'}</div>
-                            </div>
-                            <div style="display: flex; gap: 15px;">
-                                <button class="edit-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; cursor: pointer; color: var(--accent-color);">✎</button>
-                                <button class="delete-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; color: #ff3b30; cursor: pointer;">🗑</button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `).join('');
-            
+            this.renderExercisesList(this.exercises);
         } catch (e) {
             list.innerHTML = '<div class="empty-state" style="color: #ff3b30;">Ошибка загрузки базы данных</div>';
         }
+    }
+
+    renderExercisesList(exercisesArray) {
+        const list = this.container.querySelector('#exercisesList');
+        
+        if (exercisesArray.length === 0) {
+            list.innerHTML = '<div class="empty-state">Упражнения не найдены</div>';
+            return;
+        }
+
+        const grouped = {};
+        exercisesArray.forEach(ex => {
+            if (!grouped[ex.category]) grouped[ex.category] = [];
+            grouped[ex.category].push(ex);
+        });
+
+        list.innerHTML = Object.keys(grouped).map(category => `
+            <div style="margin-bottom: 20px;">
+                <h4 style="margin-bottom: 10px; color: var(--text-secondary); font-size: 14px; text-transform: uppercase; padding-left: 5px;">${category}</h4>
+                ${grouped[category].map(ex => `
+                    <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 12px 16px;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 16px;">${ex.name}</div>
+                            <div style="color: var(--text-secondary); font-size: 12px; margin-top: 4px;">${ex.exercise_type === 'cardio' ? '🏃 Кардио' : '🏋️ Силовое'}</div>
+                        </div>
+                        <div style="display: flex; gap: 15px;">
+                            <button class="edit-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; cursor: pointer; color: var(--accent-color);">✎</button>
+                            <button class="delete-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; color: #ff3b30; cursor: pointer;">🗑</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `).join('');
     }
 
     openModal(id = null) {
@@ -113,14 +119,12 @@ export default class ExercisesView {
         const typeInput = this.container.querySelector('#exTypeInput');
 
         if (id) {
-            // Режим правки
             const ex = this.exercises.find(e => e.id === parseInt(id));
             title.innerText = 'Правка упражнения';
             nameInput.value = ex.name;
             catInput.value = ex.category;
             typeInput.value = ex.exercise_type;
         } else {
-            // Режим создания
             title.innerText = 'Новое упражнение';
             nameInput.value = '';
             catInput.value = 'Грудь';
@@ -131,25 +135,27 @@ export default class ExercisesView {
     }
 
     bindEvents() {
+        // ЛОГИКА ПОИСКА (на oninput)
+        this.container.addEventListener('input', (e) => {
+            if (e.target.id === 'exSearchInput') {
+                const query = e.target.value.toLowerCase();
+                const filtered = this.exercises.filter(ex => 
+                    ex.name.toLowerCase().includes(query) || 
+                    ex.category.toLowerCase().includes(query)
+                );
+                this.renderExercisesList(filtered);
+            }
+        });
+
         this.container.onclick = async (e) => {
             const t = e.target;
 
-            // Открытие модалки (Новое)
-            if (t.id === 'openAddModalBtn') {
-                this.openModal();
-            }
-
-            // Открытие модалки (Правка)
-            if (t.classList.contains('edit-btn')) {
-                this.openModal(t.dataset.id);
-            }
-
-            // Закрытие модалки
+            if (t.id === 'openAddModalBtn') this.openModal();
+            if (t.classList.contains('edit-btn')) this.openModal(t.dataset.id);
             if (t.id === 'closeExForm' || t.classList.contains('modal-overlay')) {
                 this.container.querySelector('#exFormModal').classList.remove('active');
             }
 
-            // Удаление
             if (t.classList.contains('delete-btn')) {
                 if (confirm('Точно удалить упражнение из базы? Оно может пропасть из истории тренировок.')) {
                     await this.api.deleteExercise(t.dataset.id);
@@ -157,7 +163,6 @@ export default class ExercisesView {
                 }
             }
 
-            // Сохранение (Создание или Обновление)
             if (t.id === 'saveExBtn') {
                 const name = this.container.querySelector('#exNameInput').value.trim();
                 const category = this.container.querySelector('#exCategoryInput').value;
@@ -171,13 +176,12 @@ export default class ExercisesView {
                 const payload = { name, category, exercise_type: type };
 
                 try {
-                    if (this.editingId) {
-                        await this.api.updateExercise(this.editingId, payload);
-                    } else {
-                        await this.api.createExercise(payload);
-                    }
+                    if (this.editingId) await this.api.updateExercise(this.editingId, payload);
+                    else await this.api.createExercise(payload);
+                    
                     this.container.querySelector('#exFormModal').classList.remove('active');
-                    this.loadExercises(); // Перерисовываем список
+                    this.container.querySelector('#exSearchInput').value = ''; // Сбрасываем поиск
+                    this.loadExercises();
                 } catch (err) {
                     alert('Ошибка при сохранении');
                 } finally {

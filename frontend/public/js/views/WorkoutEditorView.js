@@ -8,13 +8,13 @@ export default class WorkoutEditorView {
         this.isEditing = !workoutId;
         this.timerInterval = null;
         this.sortableInstance = null;
+        this.allExercisesCache = []; // Кэш для поиска упражнений в модалке
         
         this.init();
     }
 
     async init() {
         if (this.workoutId) {
-            // Режим просмотра истории
             try {
                 const res = await this.api.getWorkoutDetail(this.workoutId);
                 this.workoutData = res.data;
@@ -25,7 +25,6 @@ export default class WorkoutEditorView {
                 return;
             }
         } else {
-            // Режим новой тренировки
             const saved = localStorage.getItem('gymcore_active_workout');
             if (saved) {
                 this.workoutData = JSON.parse(saved);
@@ -43,7 +42,6 @@ export default class WorkoutEditorView {
                 this.render();
                 this.startTimer();
 
-                // ИСПРАВЛЕНИЕ: Подгружаем упражнения, если выбран шаблон
                 if (templateId) {
                     try {
                         const res = await this.api.getTemplateById(templateId);
@@ -57,11 +55,9 @@ export default class WorkoutEditorView {
                                 sets: [{ weight: '', reps: '', completed: false }]
                             }));
                             this.saveToLocal();
-                            this.renderExercises(); // Перерисовываем список
+                            this.renderExercises();
                         }
-                    } catch (e) {
-                        console.error('Ошибка загрузки шаблона', e);
-                    }
+                    } catch (e) { console.error(e); }
                 }
             }
         }
@@ -108,11 +104,7 @@ export default class WorkoutEditorView {
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--surface-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
                     <a href="#" style="color: var(--accent-color); text-decoration: none; font-weight: 600;">← Назад</a>
                     <div style="display: flex; gap: 10px;">
-                        
-                        ${!this.isEditing && this.workoutId ? `
-                            <button id="saveAsTemplateBtn" style="background: none; border: 1px solid var(--accent-color); color: var(--accent-color); padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">📑 В шаблон</button>
-                        ` : ''}
-
+                        ${!this.isEditing && this.workoutId ? `<button id="saveAsTemplateBtn" style="background: none; border: 1px solid var(--accent-color); color: var(--accent-color); padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">📑 В шаблон</button>` : ''}
                         <button id="mainActionBtn" style="background: ${this.isEditing ? '#34c759' : 'var(--bg-color)'}; color: ${this.isEditing ? 'white' : 'var(--text-primary)'}; border: 1px solid ${this.isEditing ? '#34c759' : 'var(--border-color)'}; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">
                             ${this.isEditing ? '💾 Сохранить' : '✎ Править'}
                         </button>
@@ -137,7 +129,13 @@ export default class WorkoutEditorView {
                 ${this.isEditing ? `<button id="addExBtn" class="primary-btn" style="margin-top: 15px; background: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">+ Упражнение</button>` : ''}
             </section>
 
-            <div id="exModal" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3>Упражнения</h3><button id="closeModal" class="close-btn">✕</button></div><div id="modalList" style="overflow-y:auto;"></div></div></div>
+            <div id="exModal" class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header"><h3>Упражнения</h3><button id="closeModal" class="close-btn">✕</button></div>
+                    <input type="text" id="modalSearchInput" class="set-input" placeholder="🔍 Поиск упражнения..." style="width: 100%; margin-bottom: 10px; text-align: left;">
+                    <div id="modalList" style="overflow-y:auto; flex-grow:1;"></div>
+                </div>
+            </div>
         `;
 
         this.renderExercises();
@@ -203,6 +201,15 @@ export default class WorkoutEditorView {
         if (this.isEditing) this.initSortable();
     }
 
+    renderModalList(exercisesArray) {
+        const listHTML = exercisesArray.map(ex => `
+            <div class="exercise-list-item" data-id="${ex.id}" data-name="${ex.name}" data-type="${ex.exercise_type}">
+                <b>${ex.name}</b><br><small style="color:var(--text-secondary);">${ex.category}</small>
+            </div>
+        `).join('');
+        this.container.querySelector('#modalList').innerHTML = listHTML || '<div style="text-align:center; padding:15px; color:var(--text-secondary);">Не найдено</div>';
+    }
+
     bindEvents() {
         this.container.onclick = async (e) => {
             const t = e.target;
@@ -225,18 +232,10 @@ export default class WorkoutEditorView {
                 });
 
                 try {
-                    const res = await this.api.createTemplate({
-                        name: templateName,
-                        description: 'Сохранено из истории',
-                        exercises: uniqueExercises
-                    });
+                    const res = await this.api.createTemplate({ name: templateName, description: 'Сохранено из истории', exercises: uniqueExercises });
                     if (res.success) alert('✅ Успешно сохранено в шаблоны!');
-                } catch (e) {
-                    alert('Ошибка при сохранении шаблона');
-                } finally {
-                    t.innerText = '📑 В шаблон';
-                    t.disabled = false;
-                }
+                } catch (e) { alert('Ошибка при сохранении шаблона'); } 
+                finally { t.innerText = '📑 В шаблон'; t.disabled = false; }
             }
 
             if (t.id === 'mainActionBtn') {
@@ -247,7 +246,6 @@ export default class WorkoutEditorView {
             if (t.id === 'deleteBtn' && confirm('Удалить тренировку?')) { await this.api.deleteWorkout(this.workoutId); window.location.hash = ''; }
             
             if (t.classList?.contains('add-set-btn')) { this.workoutData.exercises[idx].sets.push({ weight: '', reps: '', completed: false }); this.renderExercises(); this.saveToLocal(); }
-            
             if (t.classList?.contains('set-check')) {
                 const row = t.closest('.set-row');
                 const set = this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx];
@@ -272,13 +270,16 @@ export default class WorkoutEditorView {
             if (t.id === 'addExBtn') {
                 const modal = this.container.querySelector('#exModal');
                 if (modal) modal.classList.add('active');
+                this.container.querySelector('#modalSearchInput').value = ''; // Сбрасываем поиск
+                this.container.querySelector('#modalList').innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
+                
                 const res = await this.api.getExercises();
-                this.container.querySelector('#modalList').innerHTML = res.data.map(ex => `
-                    <div class="exercise-list-item" data-id="${ex.id}" data-name="${ex.name}" data-type="${ex.exercise_type}">
-                        <b>${ex.name}</b><br><small>${ex.category}</small>
-                    </div>
-                `).join('');
+                if (res.success) {
+                    this.allExercisesCache = res.data; // Кэшируем
+                    this.renderModalList(this.allExercisesCache);
+                }
             }
+            
             if (t.id === 'closeModal' || t.classList?.contains('modal-overlay')) {
                 this.container.querySelector('#exModal')?.classList.remove('active');
             }
@@ -293,6 +294,17 @@ export default class WorkoutEditorView {
 
         this.container.oninput = (e) => {
             const t = e.target;
+            
+            // ЛОГИКА ПОИСКА УПРАЖНЕНИЙ В МОДАЛКЕ
+            if (t.id === 'modalSearchInput') {
+                const query = t.value.toLowerCase();
+                const filtered = this.allExercisesCache.filter(ex => 
+                    ex.name.toLowerCase().includes(query) || 
+                    ex.category.toLowerCase().includes(query)
+                );
+                this.renderModalList(filtered);
+            }
+
             if (t.id === 'titleInput') this.workoutData.title = t.value;
             if (t.id === 'dateInput') this.workoutData.workout_date = new Date(t.value).getTime();
             if (t.classList?.contains('edit-val')) {

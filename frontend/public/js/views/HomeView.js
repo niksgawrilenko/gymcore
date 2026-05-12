@@ -3,6 +3,7 @@ export default class HomeView {
     constructor(container, api) {
         this.container = container;
         this.api = api;
+        this.templates = []; // Сюда сохраним шаблоны для поиска
         this.render();
     }
 
@@ -26,19 +27,22 @@ export default class HomeView {
             </section>
 
             <div id="templateModal" class="modal-overlay">
-                <div class="modal-content" style="height: 55vh;">
+                <div class="modal-content" style="height: 60vh;">
                     <div class="modal-header">
                         <h3>Выбор тренировки</h3>
                         <button id="closeTemplateModalBtn" class="close-btn">Отмена</button>
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
+                    <div style="margin-bottom: 15px;">
                         <button id="emptyWorkoutBtn" class="primary-btn" style="background-color: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">
                             + Пустая тренировка
                         </button>
                     </div>
 
                     <h4 style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">Твои шаблоны</h4>
+                    
+                    <input type="text" id="templateSearchInput" class="set-input" placeholder="🔍 Поиск шаблона..." style="width: 100%; margin-bottom: 10px; text-align: left;">
+                    
                     <div id="templateList" style="overflow-y: auto; flex-grow: 1;">
                         <div style="text-align: center; color: var(--text-secondary);">Загрузка...</div>
                     </div>
@@ -55,6 +59,7 @@ export default class HomeView {
         const openBtn = this.container.querySelector('#openTemplateModalBtn');
         const closeBtn = this.container.querySelector('#closeTemplateModalBtn');
         const emptyBtn = this.container.querySelector('#emptyWorkoutBtn');
+        const searchInput = this.container.querySelector('#templateSearchInput');
 
         openBtn.addEventListener('click', () => {
             modal.classList.add('active');
@@ -65,12 +70,18 @@ export default class HomeView {
             modal.classList.remove('active');
         });
 
-        // Старт пустой тренировки (очищаем временную память)
         emptyBtn.addEventListener('click', () => {
-            localStorage.removeItem('gymcore_active_workout'); // <--- ДОБАВИТЬ ЭТО
+            localStorage.removeItem('gymcore_active_workout');
             sessionStorage.removeItem('currentWorkoutTitle');
             sessionStorage.removeItem('currentTemplateId');
             window.location.hash = '#workout';
+        });
+
+        // ЛОГИКА ПОИСКА
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = this.templates.filter(tpl => tpl.name.toLowerCase().includes(query));
+            this.renderTemplateList(filtered);
         });
     }
 
@@ -78,34 +89,41 @@ export default class HomeView {
         const templateList = this.container.querySelector('#templateList');
         try {
             const response = await this.api.getTemplates();
-            if (response.success && response.data.length > 0) {
-                // Добавляем атрибут data-name для каждого шаблона
-                templateList.innerHTML = response.data.map(tpl => `
-                    <div class="card exercise-list-item template-card" style="margin-bottom: 10px; border-radius: 10px; cursor: pointer;" data-id="${tpl.id}" data-name="${tpl.name}">
-                        <div style="font-weight: 600; font-size: 16px;">${tpl.name}</div>
-                        <div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${tpl.description || ''}</div>
-                    </div>
-                `).join('');
-
-                // ВЕШАЕМ КЛИК НА КАЖДЫЙ ШАБЛОН
-                const templateCards = templateList.querySelectorAll('.template-card');
-                templateCards.forEach(card => {
-                    card.addEventListener('click', () => {
-                        localStorage.removeItem('gymcore_active_workout'); // <--- ДОБАВИТЬ ЭТО
-                        sessionStorage.setItem('currentWorkoutTitle', card.dataset.name);
-                        sessionStorage.setItem('currentTemplateId', card.dataset.id);
-                        window.location.hash = '#workout';
-                    });
-                });
-            } else {
-                templateList.innerHTML = '<div class="empty-state">Шаблонов пока нет</div>';
+            if (response.success) {
+                this.templates = response.data; // Сохраняем в память
+                this.renderTemplateList(this.templates); // Отрисовываем
             }
         } catch (error) {
             templateList.innerHTML = '<div style="color: red; text-align: center;">Ошибка загрузки</div>';
         }
     }
 
-    // ... (метод loadHistory оставляем без изменений)
+    renderTemplateList(templatesArray) {
+        const templateList = this.container.querySelector('#templateList');
+        
+        if (templatesArray.length === 0) {
+            templateList.innerHTML = '<div class="empty-state">Шаблоны не найдены</div>';
+            return;
+        }
+
+        templateList.innerHTML = templatesArray.map(tpl => `
+            <div class="card exercise-list-item template-card" style="margin-bottom: 10px; border-radius: 10px; cursor: pointer;" data-id="${tpl.id}" data-name="${tpl.name}">
+                <div style="font-weight: 600; font-size: 16px;">${tpl.name}</div>
+                <div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${tpl.description || ''}</div>
+            </div>
+        `).join('');
+
+        const templateCards = templateList.querySelectorAll('.template-card');
+        templateCards.forEach(card => {
+            card.addEventListener('click', () => {
+                localStorage.removeItem('gymcore_active_workout');
+                sessionStorage.setItem('currentWorkoutTitle', card.dataset.name);
+                sessionStorage.setItem('currentTemplateId', card.dataset.id);
+                window.location.hash = '#workout';
+            });
+        });
+    }
+
     async loadHistory() {
         const dataContainer = this.container.querySelector('#dataContainer');
         try {
@@ -113,10 +131,7 @@ export default class HomeView {
             if (response.success && response.data.length > 0) {
                 dataContainer.innerHTML = response.data.map(workout => {
                     const dateObj = new Date(workout.workout_date);
-                    const formattedDate = dateObj.toLocaleDateString('ru-RU', { 
-                        day: 'numeric', month: 'long', year: 'numeric', 
-                        hour: '2-digit', minute: '2-digit' 
-                    });
+                    const formattedDate = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                     return `
                         <a href="#workout-detail?id=${workout.id}" class="card" style="display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit;">
                             <div>
