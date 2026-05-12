@@ -37,8 +37,16 @@ export class Router {
     handleRoute() {
         const fullHash = window.location.hash;
         const path = fullHash.split('?')[0]; 
+        
+        // 1. ОЧИСТКА: Если на старой странице был метод destroy, вызываем его
+        if (this.currentView && typeof this.currentView.destroy === 'function') {
+            this.currentView.destroy();
+        }
+
         const viewConstructor = this.routes[path] || this.routes[''];
         this.container.innerHTML = ''; 
-        viewConstructor(); 
+        
+        // 2. СОХРАНЕНИЕ: Записываем новую страницу в currentView
+        this.currentView = viewConstructor(); 
     }
 }

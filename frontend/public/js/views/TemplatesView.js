@@ -1,9 +1,22 @@
 // frontend/public/js/views/TemplatesView.js
+
+import { escapeHTML } from '../utils/helpers.js';
+
 export default class TemplatesView {
     constructor(container, api) {
         this.container = container;
         this.api = api;
+        this.templates = [];
+        
+        this._onClick = this.handleClick.bind(this);
+        this._onInput = this.handleInput.bind(this);
+        
         this.render();
+    }
+
+    destroy() {
+        this.container.removeEventListener('click', this._onClick);
+        this.container.removeEventListener('input', this._onInput);
     }
 
     async render() {
@@ -15,14 +28,15 @@ export default class TemplatesView {
                 </div>
                 
                 <h2 style="margin-bottom: 15px; font-size: 24px;">Мои шаблоны</h2>
-                
                 <input type="text" id="templateSearch" class="set-input" placeholder="🔍 Поиск шаблона..." style="width: 100%; margin-bottom: 20px; text-align: left;">
                 
                 <div id="templatesList"><div class="empty-state">Загрузка...</div></div>
             </section>
         `;
         
-        this.bindEvents();
+        this.container.addEventListener('click', this._onClick);
+        this.container.addEventListener('input', this._onInput);
+        
         this.loadTemplates();
     }
 
@@ -47,30 +61,29 @@ export default class TemplatesView {
         list.innerHTML = data.map(tpl => `
             <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <a href="#template-edit?id=${tpl.id}" style="text-decoration: none; color: inherit; flex-grow: 1;">
-                    <div style="font-weight: 600; font-size: 17px;">${tpl.name}</div>
-                    <div style="color: var(--text-secondary); font-size: 13px;">${tpl.description || 'Без описания'}</div>
+                    <div style="font-weight: 600; font-size: 17px;">${escapeHTML(tpl.name)}</div>
+                    <div style="color: var(--text-secondary); font-size: 13px;">${escapeHTML(tpl.description || 'Без описания')}</div>
                 </a>
                 <button class="delete-tpl-btn" data-id="${tpl.id}" style="background: none; border: none; color: #ff3b30; font-size: 18px; cursor: pointer; padding: 10px;">🗑</button>
             </div>
         `).join('');
     }
 
-    bindEvents() {
-        this.container.onclick = async (e) => {
-            if (e.target.classList.contains('delete-tpl-btn')) {
-                if (confirm('Удалить этот шаблон?')) {
-                    await this.api.deleteTemplate(e.target.dataset.id);
-                    this.loadTemplates();
-                }
+    async handleClick(e) {
+        const deleteBtn = e.target.closest('.delete-tpl-btn');
+        if (deleteBtn) {
+            if (confirm('Удалить этот шаблон?')) {
+                await this.api.deleteTemplate(deleteBtn.dataset.id);
+                this.loadTemplates();
             }
-        };
+        }
+    }
 
-        this.container.oninput = (e) => {
-            if (e.target.id === 'templateSearch') {
-                const query = e.target.value.toLowerCase();
-                const filtered = this.templates.filter(t => t.name.toLowerCase().includes(query));
-                this.renderList(filtered);
-            }
-        };
+    handleInput(e) {
+        if (e.target.id === 'templateSearch') {
+            const query = e.target.value.toLowerCase();
+            const filtered = this.templates.filter(t => t.name.toLowerCase().includes(query));
+            this.renderList(filtered);
+        }
     }
 }

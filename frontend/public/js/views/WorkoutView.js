@@ -1,101 +1,67 @@
 // frontend/public/js/views/WorkoutView.js
+import { escapeHTML } from '../utils/helpers.js';
+
 export default class WorkoutView {
     constructor(container, api, workoutId = null, isTemplateMode = false) {
         this.container = container;
         this.api = api;
         this.workoutId = workoutId;
-        this.isTemplateMode = isTemplateMode; // Флаг: мы редактируем шаблон или тренировку?
+        this.isTemplateMode = isTemplateMode; 
         this.workoutData = null;
         this.isEditing = !workoutId || isTemplateMode;
         this.timerInterval = null;
         this.sortableInstance = null;
-        this.allExercisesCache = []; // Кэш для поиска упражнений в модалке
+        this.allExercisesCache = []; 
+        
+        this._onClick = this.handleClick.bind(this);
+        this._onInput = this.handleInput.bind(this);
         
         this.init();
     }
 
     async init() {
-        if (this.workoutId) {
-            try {
-                // Если режим шаблона - грузим шаблон, иначе - тренировку
+        try {
+            if (this.workoutId) {
                 const res = this.isTemplateMode 
                     ? await this.api.getTemplateById(this.workoutId) 
                     : await this.api.getWorkoutDetail(this.workoutId);
-                
                 this.workoutData = res.data;
-                // Нормализуем имя шаблона в title для универсальности
-                if (this.isTemplateMode && this.workoutData.name) {
-                    this.workoutData.title = this.workoutData.name;
-                }
-                
-                this.normalizeData();
-                this.render();
-            } catch (e) {
-                this.container.innerHTML = `<div class="empty-state">Ошибка загрузки</div>`;
-                return;
-            }
-        } else {
-            if (this.isTemplateMode) {
-                // Новый пустой шаблон
-                this.workoutData = { title: 'Новый шаблон', description: '', exercises: [] };
-                this.render();
+                if (this.isTemplateMode && this.workoutData.name) this.workoutData.title = this.workoutData.name;
             } else {
-                // Новая тренировка (кэш или чистая)
-                const saved = localStorage.getItem('gymcore_active_workout');
-                if (saved) {
-                    this.workoutData = JSON.parse(saved);
-                    this.render();
-                    this.startTimer();
+                if (this.isTemplateMode) {
+                    this.workoutData = { title: 'Новый шаблон', exercises: [] };
                 } else {
-                    const templateId = sessionStorage.getItem('currentTemplateId');
-                    this.workoutData = {
+                    const saved = localStorage.getItem('gymcore_active_workout');
+                    this.workoutData = saved ? JSON.parse(saved) : {
                         title: sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка',
-                        template_id: templateId || null,
+                        template_id: sessionStorage.getItem('currentTemplateId') || null,
                         workout_date: new Date().getTime(),
                         exercises: []
                     };
-                    
-                    this.render();
-                    this.startTimer();
-
-                    // Подгружаем упражнения из выбранного шаблона
-                    if (templateId) {
-                        try {
-                            const res = await this.api.getTemplateById(templateId);
-                            if (res.success && res.data.exercises) {
-                                this.workoutData.exercises = res.data.exercises.map(ex => ({
-                                    id: ex.id,
-                                    name: ex.name,
-                                    category: ex.category,
-                                    exercise_type: ex.exercise_type,
-                                    isSuperset: false,
-                                    sets: [{ weight: '', reps: '', completed: false }]
-                                }));
-                                this.saveToLocal();
-                                this.renderExercises();
-                            }
-                        } catch (e) { console.error(e); }
-                    }
                 }
             }
+            this.normalizeData();
+            this.render();
+            if (!this.workoutId && !this.isTemplateMode) this.startTimer();
+        } catch (e) {
+            this.container.innerHTML = `<div class="empty-state">Ошибка загрузки данных</div>`;
         }
+    }
+
+    destroy() {
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.sortableInstance) this.sortableInstance.destroy();
+        this.container.removeEventListener('click', this._onClick);
+        this.container.removeEventListener('input', this._onInput);
     }
 
     normalizeData() {
         let lastSSId = null;
         if (!this.workoutData.exercises) this.workoutData.exercises = [];
-        
         this.workoutData.exercises.forEach(ex => {
             ex.isSuperset = !!(ex.superset_id && ex.superset_id === lastSSId);
             lastSSId = ex.superset_id;
             if (!ex.sets) ex.sets = [{ weight: '', reps: '', completed: false }];
-            
-            ex.sets.forEach(set => {
-                const isCardio = ex.exercise_type === 'cardio';
-                set.weight = isCardio ? (set.duration_sec ?? set.weight ?? "") : (set.weight ?? "");
-                set.reps = isCardio ? (set.distance_m ?? set.reps ?? "") : (set.reps ?? "");
-                set.completed = true;
-            });
         });
     }
 
@@ -106,10 +72,9 @@ export default class WorkoutView {
     }
 
     startTimer() {
-        if (this.isTemplateMode) return; // В шаблонах нет таймера
         this.timerInterval = setInterval(() => {
             const timerEl = document.getElementById('workoutTimer');
-            if (!timerEl) return clearInterval(this.timerInterval);
+            if (!timerEl) return;
             const diff = Math.floor((Date.now() - this.workoutData.workout_date) / 1000);
             const m = String(Math.floor(diff / 60)).padStart(2, '0');
             const s = String(diff % 60).padStart(2, '0');
@@ -124,54 +89,63 @@ export default class WorkoutView {
 
         this.container.innerHTML = `
             <section style="padding-bottom: 80px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--surface-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
                     <a href="#" style="color: var(--accent-color); text-decoration: none; font-weight: 600;">← Назад</a>
-                    <div style="display: flex; gap: 10px;">
-                        ${!this.isEditing && this.workoutId && !this.isTemplateMode ? `<button id="saveAsTemplateBtn" style="background: none; border: 1px solid var(--accent-color); color: var(--accent-color); padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">📑 В шаблон</button>` : ''}
-                        
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        ${!this.isEditing && this.workoutId && !this.isTemplateMode ? `
+                            <button id="saveAsTemplateBtn" style="background: none; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                📑 В шаблон
+                            </button>` : ''}
                         <button id="mainActionBtn" style="background: ${this.isEditing ? '#34c759' : 'var(--bg-color)'}; color: ${this.isEditing ? 'white' : 'var(--text-primary)'}; border: 1px solid ${this.isEditing ? '#34c759' : 'var(--border-color)'}; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">
                             ${this.isEditing ? '💾 Сохранить' : '✎ Править'}
                         </button>
-                        
-                        ${this.isEditing && this.workoutId && !this.isTemplateMode ? `<button id="cancelBtn" style="background: none; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">Отмена</button>` : ''}
-                        
                         ${!this.isEditing || this.isTemplateMode ? `<button id="deleteBtn" style="color: #ff3b30; background:none; border: 1px solid #ff3b30; padding: 8px 12px; border-radius: 8px; cursor: pointer;">🗑</button>` : ''}
                     </div>
                 </div>
 
-                <div id="headerSection" style="background: var(--surface-color); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+                <div class="card" style="margin-bottom: 20px;">
                     ${this.isEditing ? `
-                        <input type="text" id="titleInput" class="set-input" style="font-size: 18px; font-weight: bold; width: 100%; margin-bottom: 10px;" value="${this.workoutData.title}">
-                        ${!this.isTemplateMode ? `<input type="datetime-local" id="dateInput" class="set-input" style="width: 100%;" value="${localISOTime}">` : ''}
+                        <input type="text" id="titleInput" class="set-input" style="font-size: 18px; font-weight: bold; width: 100%; margin-bottom: 10px; text-align:left;" value="${escapeHTML(this.workoutData.title)}">
+                        ${!this.isTemplateMode ? `<input type="datetime-local" id="dateInput" class="set-input" style="width: 100%; text-align:left;" value="${localISOTime}">` : ''}
                     ` : `
-                        <h2 style="margin:0 0 5px 0;">${this.workoutData.title}</h2>
+                        <h2 style="margin:0 0 5px 0;">${escapeHTML(this.workoutData.title)}</h2>
                         ${!this.isTemplateMode ? `<div style="color: var(--text-secondary); font-size: 14px;">📅 ${formattedDate}</div>` : ''}
                     `}
                     ${(!this.workoutId && !this.isTemplateMode) ? `<div id="workoutTimer" style="margin-top:10px; font-weight:bold; color:var(--accent-color); font-family:monospace;">00:00</div>` : ''}
                 </div>
-
                 <div id="exercises-list"></div>
-
-                ${this.isEditing ? `<button id="addExBtn" class="primary-btn" style="margin-top: 15px; background: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">+ Упражнение</button>` : ''}
+                ${this.isEditing ? `<button id="addExBtn" class="primary-btn" style="margin-top: 15px; background: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">+ Добавить упражнение</button>` : ''}
             </section>
 
             <div id="exModal" class="modal-overlay">
                 <div class="modal-content">
-                    <div class="modal-header"><h3>Упражнения</h3><button id="closeModal" class="close-btn">✕</button></div>
-                    <input type="text" id="modalSearchInput" class="set-input" placeholder="🔍 Поиск упражнения..." style="width: 100%; margin-bottom: 10px; text-align: left;">
+                    <div class="modal-header"><h3>Упражнения</h3><div><button id="openCreateExBtn" class="close-btn">+ Новое</button><button id="closeModal" class="close-btn">✕</button></div></div>
+                    <input type="text" id="modalSearchInput" class="set-input" placeholder="🔍 Поиск..." style="width: 100%; margin-bottom: 10px; text-align: left;">
                     <div id="modalList" style="overflow-y:auto; flex-grow:1;"></div>
                 </div>
             </div>
-        `;
 
+            <div id="exCreateModal" class="modal-overlay" style="z-index: 1001;">
+                <div class="modal-content" style="height: auto;">
+                    <div class="modal-header"><h3>Новое упражнение</h3><button id="closeCreateExModal" class="close-btn">✕</button></div>
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+                        <input type="text" id="newExName" class="set-input" style="text-align: left;" placeholder="Название">
+                        <select id="newExCategory" class="set-input" style="text-align: left;"><option value="Грудь">Грудь</option><option value="Спина">Спина</option><option value="Ноги">Ноги</option><option value="Руки">Руки</option><option value="Плечи">Плечи</option></select>
+                        <select id="newExType" class="set-input" style="text-align: left;"><option value="strength">Силовое</option><option value="cardio">Кардио</option></select>
+                    </div>
+                    <button id="saveNewExBtn" class="primary-btn">Создать и добавить</button>
+                </div>
+            </div>
+        `;
+        
+        this.container.addEventListener('click', this._onClick);
+        this.container.addEventListener('input', this._onInput);
         this.renderExercises();
-        this.bindEvents();
     }
 
     renderExercises() {
         const list = this.container.querySelector('#exercises-list');
         const exercises = this.workoutData.exercises;
-        
         if (!exercises || exercises.length === 0) {
             list.innerHTML = '<div class="empty-state">Упражнений пока нет</div>';
             return;
@@ -185,177 +159,162 @@ export default class WorkoutView {
 
         list.innerHTML = groups.map(group => {
             const isSS = group.length > 1;
-            const cards = group.map((item, idx) => {
+            return `<div class="sortable-group" style="margin-bottom: 15px;">` + group.map((item, idx) => {
                 const { ex, i } = item;
                 const isCardio = ex.exercise_type === 'cardio';
-                const sets = ex.sets.map((s, sIdx) => `
+                const setsHTML = ex.sets.map((s, sIdx) => `
                     <div class="set-row" data-ex-idx="${i}" data-set-idx="${sIdx}">
                         <div class="set-number">${sIdx + 1}</div>
                         ${this.isEditing ? `
                             <input type="number" class="set-input edit-val" data-field="weight" placeholder="${isCardio ? 'мин' : 'кг'}" value="${s.weight}">
                             <input type="number" class="set-input edit-val" data-field="reps" placeholder="${isCardio ? 'м' : 'раз'}" value="${s.reps}">
                         ` : `
-                            <div style="text-align:center; font-weight:600;">${s.weight !== "" ? s.weight : '-'}</div>
-                            <div style="text-align:center; font-weight:600;">${s.reps !== "" ? s.reps : '-'}</div>
+                            <div style="text-align:center; font-weight:600;">${s.weight || '-'}</div>
+                            <div style="text-align:center; font-weight:600;">${s.reps || '-'}</div>
                         `}
                         <button class="set-check ${s.completed ? 'completed' : ''}">✓</button>
                     </div>
                 `).join('');
 
                 return `
-                    <div class="card exercise-item-data ${isSS ? 'superset-card' : ''}" data-idx="${i}" style="position: relative; margin-bottom:${isSS && idx < group.length - 1 ? '0' : '15px'}; border-radius:${isSS ? (idx === 0 ? '16px 16px 0 0' : (idx === group.length - 1 ? '0 0 16px 16px' : '0')) : '16px'};">
+                    <div class="card exercise-item-data ${isSS ? 'superset-card' : ''}" data-idx="${i}" style="position: relative; margin-bottom:${isSS && idx < group.length - 1 ? '0' : '10px'}; border-radius:${isSS ? (idx === 0 ? '14px 14px 0 0' : (idx === group.length - 1 ? '0 0 14px 14px' : '0')) : '14px'};">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <h4 style="margin-bottom:10px; display:flex; align-items:center; gap:8px;">
                                 ${this.isEditing ? '<span class="drag-handle" style="color:var(--text-secondary); cursor:grab;">≡</span>' : ''}
-                                ${ex.name}
+                                ${i + 1}. ${escapeHTML(ex.name)}
                             </h4>
-                            ${this.isEditing ? `<button class="menu-btn" data-idx="${i}" style="background:none; border:none; color:var(--text-secondary); font-size:20px; font-weight:bold; cursor:pointer; padding: 0 5px; margin-top:-10px;">⋮</button>` : ''}
+                            ${this.isEditing ? `<button class="menu-btn" data-idx="${i}" style="background:none; border:none; color:var(--text-secondary); font-size:20px; cursor:pointer;">⋮</button>` : ''}
                         </div>
                         <div class="exercise-menu" id="menu-${i}">
                             <button class="menu-item toggle-ss" data-idx="${i}">🔗 ${ex.isSuperset ? 'Открепить' : 'Суперсет'}</button>
                             <button class="menu-item danger delete-ex" data-idx="${i}">🗑 Удалить</button>
                         </div>
                         <div class="set-header"><div>П-Д</div><div>${isCardio ? 'ВРЕМЯ' : 'ВЕС'}</div><div>${isCardio ? 'МЕТРЫ' : 'ПОВТ'}</div><div></div></div>
-                        ${sets}
-                        ${this.isEditing ? `<button class="add-set-btn" data-idx="${i}" style="width:100%; border: 1px dashed var(--border-color); background:none; color:var(--text-primary); padding: 8px; border-radius: 8px; cursor:pointer; margin-top:10px; font-weight:600;">+ Добавить подход</button>` : ''}
+                        ${setsHTML}
+                        ${this.isEditing ? `<button class="add-set-btn" data-idx="${i}" style="width:100%; border: 1px dashed var(--border-color); background:none; padding: 8px; border-radius: 8px; cursor:pointer; margin-top:10px; font-weight:600; color:var(--text-primary);">+ Добавить подход</button>` : ''}
                     </div>
                 `;
-            }).join('');
-            return `<div class="sortable-group">${cards}</div>`;
+            }).join('') + `</div>`;
         }).join('');
 
         if (this.isEditing) this.initSortable();
     }
 
-    renderModalList(exercisesArray) {
-        const listHTML = exercisesArray.map(ex => `
-            <div class="exercise-list-item" data-id="${ex.id}" data-name="${ex.name}" data-type="${ex.exercise_type}">
-                <b>${ex.name}</b><br><small style="color:var(--text-secondary);">${ex.category}</small>
-            </div>
-        `).join('');
-        this.container.querySelector('#modalList').innerHTML = listHTML || '<div style="text-align:center; padding:15px; color:var(--text-secondary);">Не найдено</div>';
+    async handleClick(e) {
+        const t = e.target;
+        const idx = t.dataset?.idx;
+
+        if (t.closest('#saveAsTemplateBtn')) {
+            const name = prompt('Название шаблона:', this.workoutData.title);
+            if (!name) return;
+            const uniqueEx = Array.from(new Set(this.workoutData.exercises.map(ex => ex.id))).map(id => ({id}));
+            try {
+                await this.api.createTemplate({ name, exercises: uniqueEx });
+                alert('✅ Сохранено в шаблоны');
+            } catch (e) { alert('Ошибка сохранения'); }
+        }
+
+        if (t.id === 'mainActionBtn') {
+            if (!this.isEditing) { this.isEditing = true; this.render(); }
+            else this.handleSave();
+        }
+
+        if (t.id === 'deleteBtn' && confirm('Удалить?')) {
+            const action = this.isTemplateMode ? this.api.deleteTemplate(this.workoutId) : this.api.deleteWorkout(this.workoutId);
+            await action; window.location.hash = this.isTemplateMode ? '#templates' : '';
+        }
+
+        if (t.classList?.contains('add-set-btn')) {
+            this.workoutData.exercises[idx].sets.push({ weight: '', reps: '', completed: false });
+            this.renderExercises();
+            this.saveToLocal();
+        }
+
+        if (t.classList?.contains('set-check')) {
+            const row = t.closest('.set-row');
+            const set = this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx];
+            set.completed = !set.completed;
+            t.classList.toggle('completed');
+            this.saveToLocal();
+        }
+
+        if (t.classList?.contains('menu-btn')) {
+            document.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
+            this.container.querySelector(`#menu-${idx}`)?.classList.add('active');
+            e.stopPropagation();
+        }
+
+        if (!t.closest('.menu-btn') && !t.closest('.exercise-menu')) {
+            document.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
+        }
+
+        if (t.classList?.contains('toggle-ss')) {
+            this.workoutData.exercises[idx].isSuperset = !this.workoutData.exercises[idx].isSuperset;
+            this.renderExercises();
+            this.saveToLocal();
+        }
+
+        if (t.classList?.contains('delete-ex') && confirm('Удалить упражнение?')) {
+            this.workoutData.exercises.splice(idx, 1);
+            this.renderExercises();
+            this.saveToLocal();
+        }
+
+        if (t.id === 'addExBtn') {
+            this.container.querySelector('#exModal').classList.add('active');
+            const res = await this.api.getExercises();
+            if (res.success) { this.allExercisesCache = res.data; this.renderModalList(this.allExercisesCache); }
+        }
+
+        if (t.id === 'openCreateExBtn') this.container.querySelector('#exCreateModal').classList.add('active');
+        if (t.id === 'closeCreateExModal' || t.id === 'exCreateModal') this.container.querySelector('#exCreateModal').classList.remove('active');
+
+        if (t.id === 'saveNewExBtn') {
+            const name = this.container.querySelector('#newExName').value.trim();
+            const category = this.container.querySelector('#newExCategory').value;
+            const exercise_type = this.container.querySelector('#newExType').value;
+            if (!name) return alert('Введите название!');
+            try {
+                const res = await this.api.createExercise({ name, category, exercise_type });
+                if (res.success) {
+                    this.workoutData.exercises.push({ ...res.data, sets: [{ weight: '', reps: '', completed: false }] });
+                    this.container.querySelector('#exCreateModal').classList.remove('active');
+                    this.container.querySelector('#exModal').classList.remove('active');
+                    this.renderExercises();
+                    this.saveToLocal();
+                }
+            } catch (e) { alert('Ошибка создания'); }
+        }
+
+        if (t.id === 'closeModal' || t.id === 'exModal') this.container.querySelector('#exModal').classList.remove('active');
+
+        if (t.closest('.exercise-list-item')) {
+            const item = t.closest('.exercise-list-item');
+            this.workoutData.exercises.push({ id: parseInt(item.dataset.id), name: item.dataset.name, exercise_type: item.dataset.type, sets: [{ weight: '', reps: '', completed: false }] });
+            this.container.querySelector('#exModal').classList.remove('active');
+            this.renderExercises();
+            this.saveToLocal();
+        }
     }
 
-    bindEvents() {
-        this.container.onclick = async (e) => {
-            const t = e.target;
-            const idx = t.dataset?.idx;
-
-            if (t.id === 'saveAsTemplateBtn') {
-                const templateName = prompt('Введите название для нового шаблона:', this.workoutData.title);
-                if (!templateName) return; 
-
-                t.innerText = '⏳...';
-                t.disabled = true;
-
-                const uniqueExercises = [];
-                const seenIds = new Set();
-                this.workoutData.exercises.forEach(ex => {
-                    if (!seenIds.has(ex.id)) {
-                        seenIds.add(ex.id);
-                        uniqueExercises.push({ id: ex.id });
-                    }
-                });
-
-                try {
-                    const res = await this.api.createTemplate({ name: templateName, description: 'Сохранено из истории', exercises: uniqueExercises });
-                    if (res.success) alert('✅ Успешно сохранено в шаблоны!');
-                } catch (e) { alert('Ошибка при сохранении шаблона'); } 
-                finally { t.innerText = '📑 В шаблон'; t.disabled = false; }
-            }
-
-            if (t.id === 'mainActionBtn') {
-                if (!this.isEditing) { this.isEditing = true; this.render(); }
-                else this.handleSave();
-            }
-            if (t.id === 'cancelBtn') { this.isEditing = false; this.workoutData = null; this.init(); }
-            
-            if (t.id === 'deleteBtn') {
-                if (confirm('Точно удалить?')) {
-                    if (this.isTemplateMode) {
-                        await this.api.deleteTemplate(this.workoutId);
-                        window.location.hash = '#templates';
-                    } else {
-                        await this.api.deleteWorkout(this.workoutId);
-                        window.location.hash = '';
-                    }
-                }
-            }
-            
-            if (t.classList?.contains('add-set-btn')) { this.workoutData.exercises[idx].sets.push({ weight: '', reps: '', completed: false }); this.renderExercises(); this.saveToLocal(); }
-            if (t.classList?.contains('set-check')) {
-                const row = t.closest('.set-row');
-                const set = this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx];
-                set.completed = !set.completed;
-                t.classList.toggle('completed');
-                this.saveToLocal();
-            }
-
-            if (t.classList?.contains('menu-btn')) {
-                document.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
-                this.container.querySelector(`#menu-${idx}`)?.classList.add('active');
-                e.stopPropagation(); 
-            }
-
-            if (!t.closest('.menu-btn') && !t.closest('.exercise-menu')) {
-                document.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
-            }
-
-            if (t.classList?.contains('toggle-ss')) { this.workoutData.exercises[idx].isSuperset = !this.workoutData.exercises[idx].isSuperset; this.renderExercises(); this.saveToLocal(); }
-            if (t.classList?.contains('delete-ex') && confirm('Удалить упражнение?')) { this.workoutData.exercises.splice(idx, 1); this.renderExercises(); this.saveToLocal(); }
-            
-            if (t.id === 'addExBtn') {
-                const modal = this.container.querySelector('#exModal');
-                if (modal) modal.classList.add('active');
-                this.container.querySelector('#modalSearchInput').value = ''; 
-                this.container.querySelector('#modalList').innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
-                
-                const res = await this.api.getExercises();
-                if (res.success) {
-                    this.allExercisesCache = res.data; 
-                    this.renderModalList(this.allExercisesCache);
-                }
-            }
-            
-            if (t.id === 'closeModal' || t.classList?.contains('modal-overlay')) {
-                this.container.querySelector('#exModal')?.classList.remove('active');
-            }
-            if (t.closest('.exercise-list-item')) {
-                const item = t.closest('.exercise-list-item');
-                this.workoutData.exercises.push({ id: parseInt(item.dataset.id), name: item.dataset.name, exercise_type: item.dataset.type, sets: [{ weight: '', reps: '', completed: false }] });
-                this.container.querySelector('#exModal')?.classList.remove('active');
-                this.renderExercises();
-                this.saveToLocal();
-            }
-        };
-
-        this.container.oninput = (e) => {
-            const t = e.target;
-            
-            if (t.id === 'modalSearchInput') {
-                const query = t.value.toLowerCase();
-                const filtered = this.allExercisesCache.filter(ex => 
-                    ex.name.toLowerCase().includes(query) || 
-                    ex.category.toLowerCase().includes(query)
-                );
-                this.renderModalList(filtered);
-            }
-
-            if (t.id === 'titleInput') this.workoutData.title = t.value;
-            if (t.id === 'dateInput') this.workoutData.workout_date = new Date(t.value).getTime();
-            if (t.classList?.contains('edit-val')) {
-                const row = t.closest('.set-row');
-                this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx][t.dataset.field] = t.value;
-            }
-            this.saveToLocal();
-        };
+    handleInput(e) {
+        const t = e.target;
+        if (t.id === 'modalSearchInput') {
+            const q = t.value.toLowerCase();
+            this.renderModalList(this.allExercisesCache.filter(ex => ex.name.toLowerCase().includes(q) || ex.category.toLowerCase().includes(q)));
+        }
+        if (t.id === 'titleInput') this.workoutData.title = t.value;
+        if (t.classList?.contains('edit-val')) {
+            const row = t.closest('.set-row');
+            this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx][t.dataset.field] = t.value;
+        }
+        this.saveToLocal();
     }
 
     async handleSave() {
         const btn = document.getElementById('mainActionBtn');
         btn.innerText = 'Загрузка...';
         btn.disabled = true;
-
         let lastSSId = null;
         const prepared = this.workoutData.exercises.map((ex, i) => {
             const next = this.workoutData.exercises[i + 1];
@@ -367,28 +326,14 @@ export default class WorkoutView {
         try {
             let res;
             if (this.isTemplateMode) {
-                const payload = { name: this.workoutData.title, description: this.workoutData.description || '', exercises: prepared };
-                res = this.workoutId 
-                    ? await this.api.updateTemplate(this.workoutId, payload) 
-                    : await this.api.createTemplate(payload);
+                res = this.workoutId ? await this.api.updateTemplate(this.workoutId, { name: this.workoutData.title, exercises: prepared }) : await this.api.createTemplate({ name: this.workoutData.title, exercises: prepared });
             } else {
-                const payload = { title: this.workoutData.title, workout_date: new Date(this.workoutData.workout_date), exercises: prepared };
-                res = this.workoutId 
-                    ? await this.api.updateWorkout(this.workoutId, payload) 
-                    : await this.api.createWorkout(payload);
+                res = this.workoutId ? await this.api.updateWorkout(this.workoutId, { title: this.workoutData.title, workout_date: new Date(this.workoutData.workout_date), exercises: prepared }) : await this.api.createWorkout({ title: this.workoutData.title, workout_date: new Date(this.workoutData.workout_date), exercises: prepared });
             }
-
             if (res.success) {
                 if (!this.isTemplateMode) localStorage.removeItem('gymcore_active_workout');
-                
-                // Если мы отредактировали историю тренировки - просто выйдем из режима правки
-                if (this.workoutId && !this.isTemplateMode) {
-                    this.isEditing = false;
-                    this.render();
-                } else {
-                    // Иначе (новый шаблон, новая треня, или правка шаблона) кидаем на нужный экран
-                    window.location.hash = this.isTemplateMode ? '#templates' : '';
-                }
+                if (this.workoutId && !this.isTemplateMode) { this.isEditing = false; this.render(); }
+                else window.location.hash = this.isTemplateMode ? '#templates' : '';
             }
         } catch (e) { alert('Ошибка сохранения'); }
         finally { btn.innerText = 'Сохранить'; btn.disabled = false; }
