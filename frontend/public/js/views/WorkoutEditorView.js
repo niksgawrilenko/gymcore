@@ -14,29 +14,57 @@ export default class WorkoutEditorView {
 
     async init() {
         if (this.workoutId) {
+            // Режим просмотра истории
             try {
                 const res = await this.api.getWorkoutDetail(this.workoutId);
                 this.workoutData = res.data;
                 this.normalizeData();
+                this.render();
             } catch (e) {
                 this.container.innerHTML = `<div class="empty-state">Ошибка загрузки</div>`;
                 return;
             }
         } else {
+            // Режим новой тренировки
             const saved = localStorage.getItem('gymcore_active_workout');
             if (saved) {
                 this.workoutData = JSON.parse(saved);
+                this.render();
+                this.startTimer();
             } else {
+                const templateId = sessionStorage.getItem('currentTemplateId');
                 this.workoutData = {
                     title: sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка',
-                    template_id: sessionStorage.getItem('currentTemplateId') || null,
+                    template_id: templateId || null,
                     workout_date: new Date().getTime(),
                     exercises: []
                 };
+                
+                this.render();
+                this.startTimer();
+
+                // ИСПРАВЛЕНИЕ: Подгружаем упражнения, если выбран шаблон
+                if (templateId) {
+                    try {
+                        const res = await this.api.getTemplateById(templateId);
+                        if (res.success && res.data.exercises) {
+                            this.workoutData.exercises = res.data.exercises.map(ex => ({
+                                id: ex.id,
+                                name: ex.name,
+                                category: ex.category,
+                                exercise_type: ex.exercise_type,
+                                isSuperset: false,
+                                sets: [{ weight: '', reps: '', completed: false }]
+                            }));
+                            this.saveToLocal();
+                            this.renderExercises(); // Перерисовываем список
+                        }
+                    } catch (e) {
+                        console.error('Ошибка загрузки шаблона', e);
+                    }
+                }
             }
         }
-        this.render();
-        if (!this.workoutId) this.startTimer();
     }
 
     normalizeData() {
@@ -80,6 +108,11 @@ export default class WorkoutEditorView {
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--surface-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
                     <a href="#" style="color: var(--accent-color); text-decoration: none; font-weight: 600;">← Назад</a>
                     <div style="display: flex; gap: 10px;">
+                        
+                        ${!this.isEditing && this.workoutId ? `
+                            <button id="saveAsTemplateBtn" style="background: none; border: 1px solid var(--accent-color); color: var(--accent-color); padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">📑 В шаблон</button>
+                        ` : ''}
+
                         <button id="mainActionBtn" style="background: ${this.isEditing ? '#34c759' : 'var(--bg-color)'}; color: ${this.isEditing ? 'white' : 'var(--text-primary)'}; border: 1px solid ${this.isEditing ? '#34c759' : 'var(--border-color)'}; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">
                             ${this.isEditing ? '💾 Сохранить' : '✎ Править'}
                         </button>
@@ -115,6 +148,11 @@ export default class WorkoutEditorView {
         const list = this.container.querySelector('#exercises-list');
         const exercises = this.workoutData.exercises;
         
+        if (!exercises || exercises.length === 0) {
+            list.innerHTML = '<div class="empty-state">Упражнений пока нет</div>';
+            return;
+        }
+
         let groups = [];
         exercises.forEach((ex, i) => {
             if (ex.isSuperset && i > 0) groups[groups.length - 1].push({ ex, i });
@@ -140,7 +178,6 @@ export default class WorkoutEditorView {
                     </div>
                 `).join('');
 
-                // ИСПРАВЛЕНИЕ: Добавлен position: relative; чтобы меню не выпадало за границы
                 return `
                     <div class="card exercise-item-data ${isSS ? 'superset-card' : ''}" data-idx="${i}" style="position: relative; margin-bottom:${isSS && idx < group.length - 1 ? '0' : '15px'}; border-radius:${isSS ? (idx === 0 ? '16px 16px 0 0' : (idx === group.length - 1 ? '0 0 16px 16px' : '0')) : '16px'};">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -169,7 +206,38 @@ export default class WorkoutEditorView {
     bindEvents() {
         this.container.onclick = async (e) => {
             const t = e.target;
-            const idx = t.dataset.idx;
+            const idx = t.dataset?.idx;
+
+            if (t.id === 'saveAsTemplateBtn') {
+                const templateName = prompt('Введите название для нового шаблона:', this.workoutData.title);
+                if (!templateName) return; 
+
+                t.innerText = '⏳...';
+                t.disabled = true;
+
+                const uniqueExercises = [];
+                const seenIds = new Set();
+                this.workoutData.exercises.forEach(ex => {
+                    if (!seenIds.has(ex.id)) {
+                        seenIds.add(ex.id);
+                        uniqueExercises.push({ id: ex.id });
+                    }
+                });
+
+                try {
+                    const res = await this.api.createTemplate({
+                        name: templateName,
+                        description: 'Сохранено из истории',
+                        exercises: uniqueExercises
+                    });
+                    if (res.success) alert('✅ Успешно сохранено в шаблоны!');
+                } catch (e) {
+                    alert('Ошибка при сохранении шаблона');
+                } finally {
+                    t.innerText = '📑 В шаблон';
+                    t.disabled = false;
+                }
+            }
 
             if (t.id === 'mainActionBtn') {
                 if (!this.isEditing) { this.isEditing = true; this.render(); }
@@ -178,9 +246,9 @@ export default class WorkoutEditorView {
             if (t.id === 'cancelBtn') { this.isEditing = false; this.workoutData = null; this.init(); }
             if (t.id === 'deleteBtn' && confirm('Удалить тренировку?')) { await this.api.deleteWorkout(this.workoutId); window.location.hash = ''; }
             
-            if (t.classList.contains('add-set-btn')) { this.workoutData.exercises[idx].sets.push({ weight: '', reps: '', completed: false }); this.renderExercises(); this.saveToLocal(); }
+            if (t.classList?.contains('add-set-btn')) { this.workoutData.exercises[idx].sets.push({ weight: '', reps: '', completed: false }); this.renderExercises(); this.saveToLocal(); }
             
-            if (t.classList.contains('set-check')) {
+            if (t.classList?.contains('set-check')) {
                 const row = t.closest('.set-row');
                 const set = this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx];
                 set.completed = !set.completed;
@@ -188,25 +256,22 @@ export default class WorkoutEditorView {
                 this.saveToLocal();
             }
 
-            // Логика меню (Три точки)
-            if (t.classList.contains('menu-btn')) {
+            if (t.classList?.contains('menu-btn')) {
                 document.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
-                this.container.querySelector(`#menu-${idx}`).classList.add('active');
-                e.stopPropagation(); // Останавливаем клик, чтобы меню сразу не закрылось
+                this.container.querySelector(`#menu-${idx}`)?.classList.add('active');
+                e.stopPropagation(); 
             }
 
-            // ИСПРАВЛЕНИЕ: Скрытие меню при клике в любое другое место
             if (!t.closest('.menu-btn') && !t.closest('.exercise-menu')) {
                 document.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
             }
 
-            if (t.classList.contains('toggle-ss')) { this.workoutData.exercises[idx].isSuperset = !this.workoutData.exercises[idx].isSuperset; this.renderExercises(); this.saveToLocal(); }
-            if (t.classList.contains('delete-ex') && confirm('Удалить упражнение?')) { this.workoutData.exercises.splice(idx, 1); this.renderExercises(); this.saveToLocal(); }
+            if (t.classList?.contains('toggle-ss')) { this.workoutData.exercises[idx].isSuperset = !this.workoutData.exercises[idx].isSuperset; this.renderExercises(); this.saveToLocal(); }
+            if (t.classList?.contains('delete-ex') && confirm('Удалить упражнение?')) { this.workoutData.exercises.splice(idx, 1); this.renderExercises(); this.saveToLocal(); }
             
-            // Модалка
             if (t.id === 'addExBtn') {
                 const modal = this.container.querySelector('#exModal');
-                modal.classList.add('active');
+                if (modal) modal.classList.add('active');
                 const res = await this.api.getExercises();
                 this.container.querySelector('#modalList').innerHTML = res.data.map(ex => `
                     <div class="exercise-list-item" data-id="${ex.id}" data-name="${ex.name}" data-type="${ex.exercise_type}">
@@ -214,11 +279,13 @@ export default class WorkoutEditorView {
                     </div>
                 `).join('');
             }
-            if (t.id === 'closeModal' || t.classList.contains('modal-overlay')) this.container.querySelector('#exModal').classList.remove('active');
+            if (t.id === 'closeModal' || t.classList?.contains('modal-overlay')) {
+                this.container.querySelector('#exModal')?.classList.remove('active');
+            }
             if (t.closest('.exercise-list-item')) {
                 const item = t.closest('.exercise-list-item');
                 this.workoutData.exercises.push({ id: parseInt(item.dataset.id), name: item.dataset.name, exercise_type: item.dataset.type, sets: [{ weight: '', reps: '', completed: false }] });
-                this.container.querySelector('#exModal').classList.remove('active');
+                this.container.querySelector('#exModal')?.classList.remove('active');
                 this.renderExercises();
                 this.saveToLocal();
             }
@@ -228,7 +295,7 @@ export default class WorkoutEditorView {
             const t = e.target;
             if (t.id === 'titleInput') this.workoutData.title = t.value;
             if (t.id === 'dateInput') this.workoutData.workout_date = new Date(t.value).getTime();
-            if (t.classList.contains('edit-val')) {
+            if (t.classList?.contains('edit-val')) {
                 const row = t.closest('.set-row');
                 this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx][t.dataset.field] = t.value;
             }
