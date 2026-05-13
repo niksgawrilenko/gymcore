@@ -1,6 +1,6 @@
 // frontend/public/js/views/TemplatesView.js
 
-import { escapeHTML } from '../utils/helpers.js';
+import { escapeHTML, getCurrentUserId } from '../utils/helpers.js';
 
 export default class TemplatesView {
     constructor(container, api) {

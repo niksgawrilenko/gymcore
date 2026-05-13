@@ -1,6 +1,6 @@
 // frontend/public/js/views/ExercisesView.js
 
-import { escapeHTML } from '../utils/helpers.js';
+import { escapeHTML, getCurrentUserId } from '../utils/helpers.js';
 
 export default class ExercisesView {
     constructor(container, api) {
@@ -80,10 +80,13 @@ export default class ExercisesView {
             this.exercises = res.data;
             this.renderExercisesList(this.exercises);
         } catch (e) {
-            list.innerHTML = '<div class="empty-state" style="color: #ff3b30;">Ошибка загрузки базы данных</div>';
+            // Теперь мы увидим реальную причину прямо на экране!
+            list.innerHTML = `<div class="empty-state" style="color: #ff3b30; padding: 20px;">
+                <b>Ошибка базы данных:</b><br>${e.message}
+            </div>`;
+            console.error("Полная ошибка:", e);
         }
     }
-
     // Найди в ExercisesView.js функцию renderExercisesList и замени её на эту:
 
     renderExercisesList(exercisesArray) {
