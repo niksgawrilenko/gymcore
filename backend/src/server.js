@@ -2,29 +2,96 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { pool, initDB } = require('./db');
 
 const app = express();
 const port = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-gymcore-key-2024';
 
 app.use(cors());
 app.use(express.json());
 
 // ==========================================
-// 1. КОНТРОЛЛЕР УПРАЖНЕНИЙ (ExerciseController)
+// MIDDLEWARE: Проверка токена
+// ==========================================
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; 
+
+    if (!token) return res.status(401).json({ success: false, error: 'Доступ запрещен. Нужна авторизация.' });
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ success: false, error: 'Токен недействителен или истек.' });
+        req.user = user; 
+        next();
+    });
+};
+
+// ==========================================
+// 1. КОНТРОЛЛЕР АВТОРИЗАЦИИ (AuthController)
+// ==========================================
+class AuthController {
+    register = async (req, res) => {
+        const { username, password } = req.body;
+        try {
+            const userCheck = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+            if (userCheck.rows.length > 0) {
+                return res.status(400).json({ success: false, error: 'Пользователь с таким именем уже существует' });
+            }
+
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
+
+            const newUser = await pool.query(
+                'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username',
+                [username, hashedPassword]
+            );
+
+            const token = jwt.sign({ id: newUser.rows[0].id, username }, JWT_SECRET, { expiresIn: '30d' });
+            res.json({ success: true, token, user: newUser.rows[0] });
+        } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    }
+
+    login = async (req, res) => {
+        const { username, password } = req.body;
+        try {
+            const userRes = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+            if (userRes.rows.length === 0) return res.status(400).json({ success: false, error: 'Неверный логин или пароль' });
+
+            const user = userRes.rows[0];
+            const validPassword = await bcrypt.compare(password, user.password_hash);
+            if (!validPassword) return res.status(400).json({ success: false, error: 'Неверный логин или пароль' });
+
+            const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+            res.json({ success: true, token, user: { id: user.id, username: user.username } });
+        } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    }
+}
+
+// ==========================================
+// 2. КОНТРОЛЛЕР УПРАЖНЕНИЙ (ExerciseController)
 // ==========================================
 class ExerciseController {
     getAll = async (req, res) => {
         try {
-            const dbRes = await pool.query('SELECT * FROM exercises ORDER BY name ASC');
+            const dbRes = await pool.query(`
+                SELECT * FROM exercises 
+                WHERE user_id = $1 OR user_id IS NULL OR is_public = true 
+                ORDER BY name ASC
+            `, [req.user.id]);
             res.json({ success: true, data: dbRes.rows });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 
     getById = async (req, res) => {
         try {
-            const dbRes = await pool.query('SELECT * FROM exercises WHERE id = $1', [req.params.id]);
-            if (dbRes.rows.length === 0) return res.status(404).json({ success: false, error: 'Не найдено' });
+            const dbRes = await pool.query(`
+                SELECT * FROM exercises 
+                WHERE id = $1 AND (user_id = $2 OR user_id IS NULL OR is_public = true)
+            `, [req.params.id, req.user.id]);
+            if (dbRes.rows.length === 0) return res.status(404).json({ success: false, error: 'Не найдено или нет доступа' });
             res.json({ success: true, data: dbRes.rows[0] });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
@@ -33,8 +100,8 @@ class ExerciseController {
         try {
             const { name, category, exercise_type } = req.body;
             const dbRes = await pool.query(
-                'INSERT INTO exercises (name, category, exercise_type) VALUES ($1, $2, $3) RETURNING *',
-                [name, category, exercise_type]
+                'INSERT INTO exercises (name, category, exercise_type, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
+                [name, category, exercise_type, req.user.id]
             );
             res.json({ success: true, data: dbRes.rows[0] });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -44,36 +111,46 @@ class ExerciseController {
         try {
             const { name, category, exercise_type } = req.body;
             const dbRes = await pool.query(
-                'UPDATE exercises SET name = $1, category = $2, exercise_type = $3 WHERE id = $4 RETURNING *',
-                [name, category, exercise_type, req.params.id]
+                'UPDATE exercises SET name = $1, category = $2, exercise_type = $3 WHERE id = $4 AND user_id = $5 RETURNING *',
+                [name, category, exercise_type, req.params.id, req.user.id]
             );
+            if (dbRes.rows.length === 0) return res.status(403).json({ success: false, error: 'Нет прав на редактирование этого упражнения' });
             res.json({ success: true, data: dbRes.rows[0] });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 
     delete = async (req, res) => {
         try {
-            await pool.query('DELETE FROM exercises WHERE id = $1', [req.params.id]);
+            const dbRes = await pool.query('DELETE FROM exercises WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.user.id]);
+            if (dbRes.rows.length === 0) return res.status(403).json({ success: false, error: 'Нет прав на удаление этого упражнения' });
             res.json({ success: true, message: 'Упражнение удалено' });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 }
 
 // ==========================================
-// 2. КОНТРОЛЛЕР ШАБЛОНОВ (TemplateController)
+// 3. КОНТРОЛЛЕР ШАБЛОНОВ (TemplateController)
 // ==========================================
 class TemplateController {
     getAll = async (req, res) => {
         try {
-            const dbRes = await pool.query('SELECT * FROM templates ORDER BY id ASC');
+            const dbRes = await pool.query(`
+                SELECT * FROM templates 
+                WHERE user_id = $1 OR user_id IS NULL OR is_public = true 
+                ORDER BY id ASC
+            `, [req.user.id]);
             res.json({ success: true, data: dbRes.rows });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 
     getById = async (req, res) => {
         try {
-            const tplRes = await pool.query('SELECT * FROM templates WHERE id = $1', [req.params.id]);
-            if (tplRes.rows.length === 0) return res.status(404).json({ success: false, error: 'Шаблон не найден' });
+            const tplRes = await pool.query(`
+                SELECT * FROM templates 
+                WHERE id = $1 AND (user_id = $2 OR user_id IS NULL OR is_public = true)
+            `, [req.params.id, req.user.id]);
+            
+            if (tplRes.rows.length === 0) return res.status(404).json({ success: false, error: 'Шаблон не найден или нет доступа' });
             
             const template = tplRes.rows[0];
             const exRes = await pool.query(`
@@ -95,8 +172,8 @@ class TemplateController {
         try {
             await client.query('BEGIN');
             const tplRes = await client.query(
-                'INSERT INTO templates (name, description) VALUES ($1, $2) RETURNING id',
-                [name || 'Новый шаблон', description || 'Создано пользователем']
+                'INSERT INTO templates (name, description, user_id) VALUES ($1, $2, $3) RETURNING id',
+                [name || 'Новый шаблон', description || 'Создано пользователем', req.user.id]
             );
             const templateId = tplRes.rows[0].id;
 
@@ -122,7 +199,13 @@ class TemplateController {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            await client.query('UPDATE templates SET name = $1, description = $2 WHERE id = $3', [name, description, id]);
+            // Проверяем права перед обновлением
+            const updRes = await client.query('UPDATE templates SET name = $1, description = $2 WHERE id = $3 AND user_id = $4 RETURNING id', [name, description, id, req.user.id]);
+            
+            if (updRes.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(403).json({ success: false, error: 'Нет прав на редактирование этого шаблона' });
+            }
             
             if (exercises) {
                 await client.query('DELETE FROM template_exercises WHERE template_id = $1', [id]);
@@ -143,27 +226,29 @@ class TemplateController {
 
     delete = async (req, res) => {
         try {
-            await pool.query('DELETE FROM templates WHERE id = $1', [req.params.id]);
+            const dbRes = await pool.query('DELETE FROM templates WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.user.id]);
+            if (dbRes.rows.length === 0) return res.status(403).json({ success: false, error: 'Нет прав на удаление этого шаблона' });
             res.json({ success: true, message: 'Шаблон удален' });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 }
 
 // ==========================================
-// 3. КОНТРОЛЛЕР ТРЕНИРОВОК (WorkoutController)
+// 4. КОНТРОЛЛЕР ТРЕНИРОВОК (WorkoutController)
 // ==========================================
 class WorkoutController {
     getAll = async (req, res) => {
         try {
-            const dbRes = await pool.query('SELECT id, title, workout_date FROM workouts ORDER BY workout_date DESC LIMIT 50');
+            // Тренировки - строго личные
+            const dbRes = await pool.query('SELECT id, title, workout_date FROM workouts WHERE user_id = $1 ORDER BY workout_date DESC LIMIT 50', [req.user.id]);
             res.json({ success: true, data: dbRes.rows });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 
     getById = async (req, res) => {
         try {
-            const workoutRes = await pool.query('SELECT * FROM workouts WHERE id = $1', [req.params.id]);
-            if (workoutRes.rows.length === 0) return res.status(404).json({ success: false, error: 'Не найдено' });
+            const workoutRes = await pool.query('SELECT * FROM workouts WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+            if (workoutRes.rows.length === 0) return res.status(404).json({ success: false, error: 'Не найдено или нет доступа' });
             
             const workout = workoutRes.rows[0];
             const exercisesRes = await pool.query(`
@@ -192,8 +277,8 @@ class WorkoutController {
         try {
             await client.query('BEGIN');
             const workoutRes = await client.query(
-                'INSERT INTO workouts (title, template_id, workout_date) VALUES ($1, $2, $3) RETURNING id',
-                [title || 'Новая тренировка', template_id || null, workout_date || new Date()]
+                'INSERT INTO workouts (title, template_id, workout_date, user_id) VALUES ($1, $2, $3, $4) RETURNING id',
+                [title || 'Новая тренировка', template_id || null, workout_date || new Date(), req.user.id]
             );
             const workoutId = workoutRes.rows[0].id;
 
@@ -239,7 +324,12 @@ class WorkoutController {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            await client.query('UPDATE workouts SET title = $1, workout_date = $2 WHERE id = $3', [title, workout_date, id]);
+            const updRes = await client.query('UPDATE workouts SET title = $1, workout_date = $2 WHERE id = $3 AND user_id = $4 RETURNING id', [title, workout_date, id, req.user.id]);
+
+            if (updRes.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(403).json({ success: false, error: 'Нет прав или не найдено' });
+            }
 
             if (exercises) {
                 await client.query('DELETE FROM workout_exercises WHERE workout_id = $1', [id]);
@@ -282,37 +372,42 @@ class WorkoutController {
 
     delete = async (req, res) => {
         try {
-            await pool.query('DELETE FROM workouts WHERE id = $1', [req.params.id]);
+            const dbRes = await pool.query('DELETE FROM workouts WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.user.id]);
+            if (dbRes.rows.length === 0) return res.status(403).json({ success: false, error: 'Нет прав' });
             res.json({ success: true, message: 'Тренировка удалена' });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 }
 
 // ==========================================
-// 4. МАРШРУТИЗАЦИЯ (Router Setup)
+// 5. МАРШРУТИЗАЦИЯ (Router Setup)
 // ==========================================
+const auth = new AuthController();
+app.post('/api/auth/register', auth.register);
+app.post('/api/auth/login', auth.login);
+
+// Все остальные эндпоинты теперь защищены токеном!
 const exercises = new ExerciseController();
-app.get('/api/exercises', exercises.getAll);
-app.get('/api/exercises/:id', exercises.getById);
-app.post('/api/exercises', exercises.create);
-app.patch('/api/exercises/:id', exercises.update);
-app.delete('/api/exercises/:id', exercises.delete);
+app.get('/api/exercises', authenticateToken, exercises.getAll);
+app.get('/api/exercises/:id', authenticateToken, exercises.getById);
+app.post('/api/exercises', authenticateToken, exercises.create);
+app.patch('/api/exercises/:id', authenticateToken, exercises.update);
+app.delete('/api/exercises/:id', authenticateToken, exercises.delete);
 
 const templates = new TemplateController();
-app.get('/api/templates', templates.getAll);
-app.get('/api/templates/:id', templates.getById);
-app.post('/api/templates', templates.create);
-app.patch('/api/templates/:id', templates.update);
-app.delete('/api/templates/:id', templates.delete);
+app.get('/api/templates', authenticateToken, templates.getAll);
+app.get('/api/templates/:id', authenticateToken, templates.getById);
+app.post('/api/templates', authenticateToken, templates.create);
+app.patch('/api/templates/:id', authenticateToken, templates.update);
+app.delete('/api/templates/:id', authenticateToken, templates.delete);
 
 const workouts = new WorkoutController();
-app.get('/api/workouts', workouts.getAll);
-app.get('/api/workouts/:id', workouts.getById);
-app.post('/api/workouts', workouts.create);
-app.patch('/api/workouts/:id', workouts.update);
-app.delete('/api/workouts/:id', workouts.delete);
+app.get('/api/workouts', authenticateToken, workouts.getAll);
+app.get('/api/workouts/:id', authenticateToken, workouts.getById);
+app.post('/api/workouts', authenticateToken, workouts.create);
+app.patch('/api/workouts/:id', authenticateToken, workouts.update);
+app.delete('/api/workouts/:id', authenticateToken, workouts.delete);
 
-// Статус сервера
 app.get('/api/status', async (req, res) => {
     try {
         const dbRes = await pool.query('SELECT NOW() as db_time');
@@ -322,5 +417,5 @@ app.get('/api/status', async (req, res) => {
 
 // Запуск сервера
 initDB().then(() => { 
-    app.listen(port, () => console.log(`🚀 Сервер запущен на порту ${port}. Архитектура MVC активна.`)); 
+    app.listen(port, () => console.log(`🚀 Сервер запущен на порту ${port}. Аутентификация и проверка прав включены!`)); 
 });
