@@ -83,13 +83,16 @@ const initDB = async () => {
         await addColumnIfNotExists('exercises', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
         await addColumnIfNotExists('exercises', 'is_public', 'BOOLEAN DEFAULT false');
         await addColumnIfNotExists('exercises', 'share_id', 'UUID DEFAULT gen_random_uuid()');
+        
+        // --- НОВОЕ ДЛЯ МОДЕРАЦИИ ---
+        await addColumnIfNotExists('users', 'role', "VARCHAR(20) DEFAULT 'user'");
+        await addColumnIfNotExists('exercises', 'moderation_status', "VARCHAR(20) DEFAULT 'none'");
+        await addColumnIfNotExists('templates', 'moderation_status', "VARCHAR(20) DEFAULT 'none'");
+        // ---------------------------
 
         await addColumnIfNotExists('templates', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
         await addColumnIfNotExists('templates', 'is_public', 'BOOLEAN DEFAULT false');
         await addColumnIfNotExists('templates', 'share_id', 'UUID DEFAULT gen_random_uuid()');
-
-        await addColumnIfNotExists('workouts', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
-        await addColumnIfNotExists('workouts', 'share_id', 'UUID DEFAULT gen_random_uuid()');
 
         // =========================================================
         // ЖЕСТКОЕ УДАЛЕНИЕ СТАРОГО ПРАВИЛА УНИКАЛЬНОСТИ ИМЕН

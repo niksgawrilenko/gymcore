@@ -45,12 +45,12 @@ class AuthController {
             const hashedPassword = await bcrypt.hash(password, salt);
 
             const newUser = await pool.query(
-                'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username',
+                'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, role',
                 [username, hashedPassword]
             );
 
             const token = jwt.sign({ id: newUser.rows[0].id, username }, JWT_SECRET, { expiresIn: '30d' });
-            res.json({ success: true, token, user: newUser.rows[0] });
+            res.json({ success: true, token, user: { id: user.id, username: user.username, role: user.role } });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 
@@ -65,7 +65,7 @@ class AuthController {
             if (!validPassword) return res.status(400).json({ success: false, error: 'Неверный логин или пароль' });
 
             const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
-            res.json({ success: true, token, user: { id: user.id, username: user.username } });
+            res.json({ success: true, token, user: { id: user.id, username: user.username, role: user.role } });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 }
@@ -418,4 +418,93 @@ app.get('/api/status', async (req, res) => {
 // Запуск сервера
 initDB().then(() => { 
     app.listen(port, () => console.log(`🚀 Сервер запущен на порту ${port}. Аутентификация и проверка прав включены!`)); 
+});
+
+// ==========================================
+// 6. МАРШРУТЫ ШЕРИНГА И МОДЕРАЦИИ (НОВОЕ)
+// ==========================================
+
+// Middleware проверки прав админа
+const requireAdmin = async (req, res, next) => {
+    try {
+        const result = await pool.query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+        if (result.rows.length === 0 || result.rows[0].role !== 'admin') {
+            return res.status(403).json({ success: false, error: 'Доступ запрещен. Требуются права администратора.' });
+        }
+        next();
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// --- АДМИН ПАНЕЛЬ ---
+app.get('/api/admin/pending', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const exercises = await pool.query("SELECT * FROM exercises WHERE moderation_status = 'pending'");
+        const templates = await pool.query("SELECT * FROM templates WHERE moderation_status = 'pending'");
+        res.json({ success: true, data: { exercises: exercises.rows, templates: templates.rows } });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/admin/approve/:type/:id', authenticateToken, requireAdmin, async (req, res) => {
+    const { type, id } = req.params;
+    const table = type === 'exercise' ? 'exercises' : 'templates';
+    try {
+        await pool.query(`UPDATE ${table} SET moderation_status = 'approved', is_public = true WHERE id = $1`, [id]);
+        res.json({ success: true, message: 'Одобрено и опубликовано' });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/admin/reject/:type/:id', authenticateToken, requireAdmin, async (req, res) => {
+    const { type, id } = req.params;
+    const table = type === 'exercise' ? 'exercises' : 'templates';
+    try {
+        await pool.query(`UPDATE ${table} SET moderation_status = 'rejected' WHERE id = $1`, [id]);
+        res.json({ success: true, message: 'Отклонено' });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// --- ОТПРАВКА НА МОДЕРАЦИЮ ---
+app.post('/api/exercises/:id/moderate', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query("UPDATE exercises SET moderation_status = 'pending' WHERE id = $1 AND user_id = $2 RETURNING *", [req.params.id, req.user.id]);
+        if (result.rows.length === 0) return res.status(403).json({ success: false, error: 'Нет доступа' });
+        res.json({ success: true, data: result.rows[0] });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/templates/:id/moderate', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query("UPDATE templates SET moderation_status = 'pending' WHERE id = $1 AND user_id = $2 RETURNING *", [req.params.id, req.user.id]);
+        if (result.rows.length === 0) return res.status(403).json({ success: false, error: 'Нет доступа' });
+        res.json({ success: true, data: result.rows[0] });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// --- ПУБЛИЧНЫЙ ДОСТУП ПО SHARE_ID ---
+app.get('/api/shared/exercises/:shareId', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM exercises WHERE share_id = $1', [req.params.shareId]);
+        if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Упражнение не найдено' });
+        res.json({ success: true, data: result.rows[0] });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.get('/api/shared/templates/:shareId', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM templates WHERE share_id = $1', [req.params.shareId]);
+        if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'Шаблон не найден' });
+        
+        const tpl = result.rows[0];
+        const exRes = await pool.query(`
+            SELECT e.*, te.sort_order 
+            FROM exercises e 
+            JOIN template_exercises te ON e.id = te.exercise_id 
+            WHERE te.template_id = $1 
+            ORDER BY te.sort_order
+        `, [tpl.id]);
+        
+        tpl.exercises = exRes.rows;
+        res.json({ success: true, data: tpl });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });

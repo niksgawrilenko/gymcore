@@ -27,7 +27,7 @@ export default class TemplatesView {
                     <a href="#template-create" style="background: none; border: none; color: var(--accent-color); font-weight: bold; font-size: 28px; cursor: pointer; text-decoration: none; padding: 0 10px;">+</a>
                 </div>
                 
-                <h2 style="margin-bottom: 15px; font-size: 24px;">Мои шаблоны</h2>
+                <h2 style="margin-bottom: 15px; font-size: 24px;">Мои программы</h2>
                 <input type="text" id="templateSearch" class="set-input" placeholder="🔍 Поиск шаблона..." style="width: 100%; margin-bottom: 20px; text-align: left;">
                 
                 <div id="templatesList"><div class="empty-state">Загрузка...</div></div>
@@ -74,7 +74,14 @@ export default class TemplatesView {
                     </a>
                     
                     ${isPersonal ? `
-                        <button class="delete-tpl-btn" data-id="${tpl.id}" style="background: none; border: none; color: #ff3b30; font-size: 18px; cursor: pointer; padding: 10px;">🗑</button>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span class="status-badge status-${tpl.moderation_status || 'none'}">${tpl.moderation_status || 'none'}</span>
+                            
+                            <button class="moderate-tpl-btn" data-id="${tpl.id}" title="На модерацию" style="background:none; border:none; cursor:pointer; font-size: 16px;">🌐</button>
+                            <button class="share-tpl-btn" data-id="${tpl.share_id}" title="Поделиться" style="background:none; border:none; cursor:pointer; font-size: 16px;">🔗</button>
+                            
+                            <button class="delete-tpl-btn" data-id="${tpl.id}" style="background: none; border: none; color: #ff3b30; font-size: 18px; cursor: pointer; padding: 5px;">🗑</button>
+                        </div>
                     ` : `
                         <div style="padding: 10px; color: var(--text-secondary); font-size: 14px;">👁️ Чтение</div>
                     `}
@@ -96,12 +103,40 @@ export default class TemplatesView {
     }
 
     async handleClick(e) {
-        const deleteBtn = e.target.closest('.delete-tpl-btn');
+        const t = e.target;
+
+        // Удаление шаблона
+        const deleteBtn = t.closest('.delete-tpl-btn');
         if (deleteBtn) {
             if (confirm('Удалить этот шаблон?')) {
                 await this.api.deleteTemplate(deleteBtn.dataset.id);
                 this.loadTemplates();
             }
+        }
+
+        // Отправка на модерацию
+        const moderateBtn = t.closest('.moderate-tpl-btn');
+        if (moderateBtn) {
+            const id = moderateBtn.dataset.id;
+            if (confirm('Отправить этот шаблон на модерацию, чтобы он стал общим для всех?')) {
+                try {
+                    await this.api.sendTemplateToModeration(id);
+                    alert('Шаблон отправлен на проверку!');
+                    this.loadTemplates();
+                } catch (err) {
+                    alert('Ошибка: ' + err.message);
+                }
+            }
+        }
+
+        // Кнопка Поделиться
+        const shareBtn = t.closest('.share-tpl-btn');
+        if (shareBtn) {
+            const shareId = shareBtn.dataset.id;
+            // Создаем ссылку для будущего роута shared-template
+            const url = `${window.location.origin}/#shared-template?id=${shareId}`;
+            navigator.clipboard.writeText(url);
+            alert('Ссылка на шаблон скопирована!');
         }
     }
 

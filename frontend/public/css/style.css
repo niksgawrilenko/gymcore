@@ -318,3 +318,57 @@ body {
     font-size: 12px;
     font-weight: bold;
 }
+/* Бейджи статусов модерации */
+.status-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+}
+
+/* На проверке - желтый */
+.status-pending {
+    background: rgba(255, 204, 0, 0.15);
+    color: #ffcc00;
+    border: 1px solid rgba(255, 204, 0, 0.3);
+}
+
+/* Одобрено - зеленый */
+.status-approved {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34c759;
+    border: 1px solid rgba(52, 199, 89, 0.3);
+}
+
+/* Отклонено - красный */
+.status-rejected {
+    background: rgba(255, 59, 48, 0.15);
+    color: #ff3b30;
+    border: 1px solid rgba(255, 59, 48, 0.3);
+}
+
+/* Личное - серый */
+.status-none {
+    background: var(--bg-color);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* Кнопки действий для модерации */
+.moderate-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 5px;
+    cursor: pointer;
+    filter: grayscale(1);
+    transition: 0.2s;
+}
+
+.moderate-btn:hover {
+    filter: grayscale(0);
+    transform: scale(1.1);
+    border-color: var(--accent-color);
+}

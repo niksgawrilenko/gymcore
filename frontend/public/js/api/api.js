@@ -46,13 +46,21 @@ export class ApiClient {
     // ==========================================
     async login(username, password) {
         const res = await this.#request('/auth/login', 'POST', { username, password });
-        if (res.success) localStorage.setItem('gymcore_token', res.token);
+        if (res.success) {
+            localStorage.setItem('gymcore_token', res.token);
+            // СОХРАНЯЕМ ВЕСЬ ОБЪЕКТ ПОЛЬЗОВАТЕЛЯ (включая роль)
+            localStorage.setItem('gymcore_user', JSON.stringify(res.user));
+        }
         return res;
     }
 
     async register(username, password) {
         const res = await this.#request('/auth/register', 'POST', { username, password });
-        if (res.success) localStorage.setItem('gymcore_token', res.token);
+        if (res.success) {
+            localStorage.setItem('gymcore_token', res.token);
+            // СОХРАНЯЕМ ВЕСЬ ОБЪЕКТ ПОЛЬЗОВАТЕЛЯ
+            localStorage.setItem('gymcore_user', JSON.stringify(res.user));
+        }
         return res;
     }
 
@@ -82,4 +90,40 @@ export class ApiClient {
     createWorkout(data) { return this.#request('/workouts', 'POST', data); }
     updateWorkout(id, data) { return this.#request(`/workouts/${id}`, 'PATCH', data); }
     deleteWorkout(id) { return this.#request(`/workouts/${id}`, 'DELETE'); }
+
+    // --- Модерация и шеринг ---
+    async sendExerciseToModeration(id) {
+        // Используем #request и указываем метод POST
+        return this.#request(`/exercises/${id}/moderate`, 'POST');
+    }
+
+    async sendTemplateToModeration(id) {
+        return this.#request(`/templates/${id}/moderate`, 'POST');
+    }
+
+    async getAdminPending() {
+        // Для получения данных по умолчанию используется GET
+        return this.#request('/admin/pending');
+    }
+
+    async approveItem(type, id) {
+        return this.#request(`/admin/approve/${type}/${id}`, 'POST');
+    }
+
+    async rejectItem(type, id) {
+        // Добавляем /admin/ в путь, как мы прописали на бэкенде
+        return this.#request(`/admin/reject/${type}/${id}`, 'POST');
+    }
+    // Метод для получения роли пользователя (чтобы знать, показывать ли кнопку админки)
+    getUserRole() {
+        const user = JSON.parse(localStorage.getItem('gymcore_user') || '{}');
+        return user.role || 'user';
+    }
+    async getSharedExercise(shareId) {
+        return this.#request(`/shared/exercises/${shareId}`);
+    }
+
+    async getSharedTemplate(shareId) {
+        return this.#request(`/shared/templates/${shareId}`);
+    }
 }

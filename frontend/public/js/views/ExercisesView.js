@@ -123,9 +123,14 @@ export default class ExercisesView {
                             </div>
                             
                             ${isPersonal ? `
-                                <div style="display: flex; gap: 15px;">
-                                    <button class="edit-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; cursor: pointer; color: var(--accent-color);">✎</button>
-                                    <button class="delete-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; color: #ff3b30; cursor: pointer;">🗑</button>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <span class="status-badge status-${ex.moderation_status}">${ex.moderation_status}</span>
+                                    
+                                    <button class="moderate-btn" data-id="${ex.id}" title="На модерацию" style="background:none; border:none; cursor:pointer;">🌐</button>
+                                    <button class="share-btn" data-id="${ex.share_id}" title="Поделиться" style="background:none; border:none; cursor:pointer;">🔗</button>
+                                    
+                                    <button class="edit-btn" data-id="${ex.id}" style="background:none; border:none; font-size:18px; cursor:pointer; color:var(--accent-color);">✎</button>
+                                    <button class="delete-btn" data-id="${ex.id}" style="background:none; border:none; font-size:18px; color:#ff3b30; cursor:pointer;">🗑</button>
                                 </div>
                             ` : `
                                 <div style="background: var(--bg-color); padding: 4px 8px; border-radius: 6px; font-size: 11px; color: var(--text-secondary); font-weight: bold;">
@@ -220,6 +225,20 @@ export default class ExercisesView {
                 btn.innerText = 'Сохранить';
                 btn.disabled = false;
             }
+        }
+        if (t.closest('.moderate-btn')) {
+            const id = t.closest('.moderate-btn').dataset.id;
+            if (confirm('Отправить на проверку модератору, чтобы упражнение стало общим?')) {
+                await this.api.sendExerciseToModeration(id);
+                this.loadExercises(); // Обновляем список, чтобы увидеть статус "pending"
+            }
+        }
+
+        if (t.closest('.share-btn')) {
+            const shareId = t.closest('.share-btn').dataset.id;
+            const url = `${window.location.origin}/#shared-ex?id=${shareId}`;
+            navigator.clipboard.writeText(url);
+            alert('Ссылка скопирована! Отправьте её другу.');
         }
     }
 
