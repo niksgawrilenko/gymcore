@@ -22,60 +22,73 @@ export default class HomeView {
 
     render() {
         const isAdmin = this.api.getUserRole() === 'admin';
+        
+        // ПРОВЕРЯЕМ: Есть ли незавершенная тренировка в памяти?
+        const activeWorkout = JSON.parse(localStorage.getItem('gymcore_active_workout'));
+
         this.container.innerHTML = `
             <section class="quick-actions" style="display: flex; flex-direction: column; gap: 10px;">
+                
+                ${activeWorkout ? `
+                <div class="card active-workout-banner" style="border: 2px solid var(--accent-color); background: rgba(0, 122, 255, 0.05); margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="color: var(--accent-color); font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px;">🔥 Идет тренировка</div>
+                            <div style="font-weight: 700; font-size: 17px;">${escapeHTML(activeWorkout.title)}</div>
+                        </div>
+                        <button id="continueWorkoutBtn" class="primary-btn" style="width: auto; padding: 10px 20px; font-size: 14px; box-shadow: none;">Продолжить</button>
+                    </div>
+                </div>
+                ` : ''}
+
                 <button id="openTemplateModalBtn" class="primary-btn">
-                    <span>+</span> Начать тренировку
+                    <span>+</span> Начать новую тренировку
                 </button>
+                
                 ${isAdmin ? `
-                <a href="#admin" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; background: #5856d6; color: white; text-decoration: none; font-weight: 800; font-size: 16px; box-shadow: 0 4px 15px rgba(88, 86, 214, 0.3);">
+                <a href="#admin" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; background: #5856d6; color: white; text-decoration: none; font-weight: 800; font-size: 16px;">
                     🛡️ ПАНЕЛЬ МОДЕРАТОРА
                 </a>
                 ` : ''}
                 
-                <a href="#exercises" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; font-weight: 600; font-size: 16px;">
+                <a href="#exercises" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; font-weight: 600;">
                     🏋️ База упражнений
                 </a>
-                <a href="#templates" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; font-weight: 600; font-size: 16px;">
+
+                <a href="#templates" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; font-weight: 600;">
                     📋 Мои программы (Шаблоны)
                 </a>
                 <button id="logoutBtn" style="background: none; border: none; color: var(--text-secondary); text-decoration: underline; cursor: pointer; padding: 10px; font-weight: bold; margin-top: 5px;">
-                    🚪 Выйти из аккаунта
+                    🚪 Выйти
                 </button>
             </section>
 
             <section class="recent-history">
-                <h2 class="section-title">История тренировок</h2>
+                <h2 class="section-title">История</h2>
                 <div id="dataContainer">
-                    <div class="card empty-state">Загрузка истории...</div>
+                    <div class="card empty-state">Загрузка...</div>
                 </div>
             </section>
 
             <div id="templateModal" class="modal-overlay">
                 <div class="modal-content" style="height: 60vh;">
                     <div class="modal-header">
-                        <h3>Выбор тренировки</h3>
+                        <h3>Выбор программы</h3>
                         <button id="closeTemplateModalBtn" class="close-btn">Отмена</button>
                     </div>
-                    
                     <div style="margin-bottom: 15px;">
-                        <button id="emptyWorkoutBtn" class="primary-btn" style="background-color: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">
+                        <button id="emptyWorkoutBtn" class="primary-btn" style="background: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color); box-shadow:none;">
                             + Пустая тренировка
                         </button>
                     </div>
-
                     <input type="text" id="templateSearchInput" class="set-input" placeholder="🔍 Поиск шаблона..." style="width: 100%; margin-bottom: 15px; text-align: left;">
-                    
-                    <div id="templateList" style="overflow-y: auto; flex-grow: 1;">
-                        <div style="text-align: center; color: var(--text-secondary);">Загрузка...</div>
-                    </div>
+                    <div id="templateList" style="overflow-y: auto; flex-grow: 1;"></div>
                 </div>
             </div>
         `;
         
         this.container.addEventListener('click', this._onClick);
         this.container.addEventListener('input', this._onInput);
-        
         this.loadHistory();
     }
 
@@ -160,30 +173,53 @@ export default class HomeView {
     handleClick(e) {
         const t = e.target;
 
+        // 1. Продолжить активную тренировку
+        if (t.id === 'continueWorkoutBtn') {
+            window.location.hash = '#workout';
+            return;
+        }
+
+        // 2. Открыть модалку выбора шаблона
         if (t.closest('#openTemplateModalBtn')) {
             this.container.querySelector('#templateModal').classList.add('active');
             this.loadTemplatesIntoModal();
+            return;
         }
 
+        // 3. Закрыть модалку
         if (t.closest('#closeTemplateModalBtn') || t.id === 'templateModal') {
             this.container.querySelector('#templateModal').classList.remove('active');
+            return;
         }
 
+        // 4. Начать пустую тренировку
         if (t.closest('#emptyWorkoutBtn')) {
+            if (localStorage.getItem('gymcore_active_workout')) {
+                if (!confirm('У вас есть активная тренировка. Начать новую (текущая будет удалена)?')) return;
+            }
+            
             localStorage.removeItem('gymcore_active_workout');
             sessionStorage.removeItem('currentWorkoutTitle');
             sessionStorage.removeItem('currentTemplateId');
             window.location.hash = '#workout';
+            return;
         }
 
+        // 5. Начать тренировку по шаблону
         const templateCard = t.closest('.template-card');
         if (templateCard) {
+            if (localStorage.getItem('gymcore_active_workout')) {
+                if (!confirm('У вас есть активная тренировка. Сбросить её и начать по этому шаблону?')) return;
+            }
+
             localStorage.removeItem('gymcore_active_workout');
             sessionStorage.setItem('currentWorkoutTitle', templateCard.dataset.name);
             sessionStorage.setItem('currentTemplateId', templateCard.dataset.id);
             window.location.hash = '#workout';
+            return;
         }
         
+        // 6. Выход из аккаунта
         if (t.closest('#logoutBtn')) {
             if (confirm('Вы точно хотите выйти?')) {
                 this.api.logout();

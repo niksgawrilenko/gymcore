@@ -338,6 +338,9 @@ export default class WorkoutView {
             }));
         }
         if (t.id === 'titleInput') this.workoutData.title = t.value;
+        
+        if (t.id === 'dateInput') this.workoutData.workout_date = new Date(t.value).getTime();
+
         if (t.classList?.contains('edit-val')) {
             const row = t.closest('.set-row');
             this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx][t.dataset.field] = t.value;
@@ -379,7 +382,9 @@ export default class WorkoutView {
             }
 
             if (res.success) {
-                if (!this.isTemplateMode) localStorage.removeItem('gymcore_active_workout');
+                if (!this.isTemplateMode) {
+                    localStorage.removeItem('gymcore_active_workout');
+                }
                 
                 if (this.workoutId && isOwner && !this.isTemplateMode) { 
                     this.isEditing = false; 
