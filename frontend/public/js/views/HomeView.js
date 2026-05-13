@@ -1,6 +1,6 @@
 // frontend/public/js/views/HomeView.js
 
-import { escapeHTML } from '../utils/helpers.js';
+import { escapeHTML, getCurrentUserId } from '../utils/helpers.js';
 
 export default class HomeView {
     constructor(container, api) {
@@ -58,8 +58,7 @@ export default class HomeView {
                         </button>
                     </div>
 
-                    <h4 style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">Твои шаблоны</h4>
-                    <input type="text" id="templateSearchInput" class="set-input" placeholder="🔍 Поиск шаблона..." style="width: 100%; margin-bottom: 10px; text-align: left;">
+                    <input type="text" id="templateSearchInput" class="set-input" placeholder="🔍 Поиск шаблона..." style="width: 100%; margin-bottom: 15px; text-align: left;">
                     
                     <div id="templateList" style="overflow-y: auto; flex-grow: 1;">
                         <div style="text-align: center; color: var(--text-secondary);">Загрузка...</div>
@@ -120,12 +119,36 @@ export default class HomeView {
             return;
         }
 
-        templateList.innerHTML = templatesArray.map(tpl => `
-            <div class="card exercise-list-item template-card" style="margin-bottom: 10px; border-radius: 10px; cursor: pointer;" data-id="${tpl.id}" data-name="${escapeHTML(tpl.name)}">
-                <div style="font-weight: 600; font-size: 16px;">${escapeHTML(tpl.name)}</div>
-                <div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${escapeHTML(tpl.description || '')}</div>
-            </div>
-        `).join('');
+        const myId = getCurrentUserId();
+        
+        // Разделяем шаблоны на личные и глобальные
+        const myTemplates = templatesArray.filter(tpl => tpl.user_id === myId);
+        const globalTemplates = templatesArray.filter(tpl => tpl.user_id !== myId);
+
+        // Функция-генератор HTML для карточек
+        const generateHTML = (tplList, isPersonal) => {
+            return tplList.map(tpl => `
+                <div class="card exercise-list-item template-card" style="margin-bottom: 10px; border-radius: 10px; cursor: pointer; opacity: ${isPersonal ? '1' : '0.85'};" data-id="${tpl.id}" data-name="${escapeHTML(tpl.name)}">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="font-weight: 600; font-size: 16px;">${escapeHTML(tpl.name)}</div>
+                        ${!isPersonal ? '<span style="font-size: 11px; background: var(--bg-color); padding: 2px 6px; border-radius: 4px; color: var(--text-secondary);">🌍</span>' : ''}
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${escapeHTML(tpl.description || (isPersonal ? 'Без описания' : 'Системный шаблон'))}</div>
+                </div>
+            `).join('');
+        };
+
+        templateList.innerHTML = `
+            ${myTemplates.length > 0 ? `
+                <h4 style="margin-bottom: 10px; color: var(--accent-color); font-size: 13px; text-transform: uppercase;">👤 Мои программы</h4>
+                ${generateHTML(myTemplates, true)}
+            ` : ''}
+
+            ${globalTemplates.length > 0 ? `
+                <h4 style="margin-top: 20px; margin-bottom: 10px; color: var(--text-secondary); font-size: 13px; text-transform: uppercase;">🌍 Общие шаблоны</h4>
+                ${generateHTML(globalTemplates, false)}
+            ` : ''}
+        `;
     }
 
     handleClick(e) {

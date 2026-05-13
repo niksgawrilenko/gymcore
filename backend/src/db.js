@@ -10,7 +10,6 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
-// Умная функция для добавления колонок без удаления старых данных
 async function addColumnIfNotExists(tableName, columnName, columnType) {
     const res = await pool.query(`
         SELECT column_name 
@@ -28,7 +27,6 @@ const initDB = async () => {
     try {
         console.log('Подключение к БД...');
 
-        // 1. ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -38,7 +36,6 @@ const initDB = async () => {
             );
         `);
 
-        // 2. БАЗОВЫЕ ТАБЛИЦЫ (старый код создания)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS exercises (
                 id SERIAL PRIMARY KEY,
@@ -82,20 +79,37 @@ const initDB = async () => {
             );
         `);
 
-        // 3. МИГРАЦИЯ: ДОБАВЛЯЕМ НОВЫЕ КОЛОНКИ К СТАРЫМ ТАБЛИЦАМ
-        // Для упражнений
+        // МИГРАЦИЯ: ДОБАВЛЯЕМ НОВЫЕ КОЛОНКИ
         await addColumnIfNotExists('exercises', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
         await addColumnIfNotExists('exercises', 'is_public', 'BOOLEAN DEFAULT false');
-        await addColumnIfNotExists('exercises', 'share_id', 'UUID DEFAULT gen_random_uuid()'); // Для будущих ссылок
+        await addColumnIfNotExists('exercises', 'share_id', 'UUID DEFAULT gen_random_uuid()');
 
-        // Для шаблонов
         await addColumnIfNotExists('templates', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
         await addColumnIfNotExists('templates', 'is_public', 'BOOLEAN DEFAULT false');
         await addColumnIfNotExists('templates', 'share_id', 'UUID DEFAULT gen_random_uuid()');
 
-        // Для тренировок
         await addColumnIfNotExists('workouts', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
         await addColumnIfNotExists('workouts', 'share_id', 'UUID DEFAULT gen_random_uuid()');
+
+        // =========================================================
+        // ЖЕСТКОЕ УДАЛЕНИЕ СТАРОГО ПРАВИЛА УНИКАЛЬНОСТИ ИМЕН
+        // =========================================================
+        
+        // 1. Для упражнений (уже было)
+        try {
+            await pool.query('ALTER TABLE exercises DROP CONSTRAINT IF EXISTS exercises_name_key CASCADE');
+        } catch (e) {} 
+        try {
+            await pool.query('DROP INDEX IF EXISTS exercises_name_key CASCADE');
+        } catch (e) {} 
+
+        // 2. Для шаблонов (НОВОЕ)
+        try {
+            await pool.query('ALTER TABLE templates DROP CONSTRAINT IF EXISTS templates_name_key CASCADE');
+        } catch (e) {} 
+        try {
+            await pool.query('DROP INDEX IF EXISTS templates_name_key CASCADE');
+        } catch (e) {}
 
         console.log('✅ База данных успешно инициализирована и обновлена (Multi-user mode ready).');
     } catch (err) {
