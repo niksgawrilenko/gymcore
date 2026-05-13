@@ -96,12 +96,17 @@ class ExerciseController {
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }
 
+    // Внутри ExerciseController в server.js
+
     create = async (req, res) => {
         try {
-            const { name, category, exercise_type } = req.body;
+            // Достаем новые поля из запроса
+            const { name, category, exercise_type, primary_groups, secondary_muscles } = req.body;
+            
             const dbRes = await pool.query(
-                'INSERT INTO exercises (name, category, exercise_type, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
-                [name, category, exercise_type, req.user.id]
+                `INSERT INTO exercises (name, category, exercise_type, user_id, primary_groups, secondary_muscles) 
+                VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+                [name, category, exercise_type, req.user.id, primary_groups || [], secondary_muscles || []]
             );
             res.json({ success: true, data: dbRes.rows[0] });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -109,12 +114,16 @@ class ExerciseController {
 
     update = async (req, res) => {
         try {
-            const { name, category, exercise_type } = req.body;
+            const { name, category, exercise_type, primary_groups, secondary_muscles } = req.body;
+            
             const dbRes = await pool.query(
-                'UPDATE exercises SET name = $1, category = $2, exercise_type = $3 WHERE id = $4 AND user_id = $5 RETURNING *',
-                [name, category, exercise_type, req.params.id, req.user.id]
+                `UPDATE exercises 
+                SET name = $1, category = $2, exercise_type = $3, primary_groups = $4, secondary_muscles = $5 
+                WHERE id = $6 AND user_id = $7 RETURNING *`,
+                [name, category, exercise_type, primary_groups || [], secondary_muscles || [], req.params.id, req.user.id]
             );
-            if (dbRes.rows.length === 0) return res.status(403).json({ success: false, error: 'Нет прав на редактирование этого упражнения' });
+            
+            if (dbRes.rows.length === 0) return res.status(403).json({ success: false, error: 'Нет прав' });
             res.json({ success: true, data: dbRes.rows[0] });
         } catch (e) { res.status(500).json({ success: false, error: e.message }); }
     }

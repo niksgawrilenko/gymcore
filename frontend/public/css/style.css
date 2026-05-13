@@ -41,7 +41,11 @@ body {
     flex-direction: column;
     min-height: 100vh;
 }
-
+/* Этот класс мы будем вешать на body, чтобы сайт не дергался */
+body.modal-open {
+    overflow: hidden; /* Запрещает скролл основной страницы */
+    height: 100vh;    /* Фиксирует высоту под экран */
+}
 /* 4. ШАПКА ПРИЛОЖЕНИЯ */
 .app-header {
     display: flex;

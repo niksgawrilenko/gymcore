@@ -94,6 +94,19 @@ const initDB = async () => {
         await addColumnIfNotExists('templates', 'is_public', 'BOOLEAN DEFAULT false');
         await addColumnIfNotExists('templates', 'share_id', 'UUID DEFAULT gen_random_uuid()');
 
+
+        // ==========================================
+        // --- НОВОЕ: АНАТОМИЯ И МУЛЬТИ-МЫШЦЫ ---
+        // ==========================================
+        // Массив основных групп (например: ['Грудь', 'Плечи'])
+        await addColumnIfNotExists('exercises', 'primary_groups', "TEXT[] DEFAULT '{}'");
+        
+        // Массив конкретных мышц (например: ['Большая грудная', 'Передняя дельта', 'Трицепс'])
+        await addColumnIfNotExists('exercises', 'secondary_muscles', "TEXT[] DEFAULT '{}'");
+        // ==========================================
+
+        await addColumnIfNotExists('templates', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
+        
         // =========================================================
         // ЖЕСТКОЕ УДАЛЕНИЕ СТАРОГО ПРАВИЛА УНИКАЛЬНОСТИ ИМЕН
         // =========================================================
