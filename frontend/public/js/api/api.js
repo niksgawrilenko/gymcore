@@ -1,8 +1,12 @@
-// frontend/public/js/api.js
+// frontend/public/js/api/api.js
 
 export class ApiClient {
     constructor() {
         this.baseURL = 'http://localhost:5000/api';
+    }
+
+    getToken() {
+        return localStorage.getItem('gymcore_token');
     }
 
     // Универсальный метод для всех запросов
@@ -12,16 +16,25 @@ export class ApiClient {
             headers: { 'Content-Type': 'application/json' }
         };
 
+        // Если у нас есть токен, прикрепляем его как пропуск (паспорт)
+        const token = this.getToken();
+        if (token) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+
         if (body) {
             options.body = JSON.stringify(body);
         }
 
         try {
             const response = await fetch(`${this.baseURL}${endpoint}`, options);
+            const data = await response.json();
+            
             if (!response.ok) {
-                throw new Error(`Ошибка HTTP: ${response.status}`);
+                // Если сервер вернул ошибку, пробрасываем её дальше
+                throw new Error(data.error || `Ошибка HTTP: ${response.status}`);
             }
-            return await response.json();
+            return data;
         } catch (error) {
             console.error(`[API] Ошибка запроса ${method} ${endpoint}:`, error);
             throw error;
@@ -29,7 +42,28 @@ export class ApiClient {
     }
 
     // ==========================================
-    // --- УПРАЖНЕНИЯ (EXERCISES) ---
+    // --- АВТОРИЗАЦИЯ (AUTH) ---
+    // ==========================================
+    async login(username, password) {
+        const res = await this.#request('/auth/login', 'POST', { username, password });
+        if (res.success) localStorage.setItem('gymcore_token', res.token);
+        return res;
+    }
+
+    async register(username, password) {
+        const res = await this.#request('/auth/register', 'POST', { username, password });
+        if (res.success) localStorage.setItem('gymcore_token', res.token);
+        return res;
+    }
+
+    logout() {
+        localStorage.removeItem('gymcore_token');
+        window.location.hash = '#auth';
+    }
+
+    // ==========================================
+    // Остальные методы остаются без изменений, 
+    // они автоматически начнут использовать токен из #request
     // ==========================================
     getExercises() { return this.#request('/exercises'); }
     getExerciseById(id) { return this.#request(`/exercises/${id}`); }
@@ -37,23 +71,14 @@ export class ApiClient {
     updateExercise(id, data) { return this.#request(`/exercises/${id}`, 'PATCH', data); }
     deleteExercise(id) { return this.#request(`/exercises/${id}`, 'DELETE'); }
 
-    // ==========================================
-    // --- ШАБЛОНЫ (TEMPLATES) ---
-    // ==========================================
     getTemplates() { return this.#request('/templates'); }
     getTemplateById(id) { return this.#request(`/templates/${id}`); }
     createTemplate(data) { return this.#request('/templates', 'POST', data); }
     updateTemplate(id, data) { return this.#request(`/templates/${id}`, 'PATCH', data); }
     deleteTemplate(id) { return this.#request(`/templates/${id}`, 'DELETE'); }
 
-    // ==========================================
-    // --- ТРЕНИРОВКИ (WORKOUTS) ---
-    // ==========================================
     getWorkouts() { return this.#request('/workouts'); }
     getWorkoutDetail(id) { return this.#request(`/workouts/${id}`); }
-    
-    // saveWorkout оставлен для обратной совместимости с уже написанным кодом
-    saveWorkout(data) { return this.#request('/workouts', 'POST', data); } 
     createWorkout(data) { return this.#request('/workouts', 'POST', data); }
     updateWorkout(id, data) { return this.#request(`/workouts/${id}`, 'PATCH', data); }
     deleteWorkout(id) { return this.#request(`/workouts/${id}`, 'DELETE'); }

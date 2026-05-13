@@ -84,6 +84,8 @@ export default class ExercisesView {
         }
     }
 
+    // Найди в ExercisesView.js функцию renderExercisesList и замени её на эту:
+
     renderExercisesList(exercisesArray) {
         const list = this.container.querySelector('#exercisesList');
         if (exercisesArray.length === 0) {
@@ -91,29 +93,59 @@ export default class ExercisesView {
             return;
         }
 
-        const grouped = {};
-        exercisesArray.forEach(ex => {
-            if (!grouped[ex.category]) grouped[ex.category] = [];
-            grouped[ex.category].push(ex);
-        });
+        const myId = getCurrentUserId();
+        
+        // Разделяем упражнения на личные и глобальные
+        const myExercises = exercisesArray.filter(ex => ex.user_id === myId);
+        const globalExercises = exercisesArray.filter(ex => ex.user_id !== myId);
 
-        list.innerHTML = Object.keys(grouped).map(category => `
-            <div style="margin-bottom: 20px;">
-                <h4 style="margin-bottom: 10px; color: var(--text-secondary); font-size: 14px; text-transform: uppercase; padding-left: 5px;">${escapeHTML(category)}</h4>
-                ${grouped[category].map(ex => `
-                    <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 12px 16px;">
-                        <div>
-                            <div style="font-weight: 600; font-size: 16px;">${escapeHTML(ex.name)}</div>
-                            <div style="color: var(--text-secondary); font-size: 12px; margin-top: 4px;">${ex.exercise_type === 'cardio' ? '🏃 Кардио' : '🏋️ Силовое'}</div>
+        // Функция-генератор HTML для списка
+        const generateHTML = (exList, isPersonal) => {
+            if (exList.length === 0) return '';
+            
+            const grouped = {};
+            exList.forEach(ex => {
+                if (!grouped[ex.category]) grouped[ex.category] = [];
+                grouped[ex.category].push(ex);
+            });
+
+            return Object.keys(grouped).map(category => `
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 8px; color: var(--text-secondary); font-size: 13px; text-transform: uppercase; padding-left: 5px;">${escapeHTML(category)}</h4>
+                    ${grouped[category].map(ex => `
+                        <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 12px 16px;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 16px;">${escapeHTML(ex.name)}</div>
+                                <div style="color: var(--text-secondary); font-size: 12px; margin-top: 4px;">${ex.exercise_type === 'cardio' ? '🏃 Кардио' : '🏋️ Силовое'}</div>
+                            </div>
+                            
+                            ${isPersonal ? `
+                                <div style="display: flex; gap: 15px;">
+                                    <button class="edit-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; cursor: pointer; color: var(--accent-color);">✎</button>
+                                    <button class="delete-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; color: #ff3b30; cursor: pointer;">🗑</button>
+                                </div>
+                            ` : `
+                                <div style="background: var(--bg-color); padding: 4px 8px; border-radius: 6px; font-size: 11px; color: var(--text-secondary); font-weight: bold;">
+                                    🌍 Общее
+                                </div>
+                            `}
                         </div>
-                        <div style="display: flex; gap: 15px;">
-                            <button class="edit-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; cursor: pointer; color: var(--accent-color);">✎</button>
-                            <button class="delete-btn" data-id="${ex.id}" style="background: none; border: none; font-size: 18px; color: #ff3b30; cursor: pointer;">🗑</button>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `).join('');
+                    `).join('')}
+                </div>
+            `).join('');
+        };
+
+        list.innerHTML = `
+            ${myExercises.length > 0 ? `
+                <h3 style="margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">👤 Мои упражнения</h3>
+                ${generateHTML(myExercises, true)}
+            ` : ''}
+
+            ${globalExercises.length > 0 ? `
+                <h3 style="margin-top: 25px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">🌍 Общая база</h3>
+                ${generateHTML(globalExercises, false)}
+            ` : ''}
+        `;
     }
 
     openModal(id = null) {

@@ -33,6 +33,9 @@ export default class HomeView {
                 <a href="#templates" style="display: block; width: 100%; text-align: center; padding: 14px; border-radius: 14px; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; font-weight: 600; font-size: 16px;">
                     📋 Мои программы (Шаблоны)
                 </a>
+                <button id="logoutBtn" style="background: none; border: none; color: var(--text-secondary); text-decoration: underline; cursor: pointer; padding: 10px; font-weight: bold; margin-top: 5px;">
+                    🚪 Выйти из аккаунта
+                </button>
             </section>
 
             <section class="recent-history">
@@ -150,6 +153,12 @@ export default class HomeView {
             sessionStorage.setItem('currentWorkoutTitle', templateCard.dataset.name);
             sessionStorage.setItem('currentTemplateId', templateCard.dataset.id);
             window.location.hash = '#workout';
+        }
+        
+        if (t.closest('#logoutBtn')) {
+            if (confirm('Вы точно хотите выйти?')) {
+                this.api.logout();
+            }
         }
     }
 

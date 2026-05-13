@@ -199,7 +199,15 @@ export default class WorkoutView {
 
         if (this.isEditing) this.initSortable();
     }
-
+    renderModalList(exercisesArray) {
+            const listHTML = exercisesArray.map(ex => `
+                <div class="exercise-list-item" data-id="${ex.id}" data-name="${escapeHTML(ex.name)}" data-type="${ex.exercise_type}">
+                    <b>${escapeHTML(ex.name)}</b><br><small style="color:var(--text-secondary);">${escapeHTML(ex.category)}</small>
+                </div>
+            `).join('');
+            this.container.querySelector('#modalList').innerHTML = listHTML || '<div style="text-align:center; padding:15px; color:var(--text-secondary);">Не найдено</div>';
+        }
+        
     async handleClick(e) {
         const t = e.target;
         const idx = t.dataset?.idx;

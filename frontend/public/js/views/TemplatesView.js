@@ -58,15 +58,41 @@ export default class TemplatesView {
             return;
         }
 
-        list.innerHTML = data.map(tpl => `
-            <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <a href="#template-edit?id=${tpl.id}" style="text-decoration: none; color: inherit; flex-grow: 1;">
-                    <div style="font-weight: 600; font-size: 17px;">${escapeHTML(tpl.name)}</div>
-                    <div style="color: var(--text-secondary); font-size: 13px;">${escapeHTML(tpl.description || 'Без описания')}</div>
-                </a>
-                <button class="delete-tpl-btn" data-id="${tpl.id}" style="background: none; border: none; color: #ff3b30; font-size: 18px; cursor: pointer; padding: 10px;">🗑</button>
-            </div>
-        `).join('');
+        const myId = getCurrentUserId();
+        const myTemplates = data.filter(tpl => tpl.user_id === myId);
+        const globalTemplates = data.filter(tpl => tpl.user_id !== myId);
+
+        const generateHTML = (tplList, isPersonal) => {
+            return tplList.map(tpl => `
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; opacity: ${isPersonal ? '1' : '0.85'};">
+                    <a href="#template-edit?id=${tpl.id}" style="text-decoration: none; color: inherit; flex-grow: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="font-weight: 600; font-size: 17px;">${escapeHTML(tpl.name)}</div>
+                            ${!isPersonal ? '<span style="font-size: 11px; background: var(--bg-color); padding: 2px 6px; border-radius: 4px; color: var(--text-secondary);">🌍</span>' : ''}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${escapeHTML(tpl.description || (isPersonal ? 'Без описания' : 'Системный шаблон'))}</div>
+                    </a>
+                    
+                    ${isPersonal ? `
+                        <button class="delete-tpl-btn" data-id="${tpl.id}" style="background: none; border: none; color: #ff3b30; font-size: 18px; cursor: pointer; padding: 10px;">🗑</button>
+                    ` : `
+                        <div style="padding: 10px; color: var(--text-secondary); font-size: 14px;">👁️ Чтение</div>
+                    `}
+                </div>
+            `).join('');
+        };
+
+        list.innerHTML = `
+            ${myTemplates.length > 0 ? `
+                <h3 style="margin-bottom: 15px; font-size: 16px; color: var(--accent-color);">👤 Мои программы</h3>
+                ${generateHTML(myTemplates, true)}
+            ` : ''}
+
+            ${globalTemplates.length > 0 ? `
+                <h3 style="margin-top: 25px; margin-bottom: 15px; font-size: 16px; color: var(--text-secondary);">🌍 Глобальные шаблоны</h3>
+                ${generateHTML(globalTemplates, false)}
+            ` : ''}
+        `;
     }
 
     async handleClick(e) {
