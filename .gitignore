@@ -1,10 +1,9 @@
-# Зависимости Node.js (они весят сотни мегабайт, их не хранят в Git)
 node_modules/
 backend/node_modules/
 frontend/node_modules/
 
-# Секретные файлы (пароли и порты)
 backend/.env
+.env
 
 # Логи
 npm-debug.log*
@@ -15,3 +14,17 @@ db_log.txt
 # Системные файлы macOS/Windows
 .DS_Store
 Thumbs.db
+
+# Visual Studio
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+
+# Временные файлы и кэш
+.npm
+.eslintcache
