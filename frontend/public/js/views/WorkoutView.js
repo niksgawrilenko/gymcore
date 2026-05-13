@@ -1,5 +1,7 @@
 // frontend/public/js/views/WorkoutView.js
 import { escapeHTML, getCurrentUserId } from '../utils/helpers.js';
+import ExerciseModal from '../components/ExerciseModal.js';
+import { renderExerciseCard } from '../components/ExerciseCard.js';
 
 export default class WorkoutView {
     constructor(container, api, workoutId = null, isTemplateMode = false) {
@@ -12,6 +14,7 @@ export default class WorkoutView {
         this.timerInterval = null;
         this.sortableInstance = null;
         this.allExercisesCache = []; 
+        this.exerciseModal = null; // Инстанс модалки
         
         this._onClick = this.handleClick.bind(this);
         this._onInput = this.handleInput.bind(this);
@@ -38,17 +41,13 @@ export default class WorkoutView {
                         const templateId = sessionStorage.getItem('currentTemplateId');
                         let loadedExercises = [];
                         
-                        // НОВОЕ: Если выбран шаблон, подтягиваем его упражнения с сервера
                         if (templateId) {
                             try {
                                 const tplData = await this.api.getTemplateById(templateId);
                                 if (tplData.success && tplData.data.exercises) {
-                                    // Клонируем список упражнений
                                     loadedExercises = JSON.parse(JSON.stringify(tplData.data.exercises));
                                 }
-                            } catch (err) {
-                                console.error("Не удалось подтянуть упражнения шаблона", err);
-                            }
+                            } catch (err) { console.error("Ошибка загрузки шаблона", err); }
                         }
 
                         this.workoutData = {
@@ -71,16 +70,24 @@ export default class WorkoutView {
     destroy() {
         if (this.timerInterval) clearInterval(this.timerInterval);
         if (this.sortableInstance) this.sortableInstance.destroy();
+        if (this.exerciseModal) this.exerciseModal.destroy();
         this.container.removeEventListener('click', this._onClick);
         this.container.removeEventListener('input', this._onInput);
+        document.body.classList.remove('modal-open');
     }
 
     normalizeData() {
         let lastSSId = null;
         if (!this.workoutData.exercises) this.workoutData.exercises = [];
+        
         this.workoutData.exercises.forEach(ex => {
-            ex.isSuperset = !!(ex.superset_id && ex.superset_id === lastSSId);
-            lastSSId = ex.superset_id;
+            if ('superset_id' in ex) {
+                ex.isSuperset = !!(ex.superset_id && ex.superset_id === lastSSId);
+                lastSSId = ex.superset_id;
+            } else {
+                ex.isSuperset = !!ex.isSuperset;
+            }
+            
             if (!ex.sets) ex.sets = [{ weight: '', reps: '', completed: false }];
         });
     }
@@ -107,11 +114,8 @@ export default class WorkoutView {
         const localISOTime = new Date(date - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
         const formattedDate = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 
-        // Узнаем, является ли пользователь владельцем этого шаблона/тренировки
         const myId = getCurrentUserId();
         const isOwner = !this.workoutId || this.workoutData.user_id === myId;
-
-        // Если чужой шаблон, меняем текст кнопки
         const saveBtnText = this.isEditing ? (isOwner ? '💾 Сохранить' : '💾 Сохранить к себе') : '✎ Править';
 
         this.container.innerHTML = `
@@ -150,25 +154,29 @@ export default class WorkoutView {
 
             <div id="exModal" class="modal-overlay">
                 <div class="modal-content">
-                    <div class="modal-header"><h3>Упражнения</h3><div><button id="openCreateExBtn" class="close-btn">+ Новое</button><button id="closeModal" class="close-btn">✕</button></div></div>
+                    <div class="modal-header">
+                        <h3>Упражнения</h3>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <button id="openCreateExBtn" style="background: none; border: none; color: var(--accent-color); font-weight: bold; font-size: 28px; cursor: pointer; line-height: 1;">+</button>
+                            <button id="closeModal" class="close-btn" style="font-size: 20px; line-height: 1;">✕</button>
+                        </div>
+                    </div>
                     <input type="text" id="modalSearchInput" class="set-input" placeholder="🔍 Поиск..." style="width: 100%; margin-bottom: 10px; text-align: left;">
                     <div id="modalList" style="overflow-y:auto; flex-grow:1;"></div>
                 </div>
             </div>
-
-            <div id="exCreateModal" class="modal-overlay" style="z-index: 1001;">
-                <div class="modal-content" style="height: auto;">
-                    <div class="modal-header"><h3>Новое упражнение</h3><button id="closeCreateExModal" class="close-btn">✕</button></div>
-                    <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
-                        <input type="text" id="newExName" class="set-input" style="text-align: left;" placeholder="Название">
-                        <select id="newExCategory" class="set-input" style="text-align: left;"><option value="Грудь">Грудь</option><option value="Спина">Спина</option><option value="Ноги">Ноги</option><option value="Руки">Руки</option><option value="Плечи">Плечи</option></select>
-                        <select id="newExType" class="set-input" style="text-align: left;"><option value="strength">Силовое</option><option value="cardio">Кардио</option></select>
-                    </div>
-                    <button id="saveNewExBtn" class="primary-btn">Создать и добавить</button>
-                </div>
-            </div>
         `;
         
+        // Инициализация компонента для СОЗДАНИЯ нового упражнения
+        if (this.exerciseModal) this.exerciseModal.destroy();
+        this.exerciseModal = new ExerciseModal(this.container, this.api, (newExercise) => {
+            // Коллбэк вызывается, когда юзер успешно создал упражнение в базе
+            this.workoutData.exercises.push({ ...newExercise, sets: [{ weight: '', reps: '', completed: false }] });
+            this.container.querySelector('#exModal').classList.remove('active'); // Закрываем фоновую модалку выбора
+            this.renderExercises();
+            this.saveToLocal();
+        });
+
         this.container.addEventListener('click', this._onClick);
         this.container.addEventListener('input', this._onInput);
         this.renderExercises();
@@ -182,61 +190,35 @@ export default class WorkoutView {
             return;
         }
 
+        // 1. Группируем упражнения для суперсетов
         let groups = [];
         exercises.forEach((ex, i) => {
             if (ex.isSuperset && i > 0) groups[groups.length - 1].push({ ex, i });
             else groups.push([{ ex, i }]);
         });
 
+        // 2. Рендерим группы с помощью нашего нового компонента
         list.innerHTML = groups.map(group => {
             const isSS = group.length > 1;
-            return `<div class="sortable-group" style="margin-bottom: 15px;">` + group.map((item, idx) => {
-                const { ex, i } = item;
-                const isCardio = ex.exercise_type === 'cardio';
-                const setsHTML = ex.sets.map((s, sIdx) => `
-                    <div class="set-row" data-ex-idx="${i}" data-set-idx="${sIdx}">
-                        <div class="set-number">${sIdx + 1}</div>
-                        ${this.isEditing ? `
-                            <input type="number" class="set-input edit-val" data-field="weight" placeholder="${isCardio ? 'мин' : 'кг'}" value="${s.weight}">
-                            <input type="number" class="set-input edit-val" data-field="reps" placeholder="${isCardio ? 'м' : 'раз'}" value="${s.reps}">
-                        ` : `
-                            <div style="text-align:center; font-weight:600;">${s.weight || '-'}</div>
-                            <div style="text-align:center; font-weight:600;">${s.reps || '-'}</div>
-                        `}
-                        <button class="set-check ${s.completed ? 'completed' : ''}">✓</button>
-                    </div>
-                `).join('');
-
-                return `
-                    <div class="card exercise-item-data ${isSS ? 'superset-card' : ''}" data-idx="${i}" style="position: relative; margin-bottom:${isSS && idx < group.length - 1 ? '0' : '10px'}; border-radius:${isSS ? (idx === 0 ? '14px 14px 0 0' : (idx === group.length - 1 ? '0 0 14px 14px' : '0')) : '14px'};">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <h4 style="margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                                ${this.isEditing ? '<span class="drag-handle" style="color:var(--text-secondary); cursor:grab;">≡</span>' : ''}
-                                ${i + 1}. ${escapeHTML(ex.name)}
-                            </h4>
-                            ${this.isEditing ? `<button class="menu-btn" data-idx="${i}" style="background:none; border:none; color:var(--text-secondary); font-size:20px; cursor:pointer;">⋮</button>` : ''}
-                        </div>
-                        <div class="exercise-menu" id="menu-${i}">
-                            <button class="menu-item toggle-ss" data-idx="${i}">🔗 ${ex.isSuperset ? 'Открепить' : 'Суперсет'}</button>
-                            <button class="menu-item danger delete-ex" data-idx="${i}">🗑 Удалить</button>
-                        </div>
-                        <div class="set-header"><div>П-Д</div><div>${isCardio ? 'ВРЕМЯ' : 'ВЕС'}</div><div>${isCardio ? 'МЕТРЫ' : 'ПОВТ'}</div><div></div></div>
-                        ${setsHTML}
-                        ${this.isEditing ? `<button class="add-set-btn" data-idx="${i}" style="width:100%; border: 1px dashed var(--border-color); background:none; padding: 8px; border-radius: 8px; cursor:pointer; margin-top:10px; font-weight:600; color:var(--text-primary);">+ Добавить подход</button>` : ''}
-                    </div>
-                `;
-            }).join('') + `</div>`;
+            return `
+                <div class="sortable-group" style="margin-bottom: 15px;">
+                    ${group.map((item, idx) => 
+                        renderExerciseCard(item, this.isEditing, isSS, idx === group.length - 1, idx)
+                    ).join('')}
+                </div>`;
         }).join('');
 
         if (this.isEditing) this.initSortable();
     }
 
     renderModalList(exercisesArray) {
-        const listHTML = exercisesArray.map(ex => `
+        const listHTML = exercisesArray.map(ex => {
+            const primary = ex.primary_groups && ex.primary_groups.length > 0 ? ex.primary_groups[0] : (ex.category || 'Без категории');
+            return `
             <div class="exercise-list-item" data-id="${ex.id}" data-name="${escapeHTML(ex.name)}" data-type="${ex.exercise_type}">
-                <b>${escapeHTML(ex.name)}</b><br><small style="color:var(--text-secondary);">${escapeHTML(ex.category)}</small>
+                <b>${escapeHTML(ex.name)}</b><br><small style="color:var(--text-secondary);">${escapeHTML(primary)}</small>
             </div>
-        `).join('');
+        `}).join('');
         this.container.querySelector('#modalList').innerHTML = listHTML || '<div style="text-align:center; padding:15px; color:var(--text-secondary);">Не найдено</div>';
     }
 
@@ -247,13 +229,32 @@ export default class WorkoutView {
         if (t.closest('#saveAsTemplateBtn')) {
             const name = prompt('Название шаблона:', this.workoutData.title);
             if (!name) return;
-            const uniqueEx = Array.from(new Set(this.workoutData.exercises.map(ex => ex.id))).map(id => ({id}));
-            try {
-                await this.api.createTemplate({ name, exercises: uniqueEx });
-                alert('✅ Сохранено в шаблоны');
-            } catch (e) { alert('Ошибка сохранения'); }
-        }
 
+            let lastSSId = null;
+            const preparedForTemplate = this.workoutData.exercises.map((ex, i) => {
+                const next = this.workoutData.exercises[i + 1];
+                if (next && next.isSuperset) { 
+                    if (!lastSSId) lastSSId = `ss_tpl_${Date.now()}_${i}`; 
+                } else if (!ex.isSuperset) {
+                    lastSSId = null;
+                }
+                return { 
+                    id: ex.id, 
+                    superset_id: (ex.isSuperset || (next && next.isSuperset)) ? lastSSId : null,
+                    sets: ex.sets // <----- ВОТ ЭТО ВЕРНЕТ СЕТЫ В ШАБЛОН!
+                };
+            });
+
+            try {
+                await this.api.createTemplate({ 
+                    name, 
+                    exercises: preparedForTemplate 
+                });
+                alert('✅ Шаблон создан со всеми связями и подходами!');
+            } catch (e) { 
+                alert('Ошибка сохранения шаблона'); 
+            }
+        }
         if (t.id === 'mainActionBtn') {
             if (!this.isEditing) { this.isEditing = true; this.render(); }
             else this.handleSave();
@@ -302,36 +303,26 @@ export default class WorkoutView {
 
         if (t.id === 'addExBtn') {
             this.container.querySelector('#exModal').classList.add('active');
+            document.body.classList.add('modal-open');
             const res = await this.api.getExercises();
             if (res.success) { this.allExercisesCache = res.data; this.renderModalList(this.allExercisesCache); }
         }
 
-        if (t.id === 'openCreateExBtn') this.container.querySelector('#exCreateModal').classList.add('active');
-        if (t.id === 'closeCreateExModal' || t.id === 'exCreateModal') this.container.querySelector('#exCreateModal').classList.remove('active');
-
-        if (t.id === 'saveNewExBtn') {
-            const name = this.container.querySelector('#newExName').value.trim();
-            const category = this.container.querySelector('#newExCategory').value;
-            const exercise_type = this.container.querySelector('#newExType').value;
-            if (!name) return alert('Введите название!');
-            try {
-                const res = await this.api.createExercise({ name, category, exercise_type });
-                if (res.success) {
-                    this.workoutData.exercises.push({ ...res.data, sets: [{ weight: '', reps: '', completed: false }] });
-                    this.container.querySelector('#exCreateModal').classList.remove('active');
-                    this.container.querySelector('#exModal').classList.remove('active');
-                    this.renderExercises();
-                    this.saveToLocal();
-                }
-            } catch (e) { alert('Ошибка создания'); }
+        // --- ВОТ ТУТ МАГИЯ ВЫЗОВА КОМПОНЕНТА ---
+        if (t.id === 'openCreateExBtn') {
+            this.exerciseModal.open(); // Открываем нашу новенькую модалку!
         }
 
-        if (t.id === 'closeModal' || t.id === 'exModal') this.container.querySelector('#exModal').classList.remove('active');
+        if (t.id === 'closeModal' || t.id === 'exModal') {
+            this.container.querySelector('#exModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
+        }
 
         if (t.closest('.exercise-list-item')) {
             const item = t.closest('.exercise-list-item');
             this.workoutData.exercises.push({ id: parseInt(item.dataset.id), name: item.dataset.name, exercise_type: item.dataset.type, sets: [{ weight: '', reps: '', completed: false }] });
             this.container.querySelector('#exModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
             this.renderExercises();
             this.saveToLocal();
         }
@@ -341,7 +332,10 @@ export default class WorkoutView {
         const t = e.target;
         if (t.id === 'modalSearchInput') {
             const q = t.value.toLowerCase();
-            this.renderModalList(this.allExercisesCache.filter(ex => ex.name.toLowerCase().includes(q) || ex.category.toLowerCase().includes(q)));
+            this.renderModalList(this.allExercisesCache.filter(ex => {
+                const searchStr = (ex.name + ' ' + (ex.category || '')).toLowerCase();
+                return searchStr.includes(q);
+            }));
         }
         if (t.id === 'titleInput') this.workoutData.title = t.value;
         if (t.classList?.contains('edit-val')) {
@@ -371,14 +365,10 @@ export default class WorkoutView {
             let res;
             if (this.isTemplateMode) {
                 if (this.workoutId && isOwner) {
-                    // Обновляем ЛИЧНЫЙ шаблон
                     res = await this.api.updateTemplate(this.workoutId, { name: this.workoutData.title, exercises: prepared });
                 } else {
-                    // Копируем ГЛОБАЛЬНЫЙ шаблон к себе (или создаем новый)
                     res = await this.api.createTemplate({ name: this.workoutData.title, exercises: prepared });
-                    if (this.workoutId && !isOwner) {
-                        alert('🌍 Глобальный шаблон успешно скопирован в ваши личные программы!');
-                    }
+                    if (this.workoutId && !isOwner) alert('🌍 Глобальный шаблон успешно скопирован в ваши личные программы!');
                 }
             } else {
                 if (this.workoutId && isOwner) {

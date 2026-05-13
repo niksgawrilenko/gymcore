@@ -1,13 +1,17 @@
 // frontend/public/sw.js
 
-const CACHE_NAME = 'gymcore-v1';
-// Список файлов, которые нужны для работы оффлайн (наш "каркас")
+const CACHE_NAME = 'gymcore-v2'; 
+
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
-    '/css/style.css',
+    '/assets/css/style.css',
+    '/assets/icons/icon.png',
     '/js/app.js',
-    '/js/api.js',
+    '/js/router.js',
+    '/js/api/api.js',
+    '/js/utils/constants.js',
+    '/js/utils/helpers.js',
     '/manifest.json'
 ];
 

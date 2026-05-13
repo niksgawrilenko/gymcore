@@ -1,0 +1,225 @@
+/* ==========================================================================
+   1. ПЕРЕМЕННЫЕ И ТЕМЫ (Светлая по умолчанию)
+   ========================================================================== */
+:root {
+    --bg-color: #f2f2f7;         
+    --surface-color: #ffffff;    
+    --text-primary: #000000;
+    --text-secondary: #8e8e93;
+    --accent-color: #007aff;     
+    --accent-hover: #0056b3;
+    --border-color: #e5e5ea;
+    --shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+[data-theme="dark"] {
+    --bg-color: #000000;         
+    --surface-color: #1c1c1e;    
+    --text-primary: #ffffff;
+    --text-secondary: #aeaeb2;
+    --accent-color: #0a84ff;     
+    --accent-hover: #0060d0;
+    --border-color: #38383a;
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* ==========================================================================
+   2. БАЗОВЫЕ НАСТРОЙКИ (Reset & Body)
+   ========================================================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+body.modal-open {
+    overflow: hidden; 
+    height: 100vh;    
+}
+
+/* ==========================================================================
+   3. ЛЕЙАУТ (Сетка, Шапка, Карточки)
+   ========================================================================== */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: var(--bg-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.app-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.app-content { padding: 0 20px 20px 20px; flex-grow: 1; }
+.section-title { margin: 25px 0 15px 0; font-size: 20px; font-weight: 600; }
+
+.card {
+    background-color: var(--surface-color);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+    transition: background-color 0.3s ease;
+}
+
+.empty-state {
+    text-align: center; color: var(--text-secondary); padding: 30px 10px; font-size: 15px;
+}
+
+/* ==========================================================================
+   4. КНОПКИ
+   ========================================================================== */
+.primary-btn {
+    width: 100%;
+    background-color: var(--accent-color);
+    color: #ffffff;
+    border: none;
+    padding: 16px;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.primary-btn:active { transform: scale(0.97); background-color: var(--accent-hover); }
+
+.icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); }
+.close-btn { color: var(--accent-color); background: none; border: none; font-size: 16px; font-weight: 600; cursor: pointer; }
+
+/* ==========================================================================
+   5. МОДАЛЬНЫЕ ОКНА
+   ========================================================================== */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+.modal-content {
+    background-color: var(--bg-color);
+    width: 100%; height: 80vh;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    display: flex; flex-direction: column;
+}
+
+.modal-overlay.active .modal-content { transform: translateY(0); }
+
+.modal-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+}
+
+/* ==========================================================================
+   6. СПИСКИ УПРАЖНЕНИЙ И МЕНЮ (Три точки)
+   ========================================================================== */
+.exercise-list-item {
+    padding: 15px; border-bottom: 1px solid var(--border-color);
+    cursor: pointer; background-color: var(--surface-color);
+}
+.exercise-list-item:first-child { border-radius: 10px 10px 0 0; }
+.exercise-list-item:last-child { border-radius: 0 0 10px 10px; border-bottom: none; }
+
+.exercise-menu {
+    position: absolute; right: 20px; margin-top: 10px;
+    background: var(--surface-color); border: 1px solid var(--border-color);
+    border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 100; overflow: hidden; display: none; flex-direction: column; width: 200px;
+}
+.exercise-menu.active { display: flex; }
+.menu-item {
+    padding: 12px 16px; background: none; border: none; color: var(--text-primary);
+    text-align: left; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--border-color);
+    display: flex; align-items: center; gap: 8px;
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-item:hover { background: var(--bg-color); }
+.menu-item.danger { color: #ff3b30; }
+
+/* ==========================================================================
+   7. ТАБЛИЦА ПОДХОДОВ И СУПЕРСЕТЫ
+   ========================================================================== */
+.set-header { 
+    display: grid; grid-template-columns: 0.5fr 1fr 1fr 0.5fr; text-align: center; 
+    font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: bold; 
+}
+.set-row { 
+    display: grid; grid-template-columns: 0.5fr 1fr 1fr 0.5fr; gap: 8px; align-items: center; margin-bottom: 8px; 
+}
+.set-number { 
+    text-align: center; font-weight: bold; background: var(--bg-color); border-radius: 6px; padding: 6px 0; 
+}
+.set-input { 
+    width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); 
+    color: var(--text-primary); padding: 8px; border-radius: 8px; text-align: center; 
+    font-size: 16px; font-weight: 600; outline: none; 
+}
+.set-input:focus { border-color: var(--accent-color); }
+
+.set-check { 
+    background: var(--border-color); color: white; border: none; border-radius: 8px; 
+    padding: 8px; cursor: pointer; display: flex; justify-content: center; align-items: center; 
+    font-weight: bold; transition: background-color 0.2s; 
+}
+.set-check.completed { background: #34c759; }
+
+.add-set-btn { 
+    width: 100%; background: none; border: none; color: var(--accent-color); 
+    font-weight: 600; font-size: 14px; padding: 10px; cursor: pointer; margin-top: 5px; 
+}
+
+.card.superset-card {
+    border-left: 4px solid var(--accent-color); border-radius: 0 16px 16px 0; margin-top: -10px;
+}
+.superset-link {
+    text-align: left; margin-left: 20px; margin-top: -15px; margin-bottom: 5px;
+    color: var(--accent-color); font-size: 12px; font-weight: bold;
+}
+
+/* ==========================================================================
+   8. АНАТОМИЯ (Chips) И СТАТУСЫ (Badges)
+   ========================================================================== */
+.chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.chip-checkbox { display: none; }
+.chip-label { 
+    display: inline-block; padding: 6px 12px; background: var(--surface-color); 
+    border: 1px solid var(--border-color); border-radius: 16px; 
+    font-size: 13px; cursor: pointer; color: var(--text-secondary); transition: 0.2s; user-select: none;
+}
+.chip-checkbox:checked + .chip-label { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+.anatomy-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+.anatomy-details.open { max-height: 1000px; }
+
+.status-badge { font-size: 10px; text-transform: uppercase; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; }
+.status-pending { background: rgba(255, 204, 0, 0.15); color: #ffcc00; border: 1px solid rgba(255, 204, 0, 0.3); }
+.status-approved { background: rgba(52, 199, 89, 0.15); color: #34c759; border: 1px solid rgba(52, 199, 89, 0.3); }
+.status-rejected { background: rgba(255, 59, 48, 0.15); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.3); }
+.status-none { background: var(--bg-color); color: var(--text-secondary); border: 1px solid var(--border-color); }
+
+.moderate-btn { background: none; border: 1px solid var(--border-color); border-radius: 8px; padding: 5px; cursor: pointer; filter: grayscale(1); transition: 0.2s; }
+.moderate-btn:hover { filter: grayscale(0); transform: scale(1.1); border-color: var(--accent-color); }

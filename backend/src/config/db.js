@@ -54,6 +54,16 @@ const initDB = async () => {
                 exercise_id INTEGER REFERENCES exercises(id) ON DELETE CASCADE,
                 sort_order INTEGER DEFAULT 0
             );
+            -- НОВАЯ ТАБЛИЦА ДЛЯ ПОДХОДОВ В ШАБЛОНАХ
+            CREATE TABLE IF NOT EXISTS template_sets (
+                id SERIAL PRIMARY KEY,
+                template_exercise_id INTEGER REFERENCES template_exercises(id) ON DELETE CASCADE,
+                set_order INTEGER DEFAULT 0,
+                weight NUMERIC(5,2),
+                reps INTEGER,
+                duration_sec INTEGER,
+                distance_m INTEGER
+            );
             CREATE TABLE IF NOT EXISTS workouts (
                 id SERIAL PRIMARY KEY,
                 title VARCHAR(100) NOT NULL,
@@ -94,18 +104,14 @@ const initDB = async () => {
         await addColumnIfNotExists('templates', 'is_public', 'BOOLEAN DEFAULT false');
         await addColumnIfNotExists('templates', 'share_id', 'UUID DEFAULT gen_random_uuid()');
 
-
+        await addColumnIfNotExists('template_exercises', 'superset_id', 'VARCHAR(50)');
         // ==========================================
         // --- НОВОЕ: АНАТОМИЯ И МУЛЬТИ-МЫШЦЫ ---
         // ==========================================
         // Массив основных групп (например: ['Грудь', 'Плечи'])
         await addColumnIfNotExists('exercises', 'primary_groups', "TEXT[] DEFAULT '{}'");
         
-        // Массив конкретных мышц (например: ['Большая грудная', 'Передняя дельта', 'Трицепс'])
-        await addColumnIfNotExists('exercises', 'secondary_muscles', "TEXT[] DEFAULT '{}'");
-        // ==========================================
-
-        await addColumnIfNotExists('templates', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
+        await addColumnIfNotExists('workouts', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
         
         // =========================================================
         // ЖЕСТКОЕ УДАЛЕНИЕ СТАРОГО ПРАВИЛА УНИКАЛЬНОСТИ ИМЕН
@@ -127,6 +133,21 @@ const initDB = async () => {
             await pool.query('DROP INDEX IF EXISTS templates_name_key CASCADE');
         } catch (e) {}
 
+        // =========================================================
+        // ИСПРАВЛЕНИЕ КАСКАДНОГО УДАЛЕНИЯ ДЛЯ УПРАЖНЕНИЙ
+        // (Чтобы упражнение удалялось вместе с историей его выполнений)
+        // =========================================================
+        try {
+            await pool.query('ALTER TABLE workout_exercises DROP CONSTRAINT IF EXISTS workout_exercises_exercise_id_fkey');
+            await pool.query('ALTER TABLE workout_exercises ADD CONSTRAINT workout_exercises_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE');
+            
+            await pool.query('ALTER TABLE template_exercises DROP CONSTRAINT IF EXISTS template_exercises_exercise_id_fkey');
+            await pool.query('ALTER TABLE template_exercises ADD CONSTRAINT template_exercises_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE');
+        } catch (e) {
+            console.log('Ошибка при обновлении внешних ключей:', e.message);
+        }
+
+        
         console.log('✅ База данных успешно инициализирована и обновлена (Multi-user mode ready).');
     } catch (err) {
         console.error('❌ Ошибка инициализации БД:', err);
