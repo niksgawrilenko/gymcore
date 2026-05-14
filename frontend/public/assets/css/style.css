@@ -239,8 +239,18 @@ input[type="datetime-local"] {
     font-size: 13px; cursor: pointer; color: var(--text-secondary); transition: 0.2s; user-select: none;
 }
 .chip-checkbox:checked + .chip-label { background: var(--accent-color); color: white; border-color: var(--accent-color); }
-.anatomy-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
-.anatomy-details.open { max-height: 1000px; }
+.anatomy-details { 
+    max-height: 140px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 10px;
+    padding-bottom: 10px;
+    transition: max-height 0.3s ease-out; 
+}
+
+.anatomy-details.open { 
+    max-height: 1000px;
+}
 
 .status-badge { font-size: 10px; text-transform: uppercase; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; }
 .status-pending { background: rgba(255, 204, 0, 0.15); color: #ffcc00; border: 1px solid rgba(255, 204, 0, 0.3); }
