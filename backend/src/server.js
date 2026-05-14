@@ -27,7 +27,10 @@ const port = process.env.PORT || 5000;
 app.use(helmet());
 
 // 2. CORS (Разрешаем запросы с любого домена для начала, на проде можно ограничить)
-app.use(cors());
+app.use(cors({
+    origin: process.env.CLIENT_URL || '*',
+    credentials: true // Полезно, если в будущем добавишь авторизацию через куки
+}));
 
 // 3. Ограничение запросов (Rate Limiting)
 // Защищает от DDoS и перебора паролей (Brute-force)

@@ -2,13 +2,20 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'gymcore',
-    password: process.env.DB_PASSWORD || '12345',
-    port: process.env.DB_PORT || 5432,
-});
+const poolConfig = process.env.DATABASE_URL 
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false } // Обязательно для облачных БД
+      }
+    : {
+        user: process.env.DB_USER || 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        database: process.env.DB_NAME || 'gymcore',
+        password: process.env.DB_PASSWORD || '12345',
+        port: process.env.DB_PORT || 5432,
+    };
+
+const pool = new Pool(poolConfig);
 
 async function addColumnIfNotExists(tableName, columnName, columnType) {
     const res = await pool.query(`
