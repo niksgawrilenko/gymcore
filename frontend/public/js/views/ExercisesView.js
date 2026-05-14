@@ -107,7 +107,7 @@ export default class ExercisesView {
                             </div>
                             
                             ${isPersonal ? `
-                                <div style="display: flex; gap: 10px; align-items: center; margin-left: 10px;">
+                                <div style="display: flex; gap: 10px; align-items: center; margin-left: 10px; flex-wrap: wrap; justify-content: flex-end;">
                                     <span class="status-badge status-${ex.moderation_status}">${ex.moderation_status}</span>
                                     <button class="moderate-btn" data-id="${ex.id}" title="На модерацию" style="background:none; border:none; cursor:pointer;">🌐</button>
                                     <button class="share-btn" data-id="${ex.share_id}" title="Поделиться" style="background:none; border:none; cursor:pointer;">🔗</button>

@@ -30,6 +30,14 @@ export default class WorkoutView {
                     : await this.api.getWorkoutDetail(this.workoutId);
                 this.workoutData = res.data;
                 if (this.isTemplateMode && this.workoutData.name) this.workoutData.title = this.workoutData.name;
+                
+                const myId = getCurrentUserId();
+                const isOwner = this.workoutData.user_id === myId;
+                if (this.isTemplateMode && !isOwner) {
+                    this.isEditing = false;
+                } else {
+                    this.isEditing = true;
+                }
             } else {
                 if (this.isTemplateMode) {
                     this.workoutData = { title: 'Новый шаблон', exercises: [] };
@@ -116,7 +124,7 @@ export default class WorkoutView {
 
         const myId = getCurrentUserId();
         const isOwner = !this.workoutId || this.workoutData.user_id === myId;
-        const saveBtnText = this.isEditing ? (isOwner ? '💾 Сохранить' : '💾 Сохранить к себе') : '✎ Править';
+        const saveBtnText = (this.isTemplateMode && !isOwner) ? '💾 Сохранить к себе' : (this.isEditing ? '💾 Сохранить' : '✎ Править');
 
         this.container.innerHTML = `
             <section style="padding-bottom: 80px;">
@@ -256,6 +264,14 @@ export default class WorkoutView {
             }
         }
         if (t.id === 'mainActionBtn') {
+            const myId = getCurrentUserId();
+            const isOwner = !this.workoutId || this.workoutData.user_id === myId;
+            
+            if (this.isTemplateMode && !isOwner) {
+                this.handleSave();
+                return;
+            }
+
             if (!this.isEditing) { this.isEditing = true; this.render(); }
             else this.handleSave();
         }
@@ -356,9 +372,19 @@ export default class WorkoutView {
         let lastSSId = null;
         const prepared = this.workoutData.exercises.map((ex, i) => {
             const next = this.workoutData.exercises[i + 1];
-            if (next && next.isSuperset) { if (!lastSSId) lastSSId = `ss_${Date.now()}_${i}`; }
-            else if (!ex.isSuperset) lastSSId = null;
-            return { ...ex, superset_id: (ex.isSuperset || (next && next.isSuperset)) ? lastSSId : null };
+            
+            if (!ex.isSuperset && !(next && next.isSuperset)) {
+                lastSSId = null; 
+            }
+            if (!ex.isSuperset && next && next.isSuperset) {
+                lastSSId = `ss_${Date.now()}_${i}`; 
+            }
+            
+            return { 
+                ...ex, 
+                sets: ex.sets, 
+                superset_id: (ex.isSuperset || (next && next.isSuperset)) ? lastSSId : null 
+            };
         });
 
         const myId = getCurrentUserId();
