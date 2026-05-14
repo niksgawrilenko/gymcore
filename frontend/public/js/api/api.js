@@ -3,10 +3,12 @@
 export class ApiClient {
     constructor() {
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
         if (isLocal) {
             this.baseURL = 'http://localhost:5000/api';
         } else {
-            this.baseURL = `${window.location.origin}/api`;
+            // Указываем конкретный адрес твоего бэкенда на Render
+            this.baseURL = 'https://gymcore-backend.onrender.com/api';
         }
 
         console.log(`[API] Соединение установлено: ${this.baseURL}`);

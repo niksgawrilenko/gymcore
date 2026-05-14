@@ -117,7 +117,7 @@ const initDB = async () => {
         // ==========================================
         // Массив основных групп (например: ['Грудь', 'Плечи'])
         await addColumnIfNotExists('exercises', 'primary_groups', "TEXT[] DEFAULT '{}'");
-        
+        await addColumnIfNotExists('exercises', 'secondary_muscles', "TEXT[] DEFAULT '{}'");
         await addColumnIfNotExists('workouts', 'user_id', 'INTEGER REFERENCES users(id) ON DELETE CASCADE');
         
         // =========================================================
