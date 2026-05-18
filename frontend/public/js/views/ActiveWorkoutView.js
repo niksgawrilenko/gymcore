@@ -43,10 +43,6 @@ export default class WorkoutView {
                 if (this.isTemplateMode) {
                     this.workoutData = { title: 'Новый шаблон', exercises: [] };
                 } else {
-                    const saved = localStorage.getItem('gymcore_active_workout');
-                    if (saved) {
-                        this.workoutData = JSON.parse(saved);
-                    } else {
                         const templateId = sessionStorage.getItem('currentTemplateId');
                         let loadedExercises = [];
                         
@@ -59,14 +55,17 @@ export default class WorkoutView {
                             } catch (err) { console.error("Ошибка загрузки шаблона", err); }
                         }
 
+                        const customDate = sessionStorage.getItem('gymcore_custom_date');
+                        const workoutDate = customDate ? parseInt(customDate) : new Date().getTime();
+                        sessionStorage.removeItem('gymcore_custom_date'); // Сразу очищаем, чтобы не залипало
+
                         this.workoutData = {
                             title: sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка',
                             template_id: templateId || null,
-                            workout_date: new Date().getTime(),
+                            workout_date: workoutDate, // Подставляем выбранную дату
                             exercises: loadedExercises
                         };
                     }
-                }
             }
             this.normalizeData();
             this.render();
