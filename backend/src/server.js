@@ -15,6 +15,7 @@ const templateRoutes = require('./routes/templateRoutes');
 const workoutRoutes = require('./routes/workoutRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sharedRoutes = require('./routes/sharedRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -66,6 +67,7 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/shared', sharedRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Глобальный обработчик ошибок (чтобы сервер не падал при фатальной ошибке)
 app.use((err, req, res, next) => {

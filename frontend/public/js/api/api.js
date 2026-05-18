@@ -73,6 +73,27 @@ export class ApiClient {
         return res;
     }
 
+    async uploadFile(formData) {
+        const response = await fetch(`${this.baseURL}/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: formData
+        });
+
+        const text = await response.text(); // Читаем сырой ответ сервера
+
+        try {
+            const data = JSON.parse(text); // Пытаемся превратить в JSON
+            if (!response.ok) throw new Error(data.error || data.message || `Ошибка сервера: ${response.status}`);
+            return data;
+        } catch (e) {
+            // Если сервер упал и вернул кусок HTML
+            console.error("Сырой ответ сервера:", text);
+            throw new Error(`Сбой на сервере (см. консоль F12): ${text.slice(0, 50)}...`);
+        }
+    }
     logout() {
         localStorage.removeItem('gymcore_token');
         window.location.hash = '#auth';

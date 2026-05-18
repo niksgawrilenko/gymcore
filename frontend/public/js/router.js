@@ -1,8 +1,9 @@
 // frontend/public/js/router.js
-import HistoryView from './views/HistoryView.js';
-import ActiveWorkoutView from './views/ActiveWorkoutView.js';
+import HomeView from './views/HistoryView.js';
+import WorkoutView from './views/ActiveWorkoutView.js';
+import TemplateEditView from './views/TemplateEditView.js';
 import ExercisesView from './views/ExercisesView.js';
-import WorkoutListView from './views/WorkoutListView.js';
+import TemplatesView from './views/WorkoutListView.js';
 import AuthView from './views/AuthView.js'; 
 import AdminView from './views/AdminView.js';
 import SharedView from './views/SharedView.js';
@@ -33,18 +34,18 @@ export class Router {
         }
 
         const routes = {
-            '': () => new HistoryView(this.container, this.api),
+            '': () => new HomeView(this.container, this.api),
             '#auth': () => new AuthView(this.container, this.api),
-            '#workout': () => new ActiveWorkoutView(this.container, this.api),
+            '#workout': () => new WorkoutView(this.container, this.api),
             '#workout-detail': () => {
                 const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
-                return new ActiveWorkoutView(this.container, this.api, id); 
+                return new WorkoutView(this.container, this.api, id); 
             },
-            '#templates': () => new WorkoutListView(this.container, this.api),
-            '#template-create': () => new ActiveWorkoutView(this.container, this.api, null, true),
+            '#templates': () => new TemplatesView(this.container, this.api),
+            '#template-create': () => new TemplateEditView(this.container, this.api),
             '#template-edit': () => {
                 const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
-                return new ActiveWorkoutView(this.container, this.api, id, true);
+                return new TemplateEditView(this.container, this.api, id);
             },
             '#exercises': () => new ExercisesView(this.container, this.api),
             '#profile': () => new ProfileView(this.container, this.api),
@@ -63,6 +64,7 @@ export class Router {
         };
 
         this.updateBottomNav(path);
+        this.updateGlobalActiveWorkout(); // <-- Запускаем проверку активной тренировки при каждом переходе
 
         const viewConstructor = routes[path] || routes[''];
         this.container.innerHTML = ''; 
@@ -72,22 +74,17 @@ export class Router {
 
     updateBottomNav(path) {
         const bottomNav = document.getElementById('bottomNav');
-        const globalActive = document.getElementById('globalActiveWorkout');
         if (!bottomNav) return;
 
         const hideNavRoutes = ['#auth', '#workout', '#workout-detail', '#template-create', '#template-edit', '#admin'];
-        const isHiddenRoute = hideNavRoutes.includes(path) || path.startsWith('#shared');
-
-        if (isHiddenRoute) {
+        if (hideNavRoutes.includes(path) || path.startsWith('#shared')) {
             bottomNav.style.display = 'none';
-            if (globalActive) globalActive.style.display = 'none'; // Прячем виджет внутри самой тренировки
         } else {
             bottomNav.style.display = 'flex';
             document.querySelectorAll('.nav-item').forEach(item => {
                 if (item.dataset.path === path) item.classList.add('active');
                 else item.classList.remove('active');
             });
-            this.updateGlobalActiveWorkout(); // Показываем виджет, если есть тренировка
         }
     }
 
@@ -97,25 +94,26 @@ export class Router {
 
         const saved = localStorage.getItem('gymcore_active_workout');
         if (saved) {
-            const workoutData = JSON.parse(saved);
-            globalActive.style.display = 'flex';
-            
-            // Название тренировки
-            document.getElementById('globalWorkoutTitle').innerText = workoutData.title || 'Тренировка';
-            
-            // Клик по виджету возвращает в тренировку
-            globalActive.onclick = () => window.location.hash = '#workout';
+            try {
+                const workoutData = JSON.parse(saved);
+                if (!workoutData) throw new Error('Пусто');
 
-            // Глобальный таймер
-            if (window.globalWorkoutTimerInterval) clearInterval(window.globalWorkoutTimerInterval);
-            window.globalWorkoutTimerInterval = setInterval(() => {
-                const timerEl = document.getElementById('globalWorkoutTimer');
-                if (!timerEl) return;
-                const diff = Math.floor((Date.now() - workoutData.workout_date) / 1000);
-                const m = String(Math.floor(diff / 60)).padStart(2, '0');
-                const s = String(diff % 60).padStart(2, '0');
-                timerEl.innerText = `${m}:${s}`;
-            }, 1000);
+                globalActive.style.display = 'flex';
+                document.getElementById('globalWorkoutTitle').innerText = workoutData.title || 'Тренировка';
+                globalActive.onclick = () => window.location.hash = '#workout';
+
+                if (window.globalWorkoutTimerInterval) clearInterval(window.globalWorkoutTimerInterval);
+                window.globalWorkoutTimerInterval = setInterval(() => {
+                    const timerEl = document.getElementById('globalWorkoutTimer');
+                    if (!timerEl) return;
+                    const diff = Math.floor((Date.now() - (workoutData.workout_date || Date.now())) / 1000);
+                    const m = String(Math.floor(diff / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    timerEl.innerText = `${m}:${s}`;
+                }, 1000);
+            } catch (e) {
+                globalActive.style.display = 'none';
+            }
         } else {
             globalActive.style.display = 'none';
             if (window.globalWorkoutTimerInterval) clearInterval(window.globalWorkoutTimerInterval);

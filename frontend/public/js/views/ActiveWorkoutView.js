@@ -1,20 +1,19 @@
-// frontend/public/js/views/WorkoutView.js
+// frontend/public/js/views/ActiveWorkoutView.js
 import { escapeHTML, getCurrentUserId } from '../utils/helpers.js';
 import ExerciseModal from '../components/ExerciseModal.js';
 import { renderExerciseCard } from '../components/ExerciseCard.js';
 
-export default class WorkoutView {
-    constructor(container, api, workoutId = null, isTemplateMode = false) {
+export default class ActiveWorkoutView {
+    constructor(container, api, workoutId = null) {
         this.container = container;
         this.api = api;
         this.workoutId = workoutId;
-        this.isTemplateMode = isTemplateMode; 
         this.workoutData = null;
-        this.isEditing = !workoutId || isTemplateMode;
+        this.isEditing = !workoutId; // Если ID нет - это режим записи/редактирования
         this.timerInterval = null;
         this.sortableInstance = null;
         this.allExercisesCache = []; 
-        this.exerciseModal = null; // Инстанс модалки
+        this.exerciseModal = null;
         
         this._onClick = this.handleClick.bind(this);
         this._onInput = this.handleInput.bind(this);
@@ -24,52 +23,58 @@ export default class WorkoutView {
 
     async init() {
         try {
+            // 1. Делаем медиа глобальным, чтобы файлы не умирали при переключении вкладок
+            this.pendingMedia = window.gymcorePendingMedia || [];
+            window.gymcorePendingMedia = this.pendingMedia;
+
             if (this.workoutId) {
-                const res = this.isTemplateMode 
-                    ? await this.api.getTemplateById(this.workoutId) 
-                    : await this.api.getWorkoutDetail(this.workoutId);
+                // Просмотр/редактирование существующей тренировки из истории
+                const res = await this.api.getWorkoutDetail(this.workoutId);
                 this.workoutData = res.data;
-                if (this.isTemplateMode && this.workoutData.name) this.workoutData.title = this.workoutData.name;
+                this.workoutData.media = this.workoutData.media || [];
                 
                 const myId = getCurrentUserId();
                 const isOwner = this.workoutData.user_id === myId;
-                
-                if (this.isTemplateMode) {
-                    this.isEditing = isOwner; 
-                } else {
-                    this.isEditing = false;
-                }
+                // Редактировать можно только свои тренировки
+                this.isEditing = false; 
             } else {
-                if (this.isTemplateMode) {
-                    this.workoutData = { title: 'Новый шаблон', exercises: [] };
+                // ИЩЕМ СОХРАНЕННЫЙ ЧЕРНОВИК В КЭШЕ
+                const savedActive = localStorage.getItem('gymcore_active_workout');
+                
+                if (savedActive) {
+                    this.workoutData = JSON.parse(savedActive);
                 } else {
-                        const templateId = sessionStorage.getItem('currentTemplateId');
-                        let loadedExercises = [];
-                        
-                        if (templateId) {
-                            try {
-                                const tplData = await this.api.getTemplateById(templateId);
-                                if (tplData.success && tplData.data.exercises) {
-                                    loadedExercises = JSON.parse(JSON.stringify(tplData.data.exercises));
-                                }
-                            } catch (err) { console.error("Ошибка загрузки шаблона", err); }
-                        }
-
-                        const customDate = sessionStorage.getItem('gymcore_custom_date');
-                        const workoutDate = customDate ? parseInt(customDate) : new Date().getTime();
-                        sessionStorage.removeItem('gymcore_custom_date'); // Сразу очищаем, чтобы не залипало
-
-                        this.workoutData = {
-                            title: sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка',
-                            template_id: templateId || null,
-                            workout_date: workoutDate, // Подставляем выбранную дату
-                            exercises: loadedExercises
-                        };
+                    // Создаем новую пустую тренировку или по шаблону
+                    const templateId = sessionStorage.getItem('currentTemplateId');
+                    let loadedExercises = [];
+                    
+                    if (templateId) {
+                        try {
+                            const tplData = await this.api.getTemplateById(templateId);
+                            if (tplData.success && tplData.data.exercises) {
+                                loadedExercises = JSON.parse(JSON.stringify(tplData.data.exercises));
+                            }
+                        } catch (err) { console.error("Ошибка загрузки шаблона", err); }
                     }
+
+                    const customDate = sessionStorage.getItem('gymcore_custom_date');
+                    const workoutDate = customDate ? parseInt(customDate) : new Date().getTime();
+                    sessionStorage.removeItem('gymcore_custom_date');
+
+                    this.workoutData = {
+                        title: sessionStorage.getItem('currentWorkoutTitle') || 'Свободная тренировка',
+                        template_id: templateId || null,
+                        workout_date: workoutDate,
+                        exercises: loadedExercises,
+                        media: []
+                    };
+                }
             }
+            if (!this.workoutData.media) this.workoutData.media = [];
             this.normalizeData();
+            if (!this.workoutId) this.saveToLocal();
             this.render();
-            if (!this.workoutId && !this.isTemplateMode) this.startTimer();
+            if (!this.workoutId) this.startTimer();
         } catch (e) {
             this.container.innerHTML = `<div class="empty-state">Ошибка загрузки данных</div>`;
         }
@@ -95,14 +100,18 @@ export default class WorkoutView {
             } else {
                 ex.isSuperset = !!ex.isSuperset;
             }
-            
             if (!ex.sets) ex.sets = [{ weight: '', reps: '', completed: false }];
         });
     }
 
     saveToLocal() {
-        if (!this.workoutId && !this.isTemplateMode) {
+        if (!this.workoutId) {
             localStorage.setItem('gymcore_active_workout', JSON.stringify(this.workoutData));
+            // Триггерим обновление глобального мини-плеера
+            const bottomNav = document.getElementById('bottomNav');
+            if (bottomNav && window.location.hash !== '#workout') {
+                window.location.reload(); 
+            }
         }
     }
 
@@ -124,23 +133,28 @@ export default class WorkoutView {
 
         const myId = getCurrentUserId();
         const isOwner = !this.workoutId || this.workoutData.user_id === myId;
-        const saveBtnText = (this.isTemplateMode && !isOwner) ? '💾 Сохранить к себе' : (this.isEditing ? '💾 Сохранить' : '✎ Править');
+        const saveBtnText = this.isEditing ? '💾 Сохранить' : '✎ Править';
 
         this.container.innerHTML = `
             <section style="padding-bottom: 80px;">
                 <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
                     <a href="#" style="color: var(--accent-color); text-decoration: none; font-weight: 600;">← Назад</a>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        ${!this.isEditing && this.workoutId && !this.isTemplateMode ? `
+                        ${!this.isEditing && this.workoutId ? `
                             <button id="saveAsTemplateBtn" style="background: none; border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                                 📑 В шаблон
                             </button>` : ''}
+                        ${!this.workoutId ? `
+                            <button id="cancelWorkoutBtn" style="color: #ff3b30; background: none; border: 1px solid #ff3b30; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                ❌ Отменить
+                            </button>
+                        ` : ''}
                         
                         <button id="mainActionBtn" style="background: ${this.isEditing ? '#34c759' : 'var(--bg-color)'}; color: ${this.isEditing ? 'white' : 'var(--text-primary)'}; border: 1px solid ${this.isEditing ? '#34c759' : 'var(--border-color)'}; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">
                             ${saveBtnText}
                         </button>
                         
-                        ${(!this.isEditing || this.isTemplateMode) && isOwner && this.workoutId ? `
+                        ${!this.isEditing && isOwner && this.workoutId ? `
                             <button id="deleteBtn" style="color: #ff3b30; background:none; border: 1px solid #ff3b30; padding: 8px 12px; border-radius: 8px; cursor: pointer;">🗑</button>
                         ` : ''}
                     </div>
@@ -149,15 +163,27 @@ export default class WorkoutView {
                 <div class="card" style="margin-bottom: 20px;">
                     ${this.isEditing ? `
                         <input type="text" id="titleInput" class="set-input" style="font-size: 18px; font-weight: bold; width: 100%; margin-bottom: 10px; text-align:left;" value="${escapeHTML(this.workoutData.title)}">
-                        ${!this.isTemplateMode ? `<input type="datetime-local" id="dateInput" class="set-input" style="width: 100%; text-align:left;" value="${localISOTime}">` : ''}
+                        <input type="datetime-local" id="dateInput" class="set-input" style="width: 100%; text-align:left;" value="${localISOTime}">
                     ` : `
                         <h2 style="margin:0 0 5px 0;">${escapeHTML(this.workoutData.title)}</h2>
-                        ${!this.isTemplateMode ? `<div style="color: var(--text-secondary); font-size: 14px;">📅 ${formattedDate}</div>` : ''}
+                        <div style="color: var(--text-secondary); font-size: 14px;">📅 ${formattedDate}</div>
                     `}
-                    ${(!this.workoutId && !this.isTemplateMode) ? `<div id="workoutTimer" style="margin-top:10px; font-weight:bold; color:var(--accent-color); font-family:monospace;">00:00</div>` : ''}
+                    ${!this.workoutId ? `<div id="workoutTimer" style="margin-top:10px; font-weight:bold; color:var(--accent-color); font-family:monospace;">00:00</div>` : ''}
                 </div>
                 <div id="exercises-list"></div>
                 ${this.isEditing ? `<button id="addExBtn" class="primary-btn" style="margin-top: 15px; background: var(--surface-color); color: var(--accent-color); border: 1px solid var(--accent-color);">+ Добавить упражнение</button>` : ''}
+                
+                <div class="card media-upload-section" style="margin-top: 20px; padding: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 15px;">Медиафайлы тренировки</h4>
+                    <div id="mediaPreviewContainer" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;"></div>
+
+                    ${this.isEditing ? `
+                        <input type="file" id="workoutFileInput" accept="image/*,video/*" style="display: none;">
+                        <button id="triggerUploadBtn" class="primary-btn" style="width: 100%; border: 1px dashed var(--accent-color); background: none; color: var(--accent-color); box-shadow: none; font-size: 14px; padding: 12px;">
+                            📸 Добавить фото или видео
+                        </button>
+                    ` : ''}
+                </div>
             </section>
 
             <div id="exModal" class="modal-overlay">
@@ -175,12 +201,10 @@ export default class WorkoutView {
             </div>
         `;
         
-        // Инициализация компонента для СОЗДАНИЯ нового упражнения
         if (this.exerciseModal) this.exerciseModal.destroy();
         this.exerciseModal = new ExerciseModal(this.container, this.api, (newExercise) => {
-            // Коллбэк вызывается, когда юзер успешно создал упражнение в базе
             this.workoutData.exercises.push({ ...newExercise, sets: [{ weight: '', reps: '', completed: false }] });
-            this.container.querySelector('#exModal').classList.remove('active'); // Закрываем фоновую модалку выбора
+            this.container.querySelector('#exModal').classList.remove('active'); 
             this.renderExercises();
             this.saveToLocal();
         });
@@ -188,6 +212,20 @@ export default class WorkoutView {
         this.container.addEventListener('click', this._onClick);
         this.container.addEventListener('input', this._onInput);
         this.renderExercises();
+        
+        this.renderMediaPreviews();
+        const fileInput = this.container.querySelector('#workoutFileInput');
+        if (fileInput) {
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const localUrl = URL.createObjectURL(file);
+                const type = file.type.startsWith('video') ? 'video' : 'image';
+                this.pendingMedia.push({ file, url: localUrl, type });
+                this.renderMediaPreviews();
+                fileInput.value = ''; 
+            };
+        }
     }
 
     renderExercises() {
@@ -198,14 +236,12 @@ export default class WorkoutView {
             return;
         }
 
-        // 1. Группируем упражнения для суперсетов
         let groups = [];
         exercises.forEach((ex, i) => {
             if (ex.isSuperset && i > 0) groups[groups.length - 1].push({ ex, i });
             else groups.push([{ ex, i }]);
         });
 
-        // 2. Рендерим группы с помощью нашего нового компонента
         list.innerHTML = groups.map(group => {
             const isSS = group.length > 1;
             return `
@@ -217,6 +253,41 @@ export default class WorkoutView {
         }).join('');
 
         if (this.isEditing) this.initSortable();
+    }
+
+    renderMediaPreviews() {
+        const container = this.container.querySelector('#mediaPreviewContainer');
+        if (!container) return;
+
+        const savedMedia = this.workoutData.media || [];
+        const pendingMedia = this.pendingMedia || [];
+
+        if (savedMedia.length === 0 && pendingMedia.length === 0) {
+            container.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; padding: 5px 0;">Нет прикрепленных медиафайлов</div>';
+            return;
+        }
+
+        let html = '';
+        savedMedia.forEach((item, index) => { html += this.generateMediaCard(item, index, 'saved'); });
+        pendingMedia.forEach((item, index) => { html += this.generateMediaCard(item, index, 'pending', true); });
+        container.innerHTML = html;
+    }
+
+    generateMediaCard(item, index, type, isPending = false) {
+        return `
+            <div style="position: relative; width: 75px; height: 75px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color); background: var(--bg-color); ${isPending ? 'opacity: 0.8;' : ''}">
+                ${item.type === 'video' ? `
+                    <video src="${item.url}" style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    <span style="position: absolute; bottom: 4px; left: 4px; font-size: 10px; background: rgba(0,0,0,0.6); color: white; padding: 1px 4px; border-radius: 4px;">▶</span>
+                ` : `
+                    <img src="${item.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                `}
+                ${isPending ? `<span style="position: absolute; bottom: 2px; right: 2px; font-size: 10px; background: var(--accent-color); color: white; padding: 1px 4px; border-radius: 4px;">⏳</span>` : ''}
+                ${this.isEditing ? `
+                    <button class="delete-media-btn" data-index="${index}" data-type="${type}" style="position: absolute; top: 2px; right: 2px; background: rgba(255,59,48,0.9); color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold;">✕</button>
+                ` : ''}
+            </div>
+        `;
     }
 
     renderModalList(exercisesArray) {
@@ -249,38 +320,38 @@ export default class WorkoutView {
                 return { 
                     id: ex.id, 
                     superset_id: (ex.isSuperset || (next && next.isSuperset)) ? lastSSId : null,
-                    sets: ex.sets // <----- ВОТ ЭТО ВЕРНЕТ СЕТЫ В ШАБЛОН!
+                    sets: ex.sets 
                 };
             });
 
             try {
-                await this.api.createTemplate({ 
-                    name, 
-                    exercises: preparedForTemplate 
-                });
+                await this.api.createTemplate({ name, exercises: preparedForTemplate });
                 alert('✅ Шаблон создан со всеми связями и подходами!');
-            } catch (e) { 
-                alert('Ошибка сохранения шаблона'); 
-            }
+            } catch (e) { alert('Ошибка сохранения шаблона'); }
         }
-        if (t.id === 'mainActionBtn') {
-            const myId = getCurrentUserId();
-            const isOwner = !this.workoutId || this.workoutData.user_id === myId;
-            
-            if (this.isTemplateMode && !isOwner) {
-                this.handleSave();
-                return;
-            }
 
+        if (t.id === 'mainActionBtn') {
             if (!this.isEditing) { this.isEditing = true; this.render(); }
             else this.handleSave();
+            return;
         }
 
         if (t.id === 'deleteBtn' && confirm('Удалить?')) {
-            const action = this.isTemplateMode ? this.api.deleteTemplate(this.workoutId) : this.api.deleteWorkout(this.workoutId);
-            await action; window.location.hash = this.isTemplateMode ? '#templates' : '';
+            await this.api.deleteWorkout(this.workoutId);
+            localStorage.removeItem('gymcore_active_workout');
+            window.gymcorePendingMedia = []; 
+            window.location.hash = '';
+            return;
         }
-
+        if (t.id === 'cancelWorkoutBtn' || t.closest('#cancelWorkoutBtn')) {
+            if (confirm('Сбросить текущую активную тренировку? Все не сохраненные данные и таймер будут удалены навсегда.')) {
+                localStorage.removeItem('gymcore_active_workout'); // Стираем черновик
+                window.gymcorePendingMedia = [];                  // Очищаем глобальные фото
+                this.pendingMedia = [];                           // Очищаем локальные фото
+                window.location.hash = '#templates';              // Уходим на вкладку программ
+            }
+            return;
+        }
         if (t.classList?.contains('add-set-btn')) {
             this.workoutData.exercises[idx].sets.push({ weight: '', reps: '', completed: false });
             this.renderExercises();
@@ -324,9 +395,8 @@ export default class WorkoutView {
             if (res.success) { this.allExercisesCache = res.data; this.renderModalList(this.allExercisesCache); }
         }
 
-        // --- ВОТ ТУТ МАГИЯ ВЫЗОВА КОМПОНЕНТА ---
         if (t.id === 'openCreateExBtn') {
-            this.exerciseModal.open(); // Открываем нашу новенькую модалку!
+            this.exerciseModal.open(); 
         }
 
         if (t.id === 'closeModal' || t.id === 'exModal') {
@@ -342,6 +412,20 @@ export default class WorkoutView {
             this.renderExercises();
             this.saveToLocal();
         }
+
+        if (t.id === 'triggerUploadBtn') {
+            this.container.querySelector('#workoutFileInput').click();
+            return;
+        }
+
+        if (t.classList.contains('delete-media-btn')) {
+            const idx = parseInt(t.dataset.index);
+            if (t.dataset.type === 'pending') this.pendingMedia.splice(idx, 1);
+            else this.workoutData.media.splice(idx, 1);
+            this.renderMediaPreviews();
+            this.saveToLocal();
+            return;
+        }
     }
 
     handleInput(e) {
@@ -354,7 +438,6 @@ export default class WorkoutView {
             }));
         }
         if (t.id === 'titleInput') this.workoutData.title = t.value;
-        
         if (t.id === 'dateInput') this.workoutData.workout_date = new Date(t.value).getTime();
 
         if (t.classList?.contains('edit-val')) {
@@ -368,58 +451,68 @@ export default class WorkoutView {
         const btn = document.getElementById('mainActionBtn');
         btn.innerText = 'Загрузка...';
         btn.disabled = true;
-        
-        let lastSSId = null;
-        const prepared = this.workoutData.exercises.map((ex, i) => {
-            const next = this.workoutData.exercises[i + 1];
-            
-            if (!ex.isSuperset && !(next && next.isSuperset)) {
-                lastSSId = null; 
-            }
-            if (!ex.isSuperset && next && next.isSuperset) {
-                lastSSId = `ss_${Date.now()}_${i}`; 
-            }
-            
-            return { 
-                ...ex, 
-                sets: ex.sets, 
-                superset_id: (ex.isSuperset || (next && next.isSuperset)) ? lastSSId : null 
-            };
-        });
-
-        const myId = getCurrentUserId();
-        const isOwner = !this.workoutId || this.workoutData.user_id === myId;
 
         try {
+            if (this.pendingMedia && this.pendingMedia.length > 0) {
+                btn.innerText = 'Загрузка фото...';
+                for (let i = 0; i < this.pendingMedia.length; i++) {
+                    const item = this.pendingMedia[i];
+                    const formData = new FormData();
+                    formData.append('file', item.file);
+                    
+                    const uploadRes = await this.api.uploadFile(formData);
+                    if (uploadRes.success) {
+                        this.workoutData.media.push(uploadRes.data);
+                    } else {
+                        throw new Error(`Ошибка загрузки фото: ${uploadRes.message}`);
+                    }
+                }
+                this.pendingMedia = []; 
+                window.gymcorePendingMedia = [];
+            }
+
+            btn.innerText = 'Сохранение...';
+
+            let lastSSId = null;
+            const prepared = this.workoutData.exercises.map((ex, i) => {
+                const next = this.workoutData.exercises[i + 1];
+                if (!ex.isSuperset && !(next && next.isSuperset)) lastSSId = null; 
+                if (!ex.isSuperset && next && next.isSuperset) lastSSId = `ss_${Date.now()}_${i}`; 
+                return { ...ex, sets: ex.sets, superset_id: (ex.isSuperset || (next && next.isSuperset)) ? lastSSId : null };
+            });
+
             let res;
-            if (this.isTemplateMode) {
-                if (this.workoutId && isOwner) {
-                    res = await this.api.updateTemplate(this.workoutId, { name: this.workoutData.title, exercises: prepared });
-                } else {
-                    res = await this.api.createTemplate({ name: this.workoutData.title, exercises: prepared });
-                    if (this.workoutId && !isOwner) alert('🌍 Глобальный шаблон успешно скопирован в ваши личные программы!');
-                }
+            if (this.workoutId) {
+                res = await this.api.updateWorkout(this.workoutId, { 
+                    title: this.workoutData.title, 
+                    workout_date: new Date(this.workoutData.workout_date), 
+                    exercises: prepared,
+                    media: this.workoutData.media 
+                });
             } else {
-                if (this.workoutId && isOwner) {
-                    res = await this.api.updateWorkout(this.workoutId, { title: this.workoutData.title, workout_date: new Date(this.workoutData.workout_date), exercises: prepared });
-                } else {
-                    res = await this.api.createWorkout({ title: this.workoutData.title, workout_date: new Date(this.workoutData.workout_date), exercises: prepared });
-                }
+                res = await this.api.createWorkout({ 
+                    title: this.workoutData.title, 
+                    workout_date: new Date(this.workoutData.workout_date), 
+                    exercises: prepared,
+                    media: this.workoutData.media 
+                });
             }
 
             if (res.success) {
-                if (!this.isTemplateMode) {
-                    localStorage.removeItem('gymcore_active_workout');
-                }
-                
-                if (this.workoutId && isOwner && !this.isTemplateMode) { 
+                localStorage.removeItem('gymcore_active_workout');
+                if (this.workoutId) { 
                     this.isEditing = false; 
                     this.render(); 
+                } else {
+                    window.location.hash = '';
                 }
-                else window.location.hash = this.isTemplateMode ? '#templates' : '';
             }
-        } catch (e) { alert('Ошибка сохранения'); }
-        finally { btn.innerText = 'Сохранить'; btn.disabled = false; }
+        } catch (e) { 
+            alert('Ошибка сохранения'); 
+        } finally { 
+            btn.innerText = 'Сохранить'; 
+            btn.disabled = false; 
+        }
     }
 
     initSortable() {

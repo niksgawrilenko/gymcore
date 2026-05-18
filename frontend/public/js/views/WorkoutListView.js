@@ -20,9 +20,30 @@ export default class TemplatesView {
     }
 
     async render() {
+        // Проверяем, есть ли активная тренировка в фоне
+        const savedActive = localStorage.getItem('gymcore_active_workout');
+        let activeWorkoutHTML = '';
+        
+        if (savedActive) {
+            try {
+                const data = JSON.parse(savedActive);
+                activeWorkoutHTML = `
+                    <div class="card" style="border: 2px solid #34c759; background: rgba(52, 199, 89, 0.05); margin-bottom: 25px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="window.location.hash='#workout'">
+                        <div>
+                            <h3 style="color: #34c759; margin-bottom: 5px; font-size: 16px;">🟢 Активная тренировка</h3>
+                            <div style="font-weight: 600; font-size: 18px;">${escapeHTML(data.title || 'Свободная')}</div>
+                        </div>
+                        <div style="font-size: 24px; color: #34c759; font-weight: bold;">→</div>
+                    </div>
+                `;
+            } catch(e) {}
+        }
+
         this.container.innerHTML = `
             <section style="padding-bottom: 20px;">
-                <h2 class="section-title" style="margin-top: 5px; margin-bottom: 15px;">Начать тренировку</h2>
+                ${activeWorkoutHTML}
+                
+                <h2 class="section-title" style="margin-top: 5px; margin-bottom: 15px;">Новая тренировка</h2>
                 
                 <button id="startEmptyWorkoutBtn" class="primary-btn" style="margin-bottom: 25px; box-shadow: none; border: 2px solid var(--accent-color); background: var(--surface-color); color: var(--accent-color);">
                     + Свободная тренировка
@@ -86,7 +107,6 @@ export default class TemplatesView {
                             
                             <button class="moderate-tpl-btn" data-id="${tpl.id}" title="На модерацию" style="background:none; border:none; cursor:pointer; font-size: 16px;">🌐</button>
                             <button class="share-tpl-btn" data-id="${tpl.share_id}" title="Поделиться" style="background:none; border:none; cursor:pointer; font-size: 16px;">🔗</button>
-                            
                             <button class="delete-tpl-btn" data-id="${tpl.id}" style="background: none; border: none; color: #ff3b30; font-size: 18px; cursor: pointer; padding: 5px;">🗑</button>
                         </div>
                     ` : `
@@ -151,6 +171,7 @@ export default class TemplatesView {
                 if (!confirm('У вас есть активная тренировка. Начать новую (текущая будет удалена)?')) return;
             }
             localStorage.removeItem('gymcore_active_workout');
+            window.gymcorePendingMedia = [];
             sessionStorage.removeItem('currentWorkoutTitle');
             sessionStorage.removeItem('currentTemplateId');
             window.location.hash = '#workout';
@@ -165,6 +186,7 @@ export default class TemplatesView {
                 if (!confirm('У вас есть активная тренировка. Сбросить её и начать по этому шаблону?')) return;
             }
             localStorage.removeItem('gymcore_active_workout');
+            window.gymcorePendingMedia = [];
             sessionStorage.setItem('currentWorkoutTitle', templateCardLink.dataset.name);
             sessionStorage.setItem('currentTemplateId', templateCardLink.dataset.id);
             window.location.hash = '#workout';

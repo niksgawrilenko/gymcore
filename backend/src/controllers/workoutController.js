@@ -44,11 +44,14 @@ class WorkoutController {
         const client = await pool.connect(); // Выделенный коннект для транзакции
         try {
             await client.query('BEGIN'); // Старт транзакции
-            const { title, template_id, workout_date, exercises } = req.body;
             
+            // ДОБАВЛЕНО: Достаем media из тела запроса
+            const { title, template_id, workout_date, exercises, media } = req.body;
+            
+            // ДОБАВЛЕНО: Добавили колонку media и параметр $5
             const wRes = await client.query(
-                'INSERT INTO workouts (title, template_id, workout_date, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
-                [title, template_id || null, workout_date || new Date(), req.user.id]
+                'INSERT INTO workouts (title, template_id, workout_date, user_id, media) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+                [title, template_id || null, workout_date || new Date(), req.user.id, JSON.stringify(media || [])]
             );
             const workoutId = wRes.rows[0].id;
 
@@ -87,12 +90,15 @@ class WorkoutController {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            const { title, workout_date, exercises } = req.body;
+            
+            // ДОБАВЛЕНО: Достаем media из тела запроса
+            const { title, workout_date, exercises, media } = req.body;
             const workoutId = req.params.id;
 
+            // ДОБАВЛЕНО: Обновляем колонку media и передаем параметр $3 (а id и user_id сдвинулись на $4 и $5)
             const wRes = await client.query(
-                'UPDATE workouts SET title = $1, workout_date = $2 WHERE id = $3 AND user_id = $4 RETURNING *',
-                [title, workout_date || new Date(), workoutId, req.user.id]
+                'UPDATE workouts SET title = $1, workout_date = $2, media = $3 WHERE id = $4 AND user_id = $5 RETURNING *',
+                [title, workout_date || new Date(), JSON.stringify(media || []), workoutId, req.user.id]
             );
 
             if (wRes.rows.length === 0) {
