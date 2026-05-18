@@ -9,6 +9,8 @@ import AdminView from './views/AdminView.js';
 import SharedView from './views/SharedView.js';
 import ProfileView from './views/ProfileView.js';
 import MeasurementsView from './views/MeasurementsView.js';
+import StatsView from './views/StatsView.js';
+import SettingsView from './views/SettingsView.js';
 
 export class Router {
     constructor(containerId, api) {
@@ -51,6 +53,9 @@ export class Router {
             '#exercises': () => new ExercisesView(this.container, this.api),
             '#profile': () => new ProfileView(this.container, this.api),
             '#measurements': () => new MeasurementsView(this.container, this.api),
+            '#stats': () => new StatsView(this.container, this.api),
+            '#settings': () => new SettingsView(this.container, this.api),
+
             '#admin': () => {
                 if (this.api.getUserRole() !== 'admin') { window.location.hash = '#'; return null; }
                 return new AdminView(this.container, this.api);
@@ -78,7 +83,7 @@ export class Router {
         const bottomNav = document.getElementById('bottomNav');
         if (!bottomNav) return;
 
-        const hideNavRoutes = ['#auth', '#workout', '#workout-detail', '#template-create', '#template-edit', '#admin', '#measurements'];
+        const hideNavRoutes = ['#auth', '#workout', '#workout-detail', '#template-create', '#template-edit', '#admin', '#measurements', '#stats', '#settings'];
         if (hideNavRoutes.includes(path) || path.startsWith('#shared')) {
             bottomNav.style.display = 'none';
         } else {

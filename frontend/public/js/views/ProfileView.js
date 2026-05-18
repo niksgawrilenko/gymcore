@@ -44,7 +44,7 @@ export default class ProfileView {
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px;">
                     <h2 style="font-size: 24px; font-weight: 800; margin: 0;">${username}</h2>
                     <div style="display: flex; gap: 15px;">
-                        <button class="icon-btn dev-stub-btn" style="font-size: 20px;">⚙️</button>
+                        <a href="#settings" class="icon-btn" style="font-size: 20px; text-decoration: none; text-align: center; display: block;">⚙️</a>
                     </div>
                 </div>
 
@@ -74,7 +74,7 @@ export default class ProfileView {
                 <h3 style="margin-bottom: 15px; font-size: 14px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Приборная панель</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 30px;">
                     
-                    <div class="card dev-stub-btn" style="margin: 0; padding: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.1s;">
+                    <div class="card" onclick="window.location.hash='#stats'" style="margin: 0; padding: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.1s;">
                         <span style="font-size: 20px;">📈</span>
                         <span style="font-weight: 600; font-size: 15px;">Статистика</span>
                     </div>

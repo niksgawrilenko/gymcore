@@ -272,7 +272,9 @@ input[type="datetime-local"] {
     border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: space-around;
-    padding-bottom: env(safe-area-inset-bottom, 15px); /* Защита от полоски на iPhone */
+    padding-top: 12px; /* Воздух сверху над иконками */
+    /* МАГИЯ ДЛЯ iOS: Базовый отступ 15px ПЛЮС высота полоски (Home Indicator) */
+    padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px)); 
     z-index: 900;
 }
 
@@ -280,7 +282,7 @@ input[type="datetime-local"] {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 10px 0 5px 0;
+    padding: 0; /* Убрали лишние отступы, теперь они в родителе */
     color: var(--text-secondary);
     text-decoration: none;
     font-size: 11px;
@@ -290,7 +292,7 @@ input[type="datetime-local"] {
 }
 
 .nav-icon {
-    font-size: 22px;
+    font-size: 24px; /* Чуть увеличили иконки для удобства пальца */
     margin-bottom: 4px;
     filter: grayscale(100%) opacity(0.6);
     transition: transform 0.2s, filter 0.2s;
@@ -304,12 +306,14 @@ input[type="datetime-local"] {
     filter: grayscale(0%) opacity(1);
     transform: scale(1.15);
 }
+
 /* ==========================================================================
    10. ГЛОБАЛЬНЫЙ ВИДЖЕТ ТРЕНИРОВКИ (Мини-плеер)
    ========================================================================== */
 .global-active-workout {
     position: fixed;
-    bottom: calc(70px + env(safe-area-inset-bottom, 0px)); /* Ровно над нижним баром */
+    /* Поднимаем виджет выше с учетом нового высокого бара */
+    bottom: calc(85px + env(safe-area-inset-bottom, 0px)); 
     left: 15px;
     right: 15px;
     background: var(--surface-color);
@@ -319,8 +323,8 @@ input[type="datetime-local"] {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
-    z-index: 899; /* Чуть ниже навигации (900) */
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.15); /* Чуть смягчили тень */
+    z-index: 899; 
     cursor: pointer;
     transition: transform 0.2s ease;
 }
@@ -352,7 +356,6 @@ input[type="datetime-local"] {
 
 .active-title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
 .active-time { font-size: 13px; color: var(--text-secondary); font-family: monospace; }
-
 /* ==========================================================================
    11. КАЛЕНДАРЬ И ПЕРЕКЛЮЧАТЕЛЬ ВИДОВ
    ========================================================================== */
