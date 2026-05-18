@@ -33,10 +33,11 @@ export default class WorkoutView {
                 
                 const myId = getCurrentUserId();
                 const isOwner = this.workoutData.user_id === myId;
-                if (this.isTemplateMode && !isOwner) {
-                    this.isEditing = false;
+                
+                if (this.isTemplateMode) {
+                    this.isEditing = isOwner; 
                 } else {
-                    this.isEditing = true;
+                    this.isEditing = false;
                 }
             } else {
                 if (this.isTemplateMode) {

@@ -21,13 +21,18 @@ export default class TemplatesView {
 
     async render() {
         this.container.innerHTML = `
-            <section style="padding-bottom: 80px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--surface-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <a href="#" style="color: var(--accent-color); text-decoration: none; font-weight: 600;">← Назад</a>
+            <section style="padding-bottom: 20px;">
+                <h2 class="section-title" style="margin-top: 5px; margin-bottom: 15px;">Начать тренировку</h2>
+                
+                <button id="startEmptyWorkoutBtn" class="primary-btn" style="margin-bottom: 25px; box-shadow: none; border: 2px solid var(--accent-color); background: var(--surface-color); color: var(--accent-color);">
+                    + Свободная тренировка
+                </button>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="font-size: 20px; font-weight: 600;">Мои программы</h2>
                     <a href="#template-create" style="background: none; border: none; color: var(--accent-color); font-weight: bold; font-size: 28px; cursor: pointer; text-decoration: none; padding: 0 10px;">+</a>
                 </div>
                 
-                <h2 style="margin-bottom: 15px; font-size: 24px;">Мои программы</h2>
                 <input type="text" id="templateSearch" class="set-input" placeholder="🔍 Поиск шаблона..." style="width: 100%; margin-bottom: 20px; text-align: left;">
                 
                 <div id="templatesList"><div class="empty-state">Загрузка...</div></div>
@@ -36,7 +41,6 @@ export default class TemplatesView {
         
         this.container.addEventListener('click', this._onClick);
         this.container.addEventListener('input', this._onInput);
-        
         this.loadTemplates();
     }
 
@@ -65,7 +69,8 @@ export default class TemplatesView {
         const generateHTML = (tplList, isPersonal) => {
             return tplList.map(tpl => `
                 <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; opacity: ${isPersonal ? '1' : '0.85'};">
-                    <a href="#template-edit?id=${tpl.id}" style="text-decoration: none; color: inherit; flex-grow: 1;">
+                    
+                    <a href="#" class="start-template-link" data-id="${tpl.id}" data-name="${escapeHTML(tpl.name)}" style="text-decoration: none; color: inherit; flex-grow: 1;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="font-weight: 600; font-size: 17px;">${escapeHTML(tpl.name)}</div>
                             ${!isPersonal ? '<span style="font-size: 11px; background: var(--bg-color); padding: 2px 6px; border-radius: 4px; color: var(--text-secondary);">🌍</span>' : ''}
@@ -76,6 +81,8 @@ export default class TemplatesView {
                     ${isPersonal ? `
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span class="status-badge status-${tpl.moderation_status || 'none'}">${tpl.moderation_status || 'none'}</span>
+                            
+                            <a href="#template-edit?id=${tpl.id}" title="Редактировать" style="background:none; border:none; color:var(--accent-color); font-size: 18px; text-decoration:none; padding: 5px;">✎</a>
                             
                             <button class="moderate-tpl-btn" data-id="${tpl.id}" title="На модерацию" style="background:none; border:none; cursor:pointer; font-size: 16px;">🌐</button>
                             <button class="share-tpl-btn" data-id="${tpl.share_id}" title="Поделиться" style="background:none; border:none; cursor:pointer; font-size: 16px;">🔗</button>
@@ -137,6 +144,31 @@ export default class TemplatesView {
             const url = `${window.location.origin}/#shared-template?id=${shareId}`;
             navigator.clipboard.writeText(url);
             alert('Ссылка на шаблон скопирована!');
+        }
+        // Начать пустую тренировку
+        if (t.closest('#startEmptyWorkoutBtn')) {
+            if (localStorage.getItem('gymcore_active_workout')) {
+                if (!confirm('У вас есть активная тренировка. Начать новую (текущая будет удалена)?')) return;
+            }
+            localStorage.removeItem('gymcore_active_workout');
+            sessionStorage.removeItem('currentWorkoutTitle');
+            sessionStorage.removeItem('currentTemplateId');
+            window.location.hash = '#workout';
+            return;
+        }
+
+        // Клик по самому шаблону (начать тренировку по шаблону)
+        const templateCardLink = t.closest('.start-template-link');
+        if (templateCardLink) {
+            e.preventDefault();
+            if (localStorage.getItem('gymcore_active_workout')) {
+                if (!confirm('У вас есть активная тренировка. Сбросить её и начать по этому шаблону?')) return;
+            }
+            localStorage.removeItem('gymcore_active_workout');
+            sessionStorage.setItem('currentWorkoutTitle', templateCardLink.dataset.name);
+            sessionStorage.setItem('currentTemplateId', templateCardLink.dataset.id);
+            window.location.hash = '#workout';
+            return;
         }
     }
 
