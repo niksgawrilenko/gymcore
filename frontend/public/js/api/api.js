@@ -121,6 +121,19 @@ export class ApiClient {
     updateWorkout(id, data) { return this.#request(`/workouts/${id}`, 'PATCH', data); }
     deleteWorkout(id) { return this.#request(`/workouts/${id}`, 'DELETE'); }
 
+    // ==========================================
+    // --- ЗАМЕРЫ ТЕЛА ---
+    // ==========================================
+    getMeasurements() { 
+        return this.#request('/measurements'); 
+    }
+    createMeasurement(data) { 
+        return this.#request('/measurements', 'POST', data); 
+    }
+    deleteMeasurement(id) { 
+        return this.#request(`/measurements/${id}`, 'DELETE'); 
+    }
+    
     // --- Модерация и шеринг ---
     async sendExerciseToModeration(id) {
         // Используем #request и указываем метод POST

@@ -16,6 +16,7 @@ const workoutRoutes = require('./routes/workoutRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sharedRoutes = require('./routes/sharedRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const measurementRoutes = require('./routes/measurementRoutes');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -68,6 +69,7 @@ app.use('/api/workouts', workoutRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/shared', sharedRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/measurements', measurementRoutes);
 
 // Глобальный обработчик ошибок (чтобы сервер не падал при фатальной ошибке)
 app.use((err, req, res, next) => {
