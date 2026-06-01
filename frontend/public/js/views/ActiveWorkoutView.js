@@ -71,6 +71,14 @@ export default class ActiveWorkoutView {
                 }
             }
             if (!this.workoutData.media) this.workoutData.media = [];
+            this.historyMap = {};
+            if (this.isEditing && !this.workoutId) {
+                try {
+                    const histRes = await this.api.getHistoryMap();
+                    if (histRes.success) this.historyMap = histRes.data;
+                } catch (err) { console.warn("Не удалось загрузить историю"); }
+            }
+            if (!this.workoutData.media) this.workoutData.media = [];
             this.normalizeData();
             if (!this.workoutId) this.saveToLocal();
             this.render();
@@ -246,9 +254,11 @@ export default class ActiveWorkoutView {
             const isSS = group.length > 1;
             return `
                 <div class="sortable-group" style="margin-bottom: 15px;">
-                    ${group.map((item, idx) => 
-                        renderExerciseCard(item, this.isEditing, isSS, idx === group.length - 1, idx)
-                    ).join('')}
+                    ${group.map((item, idx) => {
+                        const nameKey = (item.ex.name || '').trim().toLowerCase();
+                        const prevSets = this.historyMap[nameKey] || [];
+                        return renderExerciseCard(item, this.isEditing, isSS, idx === group.length - 1, idx, prevSets);
+                    }).join('')}
                 </div>`;
         }).join('');
 
@@ -352,6 +362,21 @@ export default class ActiveWorkoutView {
             }
             return;
         }
+        if (t.classList?.contains('delete-set-btn') || t.closest('.delete-set-btn')) {
+            const btn = t.classList.contains('delete-set-btn') ? t : t.closest('.delete-set-btn');
+            const eIdx = parseInt(btn.dataset.exIdx);
+            const sIdx = parseInt(btn.dataset.setIdx);
+            
+            // Защита: не даем удалить единственный подход
+            if (this.workoutData.exercises[eIdx].sets.length > 1) {
+                this.workoutData.exercises[eIdx].sets.splice(sIdx, 1);
+                this.renderExercises();
+                this.saveToLocal();
+            } else {
+                alert('Нельзя удалить единственный подход. Если нужно, удалите упражнение целиком.');
+            }
+            return;
+        }
         if (t.classList?.contains('add-set-btn')) {
             this.workoutData.exercises[idx].sets.push({ weight: '', reps: '', completed: false });
             this.renderExercises();
@@ -443,6 +468,29 @@ export default class ActiveWorkoutView {
         if (t.classList?.contains('edit-val')) {
             const row = t.closest('.set-row');
             this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx][t.dataset.field] = t.value;
+
+            const prevVal = t.dataset.prev;
+            const isWeight = t.dataset.field === 'weight';
+            const className = isWeight ? 'weight-delta' : 'reps-delta';
+            const wrapper = t.parentElement;
+            let badge = wrapper.querySelector('.' + className);
+
+            if (t.value !== '' && prevVal && prevVal !== 'null') {
+                const diff = isWeight ? parseFloat(t.value) - parseFloat(prevVal) : parseInt(t.value) - parseInt(prevVal);
+                
+                if (diff !== 0 && !isNaN(diff)) {
+                    const cleanDiff = isWeight ? parseFloat(diff.toFixed(1)) : diff;
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = className;
+                        // Те же стили под степень (в правый верхний угол)
+                        badge.style = 'font-size: 10px; font-weight: 800; position: absolute; top: -6px; right: 2px; background: var(--surface-color); padding: 0 4px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); z-index: 2; line-height: 1;';
+                        wrapper.appendChild(badge);
+                    }
+                    badge.innerText = cleanDiff > 0 ? `+${cleanDiff}` : `${cleanDiff}`;
+                    badge.style.color = cleanDiff > 0 ? '#34c759' : '#ff3b30';
+                } else if (badge) { badge.remove(); }
+            } else if (badge) { badge.remove(); }
         }
         this.saveToLocal();
     }

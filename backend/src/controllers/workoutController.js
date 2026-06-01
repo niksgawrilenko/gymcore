@@ -139,6 +139,50 @@ class WorkoutController {
         }
     }
 
+    getHistoryMap = async (req, res) => {
+        try {
+            const result = await pool.query(`
+                SELECT w.workout_date, e.name as base_name, s.weight, s.reps, s.set_order
+                FROM workouts w
+                JOIN workout_exercises we ON w.id = we.workout_id
+                JOIN exercises e ON we.exercise_id = e.id
+                JOIN sets s ON we.id = s.workout_exercise_id
+                WHERE w.user_id = $1 AND (s.weight IS NOT NULL OR s.reps IS NOT NULL)
+                ORDER BY w.workout_date DESC, s.set_order ASC
+            `, [req.user.id]);
+
+            const historyMap = {};
+
+            result.rows.forEach(row => {
+                if (!row.base_name) return;
+                
+                const nameKey = row.base_name.trim().toLowerCase();
+                if (!historyMap[nameKey]) historyMap[nameKey] = [];
+
+                if (!historyMap[nameKey][row.set_order]) {
+                    historyMap[nameKey][row.set_order] = { weight: null, reps: null };
+                }
+
+                const current = historyMap[nameKey][row.set_order];
+
+                const w = parseFloat(row.weight);
+                if (current.weight === null && !isNaN(w) && w > 0) {
+                    current.weight = row.weight;
+                }
+
+                const r = parseInt(row.reps);
+                if (current.reps === null && !isNaN(r) && r > 0) {
+                    current.reps = row.reps;
+                }
+            });
+
+            res.json({ success: true, data: historyMap });
+        } catch (e) { 
+            console.error('[HistoryMap Error]:', e);
+            res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера' }); 
+        }
+    }
+
     delete = async (req, res) => {
         try {
             const result = await pool.query('DELETE FROM workouts WHERE id = $1 AND user_id = $2 RETURNING *', [req.params.id, req.user.id]);
@@ -146,6 +190,7 @@ class WorkoutController {
             res.json({ success: true, message: 'Удалено' });
         } catch (e) { res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера' }); }
     }
+    
 }
 
 module.exports = new WorkoutController();

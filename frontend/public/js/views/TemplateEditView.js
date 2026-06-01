@@ -164,7 +164,19 @@ export default class TemplateEditView {
             window.location.hash = '#templates';
             return;
         }
-
+        if (t.classList?.contains('delete-set-btn') || t.closest('.delete-set-btn')) {
+            const btn = t.classList.contains('delete-set-btn') ? t : t.closest('.delete-set-btn');
+            const eIdx = parseInt(btn.dataset.exIdx);
+            const sIdx = parseInt(btn.dataset.setIdx);
+            
+            if (this.templateData.exercises[eIdx].sets.length > 1) {
+                this.templateData.exercises[eIdx].sets.splice(sIdx, 1);
+                this.renderExercises();
+            } else {
+                alert('Нельзя удалить единственный подход. Если нужно, удалите упражнение целиком.');
+            }
+            return;
+        }
         if (t.classList?.contains('add-set-btn')) {
             this.templateData.exercises[idx].sets.push({ weight: '', reps: '', completed: false });
             this.renderExercises();

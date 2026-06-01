@@ -3,14 +3,17 @@
 import { escapeHTML } from '../utils/helpers.js';
 import { renderSetRow } from './SetRow.js';
 
-export const renderExerciseCard = (item, isEditing, isSS, isLastInGroup, groupIdx) => {
+// ВОТ ЗДЕСЬ ДОБАВЛЕН ШЕСТОЙ ПАРАМЕТР: prevSets = []
+export const renderExerciseCard = (item, isEditing, isSS, isLastInGroup, groupIdx, prevSets = []) => {
     const { ex, i } = item;
     const isCardio = ex.exercise_type === 'cardio';
     
-    // Генерируем HTML для всех подходов этого упражнения
-    const setsHTML = ex.sets.map((s, sIdx) => renderSetRow(s, sIdx, i, isEditing, isCardio)).join('');
+    // Прокидываем прошлые подходы в каждую строку
+    const setsHTML = ex.sets.map((s, sIdx) => {
+        const prevSet = prevSets[sIdx] || null;
+        return renderSetRow(s, sIdx, i, isEditing, isCardio, prevSet);
+    }).join('');
 
-    // Стили для скругления углов в суперсетах (как в iOS)
     const borderRadius = isSS 
         ? (groupIdx === 0 ? '14px 14px 0 0' : (isLastInGroup ? '0 0 14px 14px' : '0')) 
         : '14px';

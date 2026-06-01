@@ -116,6 +116,7 @@ export class ApiClient {
     deleteTemplate(id) { return this.#request(`/templates/${id}`, 'DELETE'); }
 
     getWorkouts() { return this.#request('/workouts'); }
+    getHistoryMap() { return this.#request('/workouts/history-map'); }
     getWorkoutDetail(id) { return this.#request(`/workouts/${id}`); }
     createWorkout(data) { return this.#request('/workouts', 'POST', data); }
     updateWorkout(id, data) { return this.#request(`/workouts/${id}`, 'PATCH', data); }
