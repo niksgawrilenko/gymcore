@@ -3,7 +3,7 @@ const router = express.Router();
 const measurementController = require('../controllers/measurementController');
 const { authenticateToken } = require('../middlewares/auth');
 
-router.use(authenticateToken); // Защищаем маршруты
+router.use(authenticateToken); 
 
 router.get('/', measurementController.getAll);
 router.post('/', measurementController.create);

@@ -3,9 +3,34 @@ const { pool } = require('../config/db');
 class ExerciseController {
     getAll = async (req, res) => {
         try {
-            const result = await pool.query('SELECT * FROM exercises WHERE is_public = true OR user_id = $1 ORDER BY name', [req.user.id]);
+            const { category, search } = req.query;
+            
+            // Базовый безопасный запрос
+            let query = 'SELECT * FROM exercises WHERE (is_public = true OR user_id = $1)';
+            let params = [req.user.id];
+            let paramIdx = 2;
+
+            // Если фронтенд запрашивает конкретную группу мышц/категорию
+            if (category) {
+                query += ` AND category = $${paramIdx}`;
+                params.push(category);
+                paramIdx++;
+            }
+
+            // Если пользователь вбивает текст в поиск
+            if (search) {
+                query += ` AND name ILIKE $${paramIdx}`; // ILIKE - поиск без учета регистра
+                params.push(`%${search}%`);
+                paramIdx++;
+            }
+
+            query += ' ORDER BY name';
+
+            const result = await pool.query(query, params);
             res.json({ success: true, data: result.rows });
-        } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+        } catch (e) { 
+            res.status(500).json({ success: false, error: e.message }); 
+        }
     }
 
     getById = async (req, res) => {

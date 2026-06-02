@@ -20,19 +20,18 @@ export default class ProfileView {
 
     async loadStats() {
         try {
-            const myId = this.userData.id;
-            const [wRes, eRes, tRes] = await Promise.all([
-                this.api.getWorkouts(),
-                this.api.getExercises(),
-                this.api.getTemplates()
-            ]);
+            // Мгновенный запрос вместо скачивания всей базы
+            const res = await this.api.getStats();
 
-            if (wRes.success) this.stats.workouts = wRes.data.length;
-            if (eRes.success) this.stats.exercises = eRes.data.filter(e => e.user_id === myId).length;
-            if (tRes.success) this.stats.templates = tRes.data.filter(t => t.user_id === myId).length;
-
-            this.render(); 
-        } catch (e) { console.error("Ошибка загрузки статистики профиля", e); }
+            if (res.success) {
+                this.stats.workouts = res.data.workoutsCount;
+                this.stats.exercises = res.data.exercisesCount;
+                this.stats.templates = res.data.templatesCount;
+                this.render(); 
+            }
+        } catch (e) { 
+            console.error("Ошибка загрузки статистики:", e); 
+        }
     }
 
     render() {

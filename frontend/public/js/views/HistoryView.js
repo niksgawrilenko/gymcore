@@ -6,15 +6,46 @@ export default class HistoryView {
         this.api = api;
         
         this.workouts = [];
-        this.viewMode = 'list'; // 'list' или 'calendar'
+        this.page = 1;
+        this.hasMore = true;
+        this.isLoading = false;
         
+        this.viewMode = 'list'; 
         const now = new Date();
         this.currentMonth = now.getMonth();
         this.currentYear = now.getFullYear();
-        this.selectedDate = new Date(); // День, на который кликнул юзер
+        this.selectedDate = new Date(); 
         
         this._onClick = this.handleClick.bind(this);
-        this.render();
+        this.loadWorkouts(); // Запускаем загрузку первой страницы
+    }
+    async loadWorkouts() {
+        if (this.isLoading || !this.hasMore) return;
+        
+        this.isLoading = true;
+        this.render(); // Отрисует спиннер внизу, если нужно
+
+        try {
+            const res = await this.api.getWorkouts(this.page, 10);
+            if (res.success) {
+                // Добавляем новые тренировки к уже загруженным
+                this.workouts = [...this.workouts, ...res.data];
+                
+                // Проверяем, есть ли еще страницы
+                if (res.pagination) {
+                    this.hasMore = this.page < res.pagination.totalPages;
+                } else {
+                    this.hasMore = false; // Фолбэк, если бэк не вернул пагинацию
+                }
+                
+                this.page++;
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            this.isLoading = false;
+            this.render();
+        }
     }
 
     destroy() {
@@ -35,7 +66,11 @@ export default class HistoryView {
                 <div id="listViewContainer" style="display: ${this.viewMode === 'list' ? 'block' : 'none'};">
                     <div class="empty-state">Загрузка...</div>
                 </div>
-
+                ${this.hasMore ? `
+                    <button id="loadMoreWorkoutsBtn" class="primary-btn" style="width: 100%; margin-top: 15px;" ${this.isLoading ? 'disabled' : ''}>
+                        ${this.isLoading ? 'Загрузка...' : 'Показать более старые'}
+                    </button>
+                ` : ''}
                 <div id="calendarViewContainer" style="display: ${this.viewMode === 'calendar' ? 'block' : 'none'};">
                     <div class="card" style="padding: 15px 10px;">
                         <div class="calendar-header">
@@ -241,5 +276,9 @@ export default class HistoryView {
             sessionStorage.setItem('gymcore_custom_date', ts);
             window.location.hash = '#workout';
         }
+        if (t.id === 'loadMoreWorkoutsBtn') {
+            this.loadWorkouts();
+            return;
+        }   
     }
 }

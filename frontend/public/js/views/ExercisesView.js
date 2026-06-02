@@ -12,7 +12,41 @@ export default class ExercisesView {
         this._onClick = this.handleClick.bind(this);
         this._onInput = this.handleInput.bind(this);
         
-        this.render();
+        this.init(); // Запускаем инициализацию вместо render()
+    }
+
+    async init() {
+        // Показываем заглушку
+        this.container.innerHTML = `<div class="empty-state">Загрузка базы упражнений...</div>`;
+
+        // Проверяем кэш телефона
+        const cached = localStorage.getItem('gymcore_exercises_cache');
+        
+        if (cached) {
+            this.exercises = JSON.parse(cached);
+            this.render(); // Отрисовываем мгновенно из памяти
+            
+            // В фоне тихо проверяем обновления с сервера
+            this.api.getExercises().then(res => {
+                if (res.success && JSON.stringify(res.data) !== cached) {
+                    this.exercises = res.data;
+                    localStorage.setItem('gymcore_exercises_cache', JSON.stringify(res.data));
+                    this.render(); // Обновляем список, если есть новые упражнения
+                }
+            }).catch(() => {});
+        } else {
+            // Если зашел впервые - качаем с сервера
+            try {
+                const res = await this.api.getExercises();
+                if (res.success) {
+                    this.exercises = res.data;
+                    localStorage.setItem('gymcore_exercises_cache', JSON.stringify(res.data));
+                    this.render();
+                }
+            } catch (e) {
+                this.container.innerHTML = `<div class="empty-state">Ошибка загрузки</div>`;
+            }
+        }
     }
 
     destroy() {

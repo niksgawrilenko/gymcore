@@ -115,18 +115,25 @@ export class ApiClient {
     updateTemplate(id, data) { return this.#request(`/templates/${id}`, 'PATCH', data); }
     deleteTemplate(id) { return this.#request(`/templates/${id}`, 'DELETE'); }
 
-    getWorkouts() { return this.#request('/workouts'); }
+    getWorkouts(page = 1, limit = 10) { 
+        return this.#request(`/workouts?page=${page}&limit=${limit}`); 
+    }
     getHistoryMap() { return this.#request('/workouts/history-map'); }
     getWorkoutDetail(id) { return this.#request(`/workouts/${id}`); }
     createWorkout(data) { return this.#request('/workouts', 'POST', data); }
     updateWorkout(id, data) { return this.#request(`/workouts/${id}`, 'PATCH', data); }
     deleteWorkout(id) { return this.#request(`/workouts/${id}`, 'DELETE'); }
 
+
+    getStats() {
+        return this.#request('/workouts/stats'); // Убедись, что на бэкенде путь совпадает с роутером
+    }
+    getAnalytics() { return this.#request('/workouts/analytics'); }
     // ==========================================
     // --- ЗАМЕРЫ ТЕЛА ---
     // ==========================================
-    getMeasurements() { 
-        return this.#request('/measurements'); 
+    getMeasurements(page = 1, limit = 20) { 
+        return this.#request(`/measurements?page=${page}&limit=${limit}`); 
     }
     createMeasurement(data) { 
         return this.#request('/measurements', 'POST', data); 

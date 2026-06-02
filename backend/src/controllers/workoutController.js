@@ -3,15 +3,43 @@ const { pool } = require('../config/db');
 class WorkoutController {
     getAll = async (req, res) => {
         try {
+            // 1. Извлекаем параметры пагинации из query-строки (по умолчанию: 1 страница, по 10 тренировок)
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const offset = (page - 1) * limit;
+
+            // 2. Добавляем LIMIT и OFFSET в SQL-запрос
             const result = await pool.query(`
                 SELECT w.*, t.name as template_name 
                 FROM workouts w 
                 LEFT JOIN templates t ON w.template_id = t.id 
                 WHERE w.user_id = $1
                 ORDER BY w.workout_date DESC
-            `, [req.user.id]);
-            res.json({ success: true, data: result.rows });
-        } catch (e) { res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера' }); }
+                LIMIT $2 OFFSET $3
+            `, [req.user.id, limit, offset]);
+
+            // 3. Считаем общее количество тренировок (нужно фронтенду для бесконечного скролла)
+            const countRes = await pool.query(
+                'SELECT COUNT(*) FROM workouts WHERE user_id = $1'  , 
+                [req.user.id]
+            );
+            const totalWorkouts = parseInt(countRes.rows[0].count, 10);
+
+            // 4. Возвращаем легкий JSON с мета-данными пагинации
+            res.json({ 
+                success: true, 
+                data: result.rows,
+                pagination: {
+                    page,
+                    limit,
+                    total: totalWorkouts,
+                    totalPages: Math.ceil(totalWorkouts / limit)
+                }
+            });
+        } catch (e) { 
+            console.error('[Workout GetAll Error]:', e);
+            res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера' }); 
+        }
     }
 
     getById = async (req, res) => {
@@ -180,6 +208,59 @@ class WorkoutController {
         } catch (e) { 
             console.error('[HistoryMap Error]:', e);
             res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера' }); 
+        }
+    }
+    // Быстрый сбор всей статистики юзера без пересылки тяжелых JSON
+    getStats = async (req, res) => {
+        try {
+            const userId = req.user.id;
+            
+            const wCount = await pool.query('SELECT COUNT(*) FROM workouts WHERE user_id = $1', [userId]);
+            const tCount = await pool.query('SELECT COUNT(*) FROM templates WHERE user_id = $1', [userId]);
+            const eCount = await pool.query('SELECT COUNT(*) FROM exercises WHERE user_id = $1', [userId]);
+            
+            // Если нужно, здесь же можно SQL-запросом посчитать тоннаж, 
+            // но для простоты мы хотя бы не гоняем массивы по сети
+            
+            res.json({
+                success: true,
+                data: {
+                    workoutsCount: parseInt(wCount.rows[0].count),
+                    templatesCount: parseInt(tCount.rows[0].count),
+                    exercisesCount: parseInt(eCount.rows[0].count),
+                }
+            });
+        } catch (e) {
+            res.status(500).json({ success: false });
+        }
+    }
+
+    // Получение точной аналитики прямо из БД
+    getAnalytics = async (req, res) => {
+        try {
+            const userId = req.user.id;
+            
+            // ИСПРАВЛЕНИЕ: Берем вес (weight) и повторения (reps) из таблицы sets (s)
+            const statsRes = await pool.query(`
+                SELECT 
+                    COALESCE(SUM(s.weight * s.reps), 0) as total_volume, 
+                    COUNT(s.id) as total_sets
+                FROM sets s
+                JOIN workout_exercises we ON s.workout_exercise_id = we.id
+                JOIN workouts w ON we.workout_id = w.id
+                WHERE w.user_id = $1
+            `, [userId]);
+
+            res.json({
+                success: true,
+                data: {
+                    totalVolume: parseInt(statsRes.rows[0].total_volume, 10),
+                    totalSets: parseInt(statsRes.rows[0].total_sets, 10)
+                }
+            });
+        } catch (e) {
+            console.error('[Analytics Error]:', e);
+            res.status(500).json({ success: false, error: 'Ошибка расчета аналитики' });
         }
     }
 

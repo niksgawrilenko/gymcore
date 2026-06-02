@@ -4,10 +4,18 @@ class MeasurementController {
     // Получить историю замеров
     async getAll(req, res) {
         try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20; // по умолчанию 20 замеров
+            const offset = (page - 1) * limit;
+
             const result = await pool.query(
-                'SELECT * FROM measurements WHERE user_id = $1 ORDER BY date DESC',
-                [req.user.id]
+                `SELECT * FROM measurements 
+                 WHERE user_id = $1 
+                 ORDER BY date DESC 
+                 LIMIT $2 OFFSET $3`,
+                [req.user.id, limit, offset]
             );
+            
             res.json({ success: true, data: result.rows });
         } catch (e) {
             console.error('[MEASUREMENTS GET ERROR]:', e);

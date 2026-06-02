@@ -3,12 +3,10 @@
 import { escapeHTML } from '../utils/helpers.js';
 import { renderSetRow } from './SetRow.js';
 
-// ВОТ ЗДЕСЬ ДОБАВЛЕН ШЕСТОЙ ПАРАМЕТР: prevSets = []
 export const renderExerciseCard = (item, isEditing, isSS, isLastInGroup, groupIdx, prevSets = []) => {
     const { ex, i } = item;
     const isCardio = ex.exercise_type === 'cardio';
     
-    // Прокидываем прошлые подходы в каждую строку
     const setsHTML = ex.sets.map((s, sIdx) => {
         const prevSet = prevSets[sIdx] || null;
         return renderSetRow(s, sIdx, i, isEditing, isCardio, prevSet);
