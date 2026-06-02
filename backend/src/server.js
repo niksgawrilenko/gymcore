@@ -49,9 +49,9 @@ app.use('/api/', limiter);
 
 // Ограничиваем регистрацию и вход еще жестче (опционально)
 const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 час
-    max: 10, // 10 попыток в час
-    message: { success: false, error: 'Слишком много попыток входа, попробуйте позже' }
+    windowMs: 15 * 60 * 1000, // Окно ожидания снизили до 15 минут (вместо 1 часа)
+    max: 10000, // Разрешаем 10 000 запросов! (Было всего 10)
+    message: { success: false, error: 'Слишком много запросов, попробуйте позже' }
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
