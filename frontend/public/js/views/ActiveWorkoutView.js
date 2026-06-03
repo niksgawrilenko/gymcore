@@ -1,5 +1,5 @@
 // frontend/public/js/views/ActiveWorkoutView.js
-import { escapeHTML, getCurrentUserId } from '../utils/helpers.js';
+import { escapeHTML, getCurrentUserId, debounce } from '../utils/helpers.js'; // <-- Добавили debounce
 import ExerciseModal from '../components/ExerciseModal.js';
 import { renderExerciseCard } from '../components/ExerciseCard.js';
 
@@ -17,6 +17,9 @@ export default class ActiveWorkoutView {
         
         this._onClick = this.handleClick.bind(this);
         this._onInput = this.handleInput.bind(this);
+        
+        // Оборачиваем в debounce ТОЛЬКО поиск, чтобы не ломать ввод веса и повторений
+        this.debouncedSearch = debounce(() => this.filterModalList(), 300);
         
         this.init();
     }
@@ -203,7 +206,7 @@ export default class ActiveWorkoutView {
                             <button id="closeModal" class="close-btn" style="font-size: 20px; line-height: 1;">✕</button>
                         </div>
                     </div>
-                    <input type="text" id="modalSearchInput" class="set-input" placeholder="🔍 Поиск..." style="width: 100%; margin-bottom: 10px; text-align: left;">
+                    <input type="text" id="modalSearchInput" class="set-input" placeholder="🔍 Поиск (тяга спина)..." style="width: 100%; margin-bottom: 10px; text-align: left;">
                     <div id="modalList" style="overflow-y:auto; flex-grow:1;"></div>
                 </div>
             </div>
@@ -311,6 +314,37 @@ export default class ActiveWorkoutView {
         this.container.querySelector('#modalList').innerHTML = listHTML || '<div style="text-align:center; padding:15px; color:var(--text-secondary);">Не найдено</div>';
     }
 
+    // Тот самый новый умный поиск (Токенизация + Ранжирование)
+    filterModalList() {
+        const queryInput = this.container.querySelector('#modalSearchInput');
+        const query = queryInput ? queryInput.value.toLowerCase().trim() : '';
+        const searchTerms = query.split(/\s+/).filter(w => w.length > 0);
+
+        let filtered = this.allExercisesCache;
+
+        if (searchTerms.length > 0) {
+            filtered = filtered.filter(ex => {
+                const searchableText = [
+                    ex.name, 
+                    ex.category, 
+                    ...(ex.primary_groups || []), 
+                    ...(ex.secondary_muscles || [])
+                ].join(' ').toLowerCase();
+
+                return searchTerms.every(term => searchableText.includes(term));
+            });
+        }
+
+        filtered.sort((a, b) => {
+            const usageA = a.usage_count || 0;
+            const usageB = b.usage_count || 0;
+            if (usageA !== usageB) return usageB - usageA;
+            return a.id - b.id; 
+        });
+
+        this.renderModalList(filtered);
+    }
+
     async handleClick(e) {
         const t = e.target;
         const idx = t.dataset?.idx;
@@ -355,10 +389,10 @@ export default class ActiveWorkoutView {
         }
         if (t.id === 'cancelWorkoutBtn' || t.closest('#cancelWorkoutBtn')) {
             if (confirm('Сбросить текущую активную тренировку? Все не сохраненные данные и таймер будут удалены навсегда.')) {
-                localStorage.removeItem('gymcore_active_workout'); // Стираем черновик
-                window.gymcorePendingMedia = [];                  // Очищаем глобальные фото
-                this.pendingMedia = [];                           // Очищаем локальные фото
-                window.location.hash = '#templates';              // Уходим на вкладку программ
+                localStorage.removeItem('gymcore_active_workout'); 
+                window.gymcorePendingMedia = [];                  
+                this.pendingMedia = [];                           
+                window.location.hash = '#templates';              
             }
             return;
         }
@@ -367,7 +401,6 @@ export default class ActiveWorkoutView {
             const eIdx = parseInt(btn.dataset.exIdx);
             const sIdx = parseInt(btn.dataset.setIdx);
             
-            // Защита: не даем удалить единственный подход
             if (this.workoutData.exercises[eIdx].sets.length > 1) {
                 this.workoutData.exercises[eIdx].sets.splice(sIdx, 1);
                 this.renderExercises();
@@ -383,12 +416,45 @@ export default class ActiveWorkoutView {
             this.saveToLocal();
         }
 
-        if (t.classList?.contains('set-check')) {
-            const row = t.closest('.set-row');
+        if (t.classList?.contains('set-check') || t.closest('.set-check')) {
+            const btn = t.classList.contains('set-check') ? t : t.closest('.set-check');
+            const row = btn.closest('.set-row');
             const set = this.workoutData.exercises[row.dataset.exIdx].sets[row.dataset.setIdx];
+            
+            // Меняем статус подхода на противоположный
             set.completed = !set.completed;
-            t.classList.toggle('completed');
+            btn.classList.toggle('completed');
+
+            // --- УМНОЕ АВТОЗАПОЛНЕНИЕ ---
+            // Срабатывает только когда мы ОТМЕЧАЕМ подход как выполненный
+            if (set.completed) {
+                const weightInput = row.querySelector('input[data-field="weight"]');
+                const repsInput = row.querySelector('input[data-field="reps"]');
+                let isChanged = false;
+
+                // Заполняем вес: если инпут пустой, но есть предыдущее значение
+                if (weightInput && !weightInput.value && weightInput.dataset.prev) {
+                    weightInput.value = weightInput.dataset.prev;
+                    set.weight = weightInput.dataset.prev;
+                    isChanged = true;
+                }
+
+                // Заполняем повторения: если инпут пустой, но есть предыдущее значение
+                if (repsInput && !repsInput.value && repsInput.dataset.prev) {
+                    repsInput.value = repsInput.dataset.prev;
+                    set.reps = repsInput.dataset.prev;
+                    isChanged = true;
+                }
+
+                // Если мы программно вписали значения, делаем быстрый ререндер, 
+                // чтобы интерфейс сразу нарисовал бейджики разницы (+0 кг)
+                if (isChanged) {
+                    this.renderExercises();
+                }
+            }
+
             this.saveToLocal();
+            return;
         }
 
         if (t.classList?.contains('menu-btn')) {
@@ -416,8 +482,17 @@ export default class ActiveWorkoutView {
         if (t.id === 'addExBtn') {
             this.container.querySelector('#exModal').classList.add('active');
             document.body.classList.add('modal-open');
+            
+            // Если кэш уже заполнен, сразу рендерим
+            if (this.allExercisesCache.length > 0) {
+                this.renderModalList(this.allExercisesCache);
+            }
+            
             const res = await this.api.getExercises();
-            if (res.success) { this.allExercisesCache = res.data; this.renderModalList(this.allExercisesCache); }
+            if (res.success) { 
+                this.allExercisesCache = res.data; 
+                this.renderModalList(this.allExercisesCache); 
+            }
         }
 
         if (t.id === 'openCreateExBtn') {
@@ -434,6 +509,9 @@ export default class ActiveWorkoutView {
             this.workoutData.exercises.push({ id: parseInt(item.dataset.id), name: item.dataset.name, exercise_type: item.dataset.type, sets: [{ weight: '', reps: '', completed: false }] });
             this.container.querySelector('#exModal').classList.remove('active');
             document.body.classList.remove('modal-open');
+            
+            this.container.querySelector('#modalSearchInput').value = ''; // очищаем поиск после добавления
+            
             this.renderExercises();
             this.saveToLocal();
         }
@@ -455,13 +533,13 @@ export default class ActiveWorkoutView {
 
     handleInput(e) {
         const t = e.target;
+        
+        // Перехватываем инпут поиска и вызываем debounced функцию (БЕЗ сохранения в LocalStorage)
         if (t.id === 'modalSearchInput') {
-            const q = t.value.toLowerCase();
-            this.renderModalList(this.allExercisesCache.filter(ex => {
-                const searchStr = (ex.name + ' ' + (ex.category || '')).toLowerCase();
-                return searchStr.includes(q);
-            }));
+            this.debouncedSearch();
+            return; 
         }
+        
         if (t.id === 'titleInput') this.workoutData.title = t.value;
         if (t.id === 'dateInput') this.workoutData.workout_date = new Date(t.value).getTime();
 
@@ -483,7 +561,6 @@ export default class ActiveWorkoutView {
                     if (!badge) {
                         badge = document.createElement('span');
                         badge.className = className;
-                        // Те же стили под степень (в правый верхний угол)
                         badge.style = 'font-size: 10px; font-weight: 800; position: absolute; top: -6px; right: 2px; background: var(--surface-color); padding: 0 4px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); z-index: 2; line-height: 1;';
                         wrapper.appendChild(badge);
                     }
@@ -492,6 +569,8 @@ export default class ActiveWorkoutView {
                 } else if (badge) { badge.remove(); }
             } else if (badge) { badge.remove(); }
         }
+        
+        // Сохраняем в локальное хранилище данные (но только если это не строка поиска)
         this.saveToLocal();
     }
 

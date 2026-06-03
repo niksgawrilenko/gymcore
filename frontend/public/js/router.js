@@ -1,16 +1,4 @@
 // frontend/public/js/router.js
-import HomeView from './views/HistoryView.js';
-import WorkoutView from './views/ActiveWorkoutView.js';
-import TemplateEditView from './views/TemplateEditView.js';
-import ExercisesView from './views/ExercisesView.js';
-import TemplatesView from './views/WorkoutListView.js';
-import AuthView from './views/AuthView.js'; 
-import AdminView from './views/AdminView.js';
-import SharedView from './views/SharedView.js';
-import ProfileView from './views/ProfileView.js';
-import MeasurementsView from './views/MeasurementsView.js';
-import StatsView from './views/StatsView.js';
-import SettingsView from './views/SettingsView.js';
 
 export class Router {
     constructor(containerId, api) {
@@ -22,12 +10,12 @@ export class Router {
         this.handleRoute(); 
     }
 
-    handleRoute() {
+    async handleRoute() {
         const fullHash = window.location.hash;
         const path = fullHash.split('?')[0]; 
         
         const token = localStorage.getItem('gymcore_token');
-        const isAuthRoute = path === '#auth';
+        const isAuthRoute = path === '#auth'; 
 
         if (!token && !isAuthRoute) { window.location.hash = '#auth'; return; }
         if (token && isAuthRoute) { window.location.hash = ''; return; }
@@ -36,47 +24,60 @@ export class Router {
             this.currentView.destroy();
         }
 
-        const routes = {
-            '': () => new HomeView(this.container, this.api),
-            '#auth': () => new AuthView(this.container, this.api),
-            '#workout': () => new WorkoutView(this.container, this.api),
-            '#workout-detail': () => {
-                const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
-                return new WorkoutView(this.container, this.api, id); 
-            },
-            '#templates': () => new TemplatesView(this.container, this.api),
-            '#template-create': () => new TemplateEditView(this.container, this.api),
-            '#template-edit': () => {
-                const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
-                return new TemplateEditView(this.container, this.api, id);
-            },
-            '#exercises': () => new ExercisesView(this.container, this.api),
-            '#profile': () => new ProfileView(this.container, this.api),
-            '#measurements': () => new MeasurementsView(this.container, this.api),
-            '#stats': () => new StatsView(this.container, this.api),
-            '#settings': () => new SettingsView(this.container, this.api),
-
-            '#admin': () => {
-                if (this.api.getUserRole() !== 'admin') { window.location.hash = '#'; return null; }
-                return new AdminView(this.container, this.api);
-            },
-            '#shared-ex': () => {
-                const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
-                return new SharedView(this.container, this.api, 'exercise', id);
-            },
-            '#shared-template': () => {
-                const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
-                return new SharedView(this.container, this.api, 'template', id);
-            }
-        };
+        // Включаем лоадер, пока файл скачивается
+        this.container.innerHTML = '<div style="text-align: center; padding: 50px; color: var(--text-secondary);">Загрузка...</div>';
 
         this.updateBottomNav(path);
-        this.updateGlobalActiveWorkout(); // <-- Запускаем проверку активной тренировки при каждом переходе
+        this.updateGlobalActiveWorkout(); 
 
-        const viewConstructor = routes[path] || routes[''];
-        this.container.innerHTML = ''; 
-        const nextView = viewConstructor();
-        if (nextView) this.currentView = nextView;
+        // Теперь мы просто возвращаем КЛАСС экрана из файла, а не создаем его сразу
+        const routes = {
+            '': async () => (await import('./views/HistoryView.js')).default,
+            '#auth': async () => (await import('./views/AuthView.js')).default,
+            '#workout': async () => (await import('./views/ActiveWorkoutView.js')).default,
+            '#workout-detail': async () => (await import('./views/ActiveWorkoutView.js')).default,
+            '#templates': async () => (await import('./views/WorkoutListView.js')).default,
+            '#template-create': async () => (await import('./views/TemplateEditView.js')).default,
+            '#template-edit': async () => (await import('./views/TemplateEditView.js')).default,
+            '#exercises': async () => (await import('./views/ExercisesView.js')).default,
+            '#profile': async () => (await import('./views/ProfileView.js')).default,
+            '#measurements': async () => (await import('./views/MeasurementsView.js')).default,
+            '#stats': async () => (await import('./views/StatsView.js')).default,
+            '#settings': async () => (await import('./views/SettingsView.js')).default,
+            '#admin': async () => {
+                if (this.api.getUserRole() !== 'admin') { window.location.hash = '#'; return null; }
+                return (await import('./views/AdminView.js')).default;
+            },
+            '#shared-ex': async () => (await import('./views/SharedView.js')).default,
+            '#shared-template': async () => (await import('./views/SharedView.js')).default
+        };
+
+        const viewFetcher = routes[path] || routes[''];
+        
+        try {
+            // 1. Ждем, пока браузер скачает файл
+            const ViewClass = await viewFetcher();
+            if (!ViewClass) return; // Защита для админки
+
+            // 2. Стираем лоадер ДО того, как экран начнет отрисовку
+            this.container.innerHTML = ''; 
+
+            const id = new URLSearchParams(fullHash.split('?')[1]).get('id');
+
+            // 3. Создаем экран с правильными параметрами
+            if (path === '#workout-detail' || path === '#template-edit') {
+                this.currentView = new ViewClass(this.container, this.api, id);
+            } else if (path === '#shared-ex') {
+                this.currentView = new ViewClass(this.container, this.api, 'exercise', id);
+            } else if (path === '#shared-template') {
+                this.currentView = new ViewClass(this.container, this.api, 'template', id);
+            } else {
+                this.currentView = new ViewClass(this.container, this.api);
+            }
+        } catch (error) {
+            console.error("Ошибка загрузки экрана:", error);
+            this.container.innerHTML = '<div class="empty-state">Ошибка загрузки. Попробуйте обновить страницу.</div>';
+        }
     }
 
     updateBottomNav(path) {

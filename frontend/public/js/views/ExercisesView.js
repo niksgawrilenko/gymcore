@@ -1,6 +1,7 @@
 // frontend/public/js/views/ExercisesView.js
-import { escapeHTML, getCurrentUserId } from '../utils/helpers.js';
-import ExerciseModal from '../components/ExerciseModal.js'; // Импортируем компонент!
+import { escapeHTML, getCurrentUserId, debounce } from '../utils/helpers.js';
+import { PRIMARY_GROUPS } from '../utils/constants.js'; // Группы мышц для фильтров
+import ExerciseModal from '../components/ExerciseModal.js';
 
 export default class ExercisesView {
     constructor(container, api) {
@@ -9,33 +10,35 @@ export default class ExercisesView {
         this.exercises = [];
         this.exerciseModal = null;
         
-        this._onClick = this.handleClick.bind(this);
-        this._onInput = this.handleInput.bind(this);
+        // Текущий активный фильтр (например, 'Грудь')
+        this.activeFilter = null; 
         
-        this.init(); // Запускаем инициализацию вместо render()
+        this._onClick = this.handleClick.bind(this);
+        
+        // Задержка на ввод текста для плавности
+        this._onInput = debounce(this.handleInput.bind(this), 300);
+        
+        this.init(); 
     }
 
     async init() {
-        // Показываем заглушку
         this.container.innerHTML = `<div class="empty-state">Загрузка базы упражнений...</div>`;
 
-        // Проверяем кэш телефона
         const cached = localStorage.getItem('gymcore_exercises_cache');
         
         if (cached) {
             this.exercises = JSON.parse(cached);
-            this.render(); // Отрисовываем мгновенно из памяти
+            this.render(); 
             
-            // В фоне тихо проверяем обновления с сервера
+            // Тихо качаем обновления
             this.api.getExercises().then(res => {
                 if (res.success && JSON.stringify(res.data) !== cached) {
                     this.exercises = res.data;
                     localStorage.setItem('gymcore_exercises_cache', JSON.stringify(res.data));
-                    this.render(); // Обновляем список, если есть новые упражнения
+                    this.filterAndRenderList(); // Обновляем только список
                 }
             }).catch(() => {});
         } else {
-            // Если зашел впервые - качаем с сервера
             try {
                 const res = await this.api.getExercises();
                 if (res.success) {
@@ -57,31 +60,44 @@ export default class ExercisesView {
     }
 
     async render() {
+        // Создаем чипсы-кнопки
+        const filtersHTML = PRIMARY_GROUPS.map(g => 
+            `<button class="chip-btn" data-filter="${g}" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-color); white-space: nowrap; cursor: pointer;">${g}</button>`
+        ).join('');
+
+        // Полностью сохранен твой дизайн, добавлено прилипание поиска и лента фильтров
         this.container.innerHTML = `
             <section style="padding-bottom: 80px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--surface-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <a href="#" style="color: var(--accent-color); text-decoration: none; font-weight: 600;">← Назад</a>
-                    <button id="openAddModalBtn" style="background: none; border: none; color: var(--accent-color); font-weight: bold; font-size: 28px; cursor: pointer; padding: 0 10px;">+</button>
+                <div style="position: sticky; top: 0; background: var(--bg-color); z-index: 10; padding: 15px 0 10px 0;">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: var(--surface-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <span style="font-size: 18px; font-weight: bold;">База упражнений</span>
+                        <button id="openAddModalBtn" style="background: none; border: none; color: var(--accent-color); font-weight: bold; font-size: 28px; cursor: pointer; padding: 0 10px;">+</button>
+                    </div>
+                    
+                    <input type="text" id="exSearchInput" class="set-input" placeholder="🔍 Поиск (например: тяга спина)..." style="width: 100%; margin-bottom: 12px; text-align: left;">
+                    
+                    <div class="filters-scroll" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none;">
+                        <button class="chip-btn active primary-btn" data-filter="" style="padding: 6px 12px; border-radius: 20px; border: none; white-space: nowrap; cursor: pointer;">Все</button>
+                        ${filtersHTML}
+                    </div>
+
                 </div>
-                
-                <h2 style="margin-bottom: 15px; font-size: 24px;">База упражнений</h2>
-                <input type="text" id="exSearchInput" class="set-input" placeholder="🔍 Поиск упражнения..." style="width: 100%; margin-bottom: 20px; text-align: left;">
                 
                 <div id="exercisesList"><div style="text-align:center; color: var(--text-secondary);">Загрузка...</div></div>
             </section>
         `;
         
-        // Инициализируем наш новый умный компонент
         if (this.exerciseModal) this.exerciseModal.destroy();
         this.exerciseModal = new ExerciseModal(this.container, this.api, () => {
             this.container.querySelector('#exSearchInput').value = ''; 
-            this.loadExercises(); // Перезагружаем список при успешном сохранении
+            this.loadExercises(); 
         });
 
         this.container.addEventListener('click', this._onClick);
         this.container.addEventListener('input', this._onInput);
         
-        await this.loadExercises();
+        this.filterAndRenderList();
     }
 
     async loadExercises() {
@@ -89,14 +105,56 @@ export default class ExercisesView {
         try {
             const res = await this.api.getExercises();
             this.exercises = res.data;
-            this.renderExercisesList(this.exercises);
+            localStorage.setItem('gymcore_exercises_cache', JSON.stringify(this.exercises));
+            this.filterAndRenderList();
         } catch (e) {
-            list.innerHTML = `<div class="empty-state" style="color: #ff3b30; padding: 20px;"><b>Ошибка:</b><br>${e.message}</div>`;
+            if (list) list.innerHTML = `<div class="empty-state" style="color: #ff3b30; padding: 20px;"><b>Ошибка:</b><br>${e.message}</div>`;
         }
     }
 
+    // Тот самый новый умный алгоритм
+    filterAndRenderList() {
+        const queryInput = this.container.querySelector('#exSearchInput');
+        const query = queryInput ? queryInput.value.toLowerCase().trim() : '';
+        const searchTerms = query.split(/\s+/).filter(w => w.length > 0);
+
+        let filtered = this.exercises;
+
+        if (this.activeFilter) {
+            filtered = filtered.filter(ex => 
+                ex.category === this.activeFilter || 
+                (ex.primary_groups && ex.primary_groups.includes(this.activeFilter))
+            );
+        }
+
+        if (searchTerms.length > 0) {
+            filtered = filtered.filter(ex => {
+                const searchableText = [
+                    ex.name, 
+                    ex.category, 
+                    ...(ex.primary_groups || []), 
+                    ...(ex.secondary_muscles || [])
+                ].join(' ').toLowerCase();
+
+                return searchTerms.every(term => searchableText.includes(term));
+            });
+        }
+
+        filtered.sort((a, b) => {
+            const usageA = a.usage_count || 0;
+            const usageB = b.usage_count || 0;
+            if (usageA !== usageB) return usageB - usageA;
+            return a.id - b.id; 
+        });
+
+        this.renderExercisesList(filtered);
+    }
+
+    // Полностью твоя старая роскошная отрисовка!
     renderExercisesList(exercisesArray) {
         const list = this.container.querySelector('#exercisesList');
+        if (!list) return;
+
         if (exercisesArray.length === 0) {
             list.innerHTML = '<div class="empty-state">Упражнения не найдены</div>';
             return;
@@ -142,9 +200,9 @@ export default class ExercisesView {
                             
                             ${isPersonal ? `
                                 <div style="display: flex; gap: 10px; align-items: center; margin-left: 10px; flex-wrap: wrap; justify-content: flex-end;">
-                                    <span class="status-badge status-${ex.moderation_status}">${ex.moderation_status}</span>
+                                    <span class="status-badge status-${ex.moderation_status}">${ex.moderation_status || ''}</span>
                                     <button class="moderate-btn" data-id="${ex.id}" title="На модерацию" style="background:none; border:none; cursor:pointer;">🌐</button>
-                                    <button class="share-btn" data-id="${ex.share_id}" title="Поделиться" style="background:none; border:none; cursor:pointer;">🔗</button>
+                                    <button class="share-btn" data-id="${ex.share_id || ''}" title="Поделиться" style="background:none; border:none; cursor:pointer;">🔗</button>
                                     <button class="edit-btn" data-id="${ex.id}" style="background:none; border:none; font-size:18px; cursor:pointer; color:var(--accent-color);">✎</button>
                                     <button class="delete-btn" data-id="${ex.id}" style="background:none; border:none; font-size:18px; color:#ff3b30; cursor:pointer;">🗑</button>
                                 </div>
@@ -175,12 +233,20 @@ export default class ExercisesView {
     async handleClick(e) {
         const t = e.target;
 
-        // Открытие модалки создания
+        // Фильтры
+        if (t.classList.contains('chip-btn')) {
+            this.container.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active', 'primary-btn'));
+            t.classList.add('active', 'primary-btn');
+            this.activeFilter = t.dataset.filter || null;
+            this.filterAndRenderList();
+            return;
+        }
+
+        // Твоя логика вызова модалки
         if (t.closest('#openAddModalBtn')) {
             this.exerciseModal.open();
         }
         
-        // Открытие модалки редактирования
         const editBtn = t.closest('.edit-btn');
         if (editBtn) {
             const ex = this.exercises.find(e => e.id === parseInt(editBtn.dataset.id));
@@ -204,25 +270,21 @@ export default class ExercisesView {
         }
 
         if (t.closest('.share-btn')) {
-            const shareId = t.closest('.share-btn').dataset.id;
-            const url = `${window.location.origin}/#shared-ex?id=${shareId}`;
-            navigator.clipboard.writeText(url);
-            alert('Ссылка скопирована! Отправьте её другу.');
+            const shareBtn = t.closest('.share-btn');
+            const shareId = shareBtn.dataset.id;
+            if (shareId && shareId !== 'undefined') {
+                const url = `${window.location.origin}/#shared-ex?id=${shareId}`;
+                navigator.clipboard.writeText(url);
+                alert('Ссылка скопирована! Отправьте её другу.');
+            } else {
+                alert('Сначала обновите базу упражнений.');
+            }
         }
     }
 
     handleInput(e) {
         if (e.target.id === 'exSearchInput') {
-            const query = e.target.value.toLowerCase();
-            const filtered = this.exercises.filter(ex => {
-                const inName = ex.name.toLowerCase().includes(query);
-                const inCat = ex.category && ex.category.toLowerCase().includes(query);
-                const inPrimary = ex.primary_groups && ex.primary_groups.some(g => g.toLowerCase().includes(query));
-                const inSecondary = ex.secondary_muscles && ex.secondary_muscles.some(m => m.toLowerCase().includes(query));
-                
-                return inName || inCat || inPrimary || inSecondary;
-            });
-            this.renderExercisesList(filtered);
+            this.filterAndRenderList();
         }
     }
 }

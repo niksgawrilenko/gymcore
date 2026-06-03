@@ -1,6 +1,6 @@
 // frontend/public/js/views/TemplatesView.js
 
-import { escapeHTML, getCurrentUserId } from '../utils/helpers.js';
+import { escapeHTML, getCurrentUserId, debounce } from '../utils/helpers.js';
 
 export default class TemplatesView {
     constructor(container, api) {
@@ -9,7 +9,7 @@ export default class TemplatesView {
         this.templates = [];
         
         this._onClick = this.handleClick.bind(this);
-        this._onInput = this.handleInput.bind(this);
+        this._onInput = debounce(this.handleInput.bind(this), 300);
         
         this.render();
     }
