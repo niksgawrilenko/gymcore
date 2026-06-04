@@ -1,7 +1,7 @@
 // frontend/public/js/views/ActiveWorkoutView.js
-import { escapeHTML, getCurrentUserId, debounce } from '../utils/helpers.js'; // <-- Добавили debounce
 import ExerciseModal from '../components/ExerciseModal.js';
 import { renderExerciseCard } from '../components/ExerciseCard.js';
+import { escapeHTML, getCurrentUserId, debounce, showExerciseInfoModal } from '../utils/helpers.js';
 
 export default class ActiveWorkoutView {
     constructor(container, api, workoutId = null) {
@@ -520,6 +520,11 @@ export default class ActiveWorkoutView {
             this.container.querySelector('#workoutFileInput').click();
             return;
         }
+        if (t.classList?.contains('ex-info-btn')) {
+            showExerciseInfoModal(this.workoutData.exercises[idx]); // Показываем модалку
+            document.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active')); // Скрываем меню
+            return;
+        }
 
         if (t.classList.contains('delete-media-btn')) {
             const idx = parseInt(t.dataset.index);
@@ -646,7 +651,11 @@ export default class ActiveWorkoutView {
         const el = this.container.querySelector('#exercises-list');
         if (this.sortableInstance) this.sortableInstance.destroy();
         this.sortableInstance = Sortable.create(el, {
-            handle: '.drag-handle', animation: 150,
+            handle: '.drag-handle', 
+            animation: 150,
+            delay: 200, // Удержание 200мс для начала перетаскивания
+            delayOnTouchOnly: true, // Задержка работает только на мобилках (на ПК сразу)
+            touchStartThreshold: 5, // Защита от случайного сдвига пальца при скролле
             onEnd: () => {
                 const els = Array.from(el.querySelectorAll('.exercise-item-data'));
                 this.workoutData.exercises = els.map(item => this.workoutData.exercises[parseInt(item.dataset.idx)]);

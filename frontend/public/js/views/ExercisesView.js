@@ -1,6 +1,6 @@
 // frontend/public/js/views/ExercisesView.js
-import { escapeHTML, getCurrentUserId, debounce } from '../utils/helpers.js';
-import { PRIMARY_GROUPS } from '../utils/constants.js'; // Группы мышц для фильтров
+import { escapeHTML, getCurrentUserId, debounce, showExerciseInfoModal } from '../utils/helpers.js';
+import { PRIMARY_GROUPS } from '../utils/constants.js'; 
 import ExerciseModal from '../components/ExerciseModal.js';
 
 export default class ExercisesView {
@@ -191,7 +191,7 @@ export default class ExercisesView {
 
                         return `
                         <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 12px 16px;">
-                            <div>
+                            <div class="ex-info-trigger" data-id="${ex.id}" style="cursor: pointer; flex-grow: 1;">
                                 <div style="font-weight: 600; font-size: 16px;">${escapeHTML(ex.name)}</div>
                                 <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;">
                                     ${displayTags} ${extraTags}
@@ -279,6 +279,13 @@ export default class ExercisesView {
             } else {
                 alert('Сначала обновите базу упражнений.');
             }
+        }
+        // Показ детальной информации при клике на название/теги упражнения
+        const infoTrigger = t.closest('.ex-info-trigger');
+        if (infoTrigger) {
+            const ex = this.exercises.find(e => e.id === parseInt(infoTrigger.dataset.id));
+            if (ex) showExerciseInfoModal(ex);
+            return;
         }
     }
 

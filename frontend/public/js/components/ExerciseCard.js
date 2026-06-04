@@ -22,14 +22,15 @@ export const renderExerciseCard = (item, isEditing, isSS, isLastInGroup, groupId
              style="position: relative; margin-bottom:${isSS && !isLastInGroup ? '0' : '10px'}; border-radius:${borderRadius};">
             
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h4 style="margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-                    ${isEditing ? '<span class="drag-handle" style="color:var(--text-secondary); cursor:grab;">≡</span>' : ''}
+                <h4 class="${isEditing ? 'drag-handle' : ''}" style="margin-bottom:10px; display:flex; align-items:center; gap:8px; cursor:${isEditing ? 'grab' : 'default'}; user-select:none; -webkit-user-select:none; flex-grow:1; padding: 5px 0; touch-action: manipulation;">
+                    ${isEditing ? '<span style="color:var(--text-secondary); font-size:20px; margin-right:5px;">≡</span>' : ''}
                     ${i + 1}. ${escapeHTML(ex.name)}
                 </h4>
-                ${isEditing ? `<button class="menu-btn" data-idx="${i}" style="background:none; border:none; color:var(--text-secondary); font-size:20px; cursor:pointer;">⋮</button>` : ''}
+                ${isEditing ? `<button class="menu-btn" data-idx="${i}" style="background:none; border:none; color:var(--text-secondary); font-size:20px; cursor:pointer; padding: 0 10px;">⋮</button>` : ''}
             </div>
 
             <div class="exercise-menu" id="menu-${i}">
+                <button class="menu-item ex-info-btn" data-idx="${i}">ℹ️ Информация</button>
                 <button class="menu-item toggle-ss" data-idx="${i}">🔗 ${ex.isSuperset ? 'Открепить' : 'Суперсет'}</button>
                 <button class="menu-item danger delete-ex" data-idx="${i}">🗑 Удалить</button>
             </div>

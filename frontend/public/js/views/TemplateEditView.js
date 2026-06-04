@@ -1,7 +1,7 @@
 // frontend/public/js/views/TemplateEditView.js
-import { escapeHTML } from '../utils/helpers.js';
 import ExerciseModal from '../components/ExerciseModal.js';
 import { renderExerciseCard } from '../components/ExerciseCard.js';
+import { escapeHTML, showExerciseInfoModal } from '../utils/helpers.js';
 
 export default class TemplateEditView {
     constructor(container, api, templateId = null) {
@@ -225,6 +225,11 @@ export default class TemplateEditView {
             document.body.classList.remove('modal-open');
             this.renderExercises();
         }
+        if (t.classList?.contains('ex-info-btn')) {
+            showExerciseInfoModal(this.templateData.exercises[idx]);
+            document.querySelectorAll('.exercise-menu').forEach(m => m.classList.remove('active'));
+            return;
+        }
     }
 
     handleInput(e) {
@@ -278,7 +283,11 @@ export default class TemplateEditView {
         const el = this.container.querySelector('#exercises-list');
         if (this.sortableInstance) this.sortableInstance.destroy();
         this.sortableInstance = Sortable.create(el, {
-            handle: '.drag-handle', animation: 150,
+            handle: '.drag-handle', 
+            animation: 150,
+            delay: 200, 
+            delayOnTouchOnly: true, 
+            touchStartThreshold: 5, 
             onEnd: () => {
                 const els = Array.from(el.querySelectorAll('.exercise-item-data'));
                 this.templateData.exercises = els.map(item => this.templateData.exercises[parseInt(item.dataset.idx)]);
