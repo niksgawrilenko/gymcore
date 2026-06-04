@@ -108,7 +108,6 @@ export default class StatsView {
                         setsArr.forEach(set => {
                             if (!set) return;
                             
-                            // УМНАЯ ПРОВЕРКА: Если есть галочка ИЛИ если вписан вес ИЛИ если вписаны повторения
                             const hasValues = !!(set.weight || set.reps);
                             const isCompleted = set.completed === true || set.completed === 'true' || set.completed === 1 || hasValues;
                             
@@ -158,9 +157,8 @@ export default class StatsView {
                                 const isCompleted = set.completed === true || set.completed === 'true' || set.completed === 1 || hasValues;
                                 
                                 if (isCompleted) {
-                                    setsCountInWorkout += 1; // Считаем подходы
+                                    setsCountInWorkout += 1;
 
-                                    // Если есть вес, проверяем на максимальный в этот день
                                     if (set.weight) {
                                         const wVal = parseFloat(set.weight);
                                         if (!isNaN(wVal)) {
@@ -172,7 +170,6 @@ export default class StatsView {
                                 }
                             });
 
-                            // Записываем количество подходов за этот день
                             if (setsCountInWorkout > 0) {
                                 progress.sets[dateStr] = (progress.sets[dateStr] || 0) + setsCountInWorkout;
                             }
@@ -238,12 +235,12 @@ export default class StatsView {
                 </div>
 
                 <div id="muscleModal" class="modal-overlay" style="z-index: 2000;">
-                    <div class="modal-content">
-                        <div class="modal-header">
+                    <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+                        <div class="modal-header" style="position: sticky; top: 0; background: var(--surface-color); z-index: 10; padding: 15px 0 10px 0; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;">
                             <h3 style="margin: 0; font-size: 18px;">Баланс нагрузок</h3>
                             <button class="close-modal-btn close-btn" style="font-size: 20px; line-height: 1;">✕</button>
                         </div>
-                        <div style="position: relative; height: 300px; width: 100%; margin-top: 15px;">
+                        <div style="position: relative; height: 350px; width: 100%; margin-top: 15px;">
                             <canvas id="muscleBalanceChart"></canvas>
                         </div>
                     </div>
@@ -262,10 +259,10 @@ export default class StatsView {
                 </div>
 
                 <div id="progressModal" class="modal-overlay" style="z-index: 2000;">
-                    <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
-                        <div class="modal-header" style="position: sticky; top: 0; background: var(--surface-color); z-index: 10; padding-bottom: 10px;">
+                    <div class="modal-content" style="max-height: 90vh; overflow-y: auto; padding-top: 0;">
+                        <div style="position: sticky; top: 0; background: var(--surface-color); z-index: 10; padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; margin: 0 -15px 15px -15px;">
                             <h3 style="margin: 0; font-size: 18px;">Прогресс в упражнении</h3>
-                            <button class="close-modal-btn close-btn" style="font-size: 20px; line-height: 1;">✕</button>
+                            <button class="close-modal-btn" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; padding: 5px;">✕</button>
                         </div>
                         <div style="margin-top: 15px;">
                             <div id="openStatsExBtn" style="width: 100%; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 12px 15px; border-radius: 10px; border: 1px solid var(--border-color); cursor: pointer;">
@@ -300,8 +297,8 @@ export default class StatsView {
 
                 <div id="statsExModal" class="modal-overlay" style="z-index: 2000;">
                     <div class="modal-content" style="height: 90vh; display: flex; flex-direction: column; padding: 0;">
-                        <div class="modal-header" style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 15px;">
-                            <button class="back-to-progress-btn close-btn" style="font-size: 24px; line-height: 1; padding: 0; margin-top: -2px;">⬅</button>
+                        <div style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: flex-start; align-items: center; gap: 15px;">
+                            <button class="back-to-progress-btn" style="background: none; border: none; color: var(--text-primary); font-size: 24px; cursor: pointer; padding: 0; display: flex; align-items: center;">⬅</button>
                             <h3 style="margin: 0; font-size: 18px;">Выбор упражнения</h3>
                         </div>
                         <div style="padding: 15px; border-bottom: 1px solid var(--border-color);">
@@ -318,7 +315,6 @@ export default class StatsView {
 
         this.container.addEventListener('click', this._onClick);
 
-        // Логика живого поиска
         const searchInput = this.container.querySelector('#statsExSearch');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -337,7 +333,6 @@ export default class StatsView {
     handleClick(e) {
         const t = e.target;
 
-        // Открытие главных разделов (из главного меню)
         const menuBtn = t.closest('.stat-menu-btn');
         if (menuBtn) {
             const targetId = menuBtn.dataset.target;
@@ -358,14 +353,12 @@ export default class StatsView {
             return;
         }
 
-        // Клик по кнопке "Изменить упражнение" внутри окна прогресса
         if (t.closest('#openStatsExBtn')) {
             this.container.querySelector('#progressModal').classList.remove('active');
             this.container.querySelector('#statsExModal').classList.add('active');
             return;
         }
 
-        // Закрытие модалки поиска
         if (t.closest('.close-search-modal') || t.id === 'statsExModal' || t.closest('.back-to-progress-btn')) {
             this.container.querySelector('#statsExModal').classList.remove('active');
             
@@ -377,7 +370,6 @@ export default class StatsView {
             return;
         }
 
-        // Закрытие любой другой главной модалки
         if (t.closest('.close-modal-btn') || (t.classList.contains('modal-overlay') && t.id !== 'statsExModal')) {
             const modal = t.closest('.modal-overlay') || t;
             modal.classList.remove('active');
@@ -385,7 +377,6 @@ export default class StatsView {
             return;
         }
 
-        // Выбор конкретного упражнения в списке поиска
         const exItem = t.closest('.stats-ex-item');
         if (exItem) {
             const name = exItem.dataset.name;
@@ -412,10 +403,8 @@ export default class StatsView {
         const originalLabels = Object.keys(stats.muscleBalance);
         const data = Object.values(stats.muscleBalance);
         
-        // 1. Считаем общую сумму подходов для 100%
         const totalSets = data.reduce((sum, val) => sum + val, 0);
         
-        // 2. Склеиваем название мышцы и её процент для красивого списка
         const labelsWithPercent = originalLabels.map((label, index) => {
             const percentage = Math.round((data[index] / totalSets) * 100);
             return `${label}: ${percentage}%`;
@@ -426,7 +415,7 @@ export default class StatsView {
         this.charts.muscle = new Chart(ctx.getContext('2d'), {
             type: 'doughnut',
             data: { 
-                labels: labelsWithPercent, // Используем новые названия с процентами
+                labels: labelsWithPercent, 
                 datasets: [{ data, backgroundColor: bgColors.slice(0, originalLabels.length), borderWidth: 0 }] 
             },
             options: { 
@@ -435,9 +424,9 @@ export default class StatsView {
                 plugins: { 
                     legend: { 
                         display: true,
-                        position: 'bottom', // Перенесли легенду ВНИЗ
+                        position: 'bottom',
                         labels: { 
-                            color: '#e0e0e0', // Жесткий светло-серый цвет (отлично для темной темы)
+                            color: '#e0e0e0',
                             font: { size: 13, family: 'system-ui, sans-serif' },
                             padding: 15
                         } 
@@ -485,7 +474,6 @@ export default class StatsView {
     renderProgressChart(exerciseName) {
         if (!window.Chart) return alert("Графики еще загружаются...");
         
-        // Уничтожаем старые графики перед перерисовкой
         if (this.charts.progressWeight) this.charts.progressWeight.destroy(); 
         if (this.charts.progressSets) this.charts.progressSets.destroy(); 
         
@@ -496,10 +484,9 @@ export default class StatsView {
         const progressData = this.getExerciseProgress(exerciseName);
         
         if (Object.keys(progressData.weight).length === 0 && Object.keys(progressData.sets).length === 0) {
-            return; // Нет данных для отрисовки
+            return;
         }
 
-        // 1. Рисуем график веса (Линейный)
         this.charts.progressWeight = new Chart(ctxWeight.getContext('2d'), {
             type: 'line',
             data: {
@@ -523,7 +510,6 @@ export default class StatsView {
             }
         });
 
-        // 2. Рисуем график подходов (Столбчатый)
         this.charts.progressSets = new Chart(ctxSets.getContext('2d'), {
             type: 'bar',
             data: {
@@ -531,7 +517,7 @@ export default class StatsView {
                 datasets: [{ 
                     label: 'Подходов', 
                     data: Object.values(progressData.sets), 
-                    backgroundColor: 'rgba(255, 149, 0, 0.6)', // Оранжевый цвет для контраста
+                    backgroundColor: 'rgba(255, 149, 0, 0.6)',
                     borderColor: '#ff9500', 
                     borderWidth: 1, 
                     borderRadius: 4 

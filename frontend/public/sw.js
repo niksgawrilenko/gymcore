@@ -1,7 +1,7 @@
 // frontend/public/sw.js
 
 // Повышаем версию до v3, чтобы при первой загрузке гарантированно сбросить старый "зависший" кэш
-const CACHE_NAME = 'gymcore-v3'; 
+const CACHE_NAME = 'gymcore-v4'; 
 
 const ASSETS_TO_CACHE = [
     '/',

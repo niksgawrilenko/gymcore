@@ -4,14 +4,21 @@ class WorkoutController {
     getAll = async (req, res) => {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 100; // По умолчанию отдаем больше для статы
+            const limit = parseInt(req.query.limit) || 100;
             const offset = (page - 1) * limit;
 
-            // Умный запрос: собираем тренировки + их упражнения + их подходы в единый JSON
+            // УЛЬТРАБЫСТРЫЙ ЗАПРОС: Сначала лимитируем тренировки, потом собираем JSON
             const result = await pool.query(`
+                WITH paginated_workouts AS (
+                    SELECT w.*, t.name as template_name
+                    FROM workouts w
+                    LEFT JOIN templates t ON w.template_id = t.id
+                    WHERE w.user_id = $1
+                    ORDER BY w.workout_date DESC
+                    LIMIT $2 OFFSET $3
+                )
                 SELECT 
-                    w.*, 
-                    t.name as template_name,
+                    pw.*,
                     COALESCE(
                         (
                             SELECT json_agg(
@@ -27,24 +34,21 @@ class WorkoutController {
                                                     'weight', s.weight,
                                                     'reps', s.reps,
                                                     'completed', s.completed
-                                                )
+                                                ) ORDER BY s.set_order ASC
                                             )
                                             FROM sets s 
                                             WHERE s.workout_exercise_id = we.id
                                         ), '[]'::json
                                     )
-                                )
+                                ) ORDER BY we.sort_order ASC
                             )
                             FROM workout_exercises we
                             JOIN exercises e ON we.exercise_id = e.id
-                            WHERE we.workout_id = w.id
+                            WHERE we.workout_id = pw.id
                         ), '[]'::json
                     ) as exercises
-                FROM workouts w 
-                LEFT JOIN templates t ON w.template_id = t.id 
-                WHERE w.user_id = $1
-                ORDER BY w.workout_date DESC
-                LIMIT $2 OFFSET $3
+                FROM paginated_workouts pw
+                ORDER BY pw.workout_date DESC;
             `, [req.user.id, limit, offset]);
 
             const countRes = await pool.query(
