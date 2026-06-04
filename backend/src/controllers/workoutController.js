@@ -3,14 +3,43 @@ const { pool } = require('../config/db');
 class WorkoutController {
     getAll = async (req, res) => {
         try {
-            // 1. Извлекаем параметры пагинации из query-строки (по умолчанию: 1 страница, по 10 тренировок)
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
+            const limit = parseInt(req.query.limit) || 100; // По умолчанию отдаем больше для статы
             const offset = (page - 1) * limit;
 
-            // 2. Добавляем LIMIT и OFFSET в SQL-запрос
+            // Умный запрос: собираем тренировки + их упражнения + их подходы в единый JSON
             const result = await pool.query(`
-                SELECT w.*, t.name as template_name 
+                SELECT 
+                    w.*, 
+                    t.name as template_name,
+                    COALESCE(
+                        (
+                            SELECT json_agg(
+                                json_build_object(
+                                    'id', e.id,
+                                    'exercise_id', e.id,
+                                    'name', e.name,
+                                    'category', e.category,
+                                    'sets', COALESCE(
+                                        (
+                                            SELECT json_agg(
+                                                json_build_object(
+                                                    'weight', s.weight,
+                                                    'reps', s.reps,
+                                                    'completed', s.completed
+                                                )
+                                            )
+                                            FROM sets s 
+                                            WHERE s.workout_exercise_id = we.id
+                                        ), '[]'::json
+                                    )
+                                )
+                            )
+                            FROM workout_exercises we
+                            JOIN exercises e ON we.exercise_id = e.id
+                            WHERE we.workout_id = w.id
+                        ), '[]'::json
+                    ) as exercises
                 FROM workouts w 
                 LEFT JOIN templates t ON w.template_id = t.id 
                 WHERE w.user_id = $1
@@ -18,27 +47,25 @@ class WorkoutController {
                 LIMIT $2 OFFSET $3
             `, [req.user.id, limit, offset]);
 
-            // 3. Считаем общее количество тренировок (нужно фронтенду для бесконечного скролла)
             const countRes = await pool.query(
-                'SELECT COUNT(*) FROM workouts WHERE user_id = $1'  , 
+                'SELECT COUNT(*) FROM workouts WHERE user_id = $1', 
                 [req.user.id]
             );
             const totalWorkouts = parseInt(countRes.rows[0].count, 10);
 
-            // 4. Возвращаем легкий JSON с мета-данными пагинации
             res.json({ 
                 success: true, 
                 data: result.rows,
-                pagination: {
-                    page,
-                    limit,
-                    total: totalWorkouts,
-                    totalPages: Math.ceil(totalWorkouts / limit)
+                pagination: { 
+                    page, 
+                    limit, 
+                    total: totalWorkouts, 
+                    totalPages: Math.ceil(totalWorkouts / limit) 
                 }
             });
-        } catch (e) { 
-            console.error('[Workout GetAll Error]:', e);
-            res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера' }); 
+        } catch (e) {
+            console.error('[Workout getAll Error]:', e);
+            res.status(500).json({ success: false, error: e.message });
         }
     }
 
