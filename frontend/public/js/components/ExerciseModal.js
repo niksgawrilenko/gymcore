@@ -60,6 +60,11 @@ export default class ExerciseModal {
                         <div>
                             <label style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Основные группы (можно несколько)</label>
                             <div class="chip-group">${primaryHTML}</div>
+                            
+                            <div style="margin-top: 10px;">
+                                <label style="font-size: 11px; color: var(--text-secondary);">Свои мышцы (через запятую):</label>
+                                <input type="text" id="customMusclesInput" class="set-input" style="text-align: left; margin-top: 4px;" placeholder="Например: Брахиалис, Камбаловидная">
+                            </div>
                         </div>
 
                         <div>
@@ -94,22 +99,35 @@ export default class ExerciseModal {
         const title = this.modalWrapper.querySelector('#sharedModalTitle');
         const nameInput = this.modalWrapper.querySelector('#sharedExNameInput');
         const typeInput = this.modalWrapper.querySelector('#sharedExTypeInput');
+        const customInput = this.modalWrapper.querySelector('#customMusclesInput');
         
         // Сброс формы
         this.modalWrapper.querySelectorAll('.chip-checkbox').forEach(cb => cb.checked = false);
         this.modalWrapper.querySelector('#sharedAnatomyContainer').classList.remove('open');
         this.modalWrapper.querySelector('#sharedToggleAnatomyBtn span').innerText = '▶';
+        if (customInput) customInput.value = '';
 
         if (exercise) {
             title.innerText = 'Правка упражнения';
             nameInput.value = exercise.name || '';
             typeInput.value = exercise.exercise_type || 'strength';
 
-            const pGroups = exercise.primary_groups || (exercise.category ? [exercise.category] : []);
-            pGroups.forEach(g => {
-                const cb = this.modalWrapper.querySelector(`.primary-cb[value="${g}"]`);
-                if (cb) cb.checked = true;
+            const exPrimary = exercise.primary_groups || (exercise.category ? [exercise.category] : []);
+            const customPrimaryArray = [];
+
+            exPrimary.forEach(muscle => {
+                const cb = this.modalWrapper.querySelector(`.primary-cb[value="${muscle}"]`);
+                if (cb) {
+                    cb.checked = true;
+                } else {
+                    customPrimaryArray.push(muscle); // Это кастомная мышца!
+                }
             });
+
+            // Выводим кастомные мышцы в инпут через запятую
+            if (customInput && customPrimaryArray.length > 0) {
+                customInput.value = customPrimaryArray.join(', ');
+            }
 
             if (exercise.secondary_muscles && exercise.secondary_muscles.length > 0) {
                 exercise.secondary_muscles.forEach(m => {
@@ -156,11 +174,23 @@ export default class ExerciseModal {
         if (t.id === 'sharedSaveExBtn') {
             const name = this.modalWrapper.querySelector('#sharedExNameInput').value.trim();
             const type = this.modalWrapper.querySelector('#sharedExTypeInput').value;
-            const primary_groups = Array.from(this.modalWrapper.querySelectorAll('.primary-cb:checked')).map(cb => cb.value);
+            
+            // 1. Собираем стандартные мышцы с чекбоксов
+            const selectedPrimary = Array.from(this.modalWrapper.querySelectorAll('.primary-cb:checked')).map(cb => cb.value);
+            
+            // 2. Забираем текст из нового поля и разбиваем по запятым
+            const customInputVal = this.modalWrapper.querySelector('#customMusclesInput').value;
+            const customMuscles = customInputVal.split(',')
+                .map(m => m.trim())
+                .filter(m => m.length > 0); 
+                
+            // 3. Объединяем чекбоксы и свои мышцы в единый массив!
+            const primary_groups = [...selectedPrimary, ...customMuscles];
+            
             const secondary_muscles = Array.from(this.modalWrapper.querySelectorAll('.secondary-cb:checked')).map(cb => cb.value);
 
             if (!name) return alert('Введите название!');
-            if (primary_groups.length === 0) return alert('Выберите хотя бы одну основную группу мышц!');
+            if (primary_groups.length === 0) return alert('Выберите или впишите хотя бы одну основную группу мышц!');
 
             const category = primary_groups[0]; 
             const btn = t;
