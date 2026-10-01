@@ -68,7 +68,15 @@ function subscribeCollapsed(cb: () => void) {
 export function ExerciseListEditor({ exercises, onChange, editing, showChecks = true, prevSets, allExercises = [], emptyText }: Props) {
   // 'add' = новое упражнение, число = индекс заменяемого
   const [picker, setPicker] = useState<'add' | number | null>(null);
-  const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
+  const allCollapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
+  // Ручное сворачивание отдельных упражнений поверх общего состояния (сбрасывается кнопкой «все»)
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const isCollapsed = (key: string) => overrides[key] ?? allCollapsed;
+  const everyCollapsed = exercises.length > 0 && exercises.every((ex) => isCollapsed(ex.key));
+  const toggleAll = () => {
+    setOverrides({});
+    setCollapsed(!everyCollapsed);
+  };
   const [info, setInfo] = useState<ExerciseInfo | null>(null);
 
   const sensors = useSensors(
@@ -118,7 +126,8 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
                 position={group.length === 1 ? 'single' : j === 0 ? 'first' : j === group.length - 1 ? 'last' : 'middle'}
                 editing={editing}
                 showChecks={showChecks}
-                collapsed={collapsed}
+                collapsed={isCollapsed(item.key)}
+                onToggleCollapsed={() => setOverrides({ ...overrides, [item.key]: !isCollapsed(item.key) })}
                 prev={prevSets?.[nameKey(item.name)]}
                 showPrev={!!prevSets}
                 handleProps={handleProps}
@@ -139,8 +148,8 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
       {exercises.length > 0 && (
         <div className="list-toolbar">
           <span className="caps">Упражнения · {exercises.length}</span>
-          <button type="button" className="link-btn" onClick={() => setCollapsed(!collapsed)}>
-            {collapsed ? '▾ Развернуть все' : '▴ Свернуть все'}
+          <button type="button" className="link-btn" onClick={toggleAll}>
+            {everyCollapsed ? '▾ Развернуть все' : '▴ Свернуть все'}
           </button>
         </div>
       )}
@@ -201,6 +210,7 @@ function ExerciseCard({
   editing,
   showChecks,
   collapsed,
+  onToggleCollapsed,
   prev = [],
   showPrev,
   handleProps,
@@ -216,6 +226,7 @@ function ExerciseCard({
   editing: boolean;
   showChecks: boolean;
   collapsed: boolean;
+  onToggleCollapsed: () => void;
   prev?: PrevSetsMap[string];
   showPrev: boolean;
   handleProps: HandleProps;
@@ -254,7 +265,7 @@ function ExerciseCard({
               ≡
             </span>
           )}
-          <span className="grow">
+          <span className="grow clickable" onClick={onToggleCollapsed} title={collapsed ? 'Развернуть' : 'Свернуть'}>
             {index + 1}. {ex.name}
           </span>
           {collapsed && (
@@ -293,6 +304,9 @@ function ExerciseCard({
         )}
         <button type="button" className="menu-item" onClick={onReplace}>
           🔄 Заменить
+        </button>
+        <button type="button" className="menu-item" onClick={onToggleCollapsed}>
+          {collapsed ? '▾ Развернуть' : '▴ Свернуть'}
         </button>
         <button type="button" className="menu-item danger" onClick={onRemove}>
           🗑 Удалить

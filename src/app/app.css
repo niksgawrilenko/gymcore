@@ -176,3 +176,4 @@ details.card[open] > summary { margin-bottom: 12px; }
 .chat-input textarea { resize: none; }
 .chat-input .btn { height: 44px; padding: 0 16px; }
 .chat-note { margin-top: 4px; padding: 0 4px; }
+.clickable { cursor: pointer; }
