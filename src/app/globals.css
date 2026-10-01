@@ -191,16 +191,20 @@ input[type="datetime-local"] {
 /* ==========================================================================
    7. ТАБЛИЦА ПОДХОДОВ И СУПЕРСЕТЫ
    ========================================================================== */
-.set-header { 
-    display: grid; grid-template-columns: 0.5fr 1fr 1fr 0.5fr; text-align: center; 
-    font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: bold; 
+.set-header, .set-row {
+    display: grid; grid-template-columns: var(--set-cols); gap: 6px; align-items: center;
 }
-.set-row { 
-    display: grid; grid-template-columns: 0.5fr 1fr 1fr 0.5fr; gap: 8px; align-items: center; margin-bottom: 8px; 
+.set-header {
+    text-align: center; font-size: 11px; letter-spacing: 0.5px; color: var(--text-secondary);
+    font-weight: 700; padding: 0 6px 6px;
 }
-.set-number { 
-    text-align: center; font-weight: bold; background: var(--bg-color); border-radius: 6px; padding: 6px 0; 
+.set-row { padding: 5px 6px; border-radius: 10px; transition: background-color 0.2s; }
+.set-row.done { background: rgba(52, 199, 89, 0.12); }
+.set-number {
+    text-align: center; font-weight: 700; font-size: 13px; background: var(--bg-color); border-radius: 50%;
+    width: 26px; height: 26px; line-height: 26px; transition: background-color 0.2s, color 0.2s;
 }
+.set-row.done .set-number { background: #34c759; color: #fff; }
 .set-input { 
     width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); 
     color: var(--text-primary); padding: 8px; border-radius: 8px; text-align: center; 
@@ -208,16 +212,16 @@ input[type="datetime-local"] {
 }
 .set-input:focus { border-color: var(--accent-color); }
 
-.set-check { 
-    background: var(--border-color); color: white; border: none; border-radius: 8px; 
-    padding: 8px; cursor: pointer; display: flex; justify-content: center; align-items: center; 
-    font-weight: bold; transition: background-color 0.2s; 
+.set-check {
+    background: var(--border-color); color: white; border: none; border-radius: 8px;
+    height: 38px; cursor: pointer; display: flex; justify-content: center; align-items: center;
+    font-weight: bold; font-size: 16px; transition: background-color 0.2s;
 }
 .set-check.completed { background: #34c759; }
 
-.add-set-btn { 
-    width: 100%; background: none; border: none; color: var(--accent-color); 
-    font-weight: 600; font-size: 14px; padding: 10px; cursor: pointer; margin-top: 5px; 
+.add-set-btn {
+    width: 100%; background: var(--bg-color); border: none; border-radius: 10px; color: var(--accent-color);
+    font-weight: 600; font-size: 14px; padding: 9px; cursor: pointer; margin-top: 6px; font-family: inherit;
 }
 
 .card.superset-card {

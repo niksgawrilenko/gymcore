@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useEffect, useState, type HTMLAttributes } from 'react';
+import { useEffect, useState, useSyncExternalStore, type HTMLAttributes } from 'react';
 import {
   emptySet,
   groupExercises,
@@ -32,13 +32,43 @@ type Props = {
   onChange: (next: EditorExercise[]) => void;
   editing: boolean;
   showChecks?: boolean; // галочки «выполнено» — только в тренировке
-  prevSets?: PrevSetsMap;
+  prevSets?: PrevSetsMap; // есть только в активной тренировке -> колонка «Прошлый»
   allExercises?: ExerciseListItem[];
   emptyText?: string;
 };
 
-export function ExerciseListEditor({ exercises, onChange, editing, showChecks = true, prevSets = {}, allExercises = [], emptyText }: Props) {
-  const [pickerOpen, setPickerOpen] = useState(false);
+// «Свернуть все» — общая настройка для всех списков, хранится в localStorage
+const COLLAPSED_KEY = 'gymcore_sets_collapsed';
+const COLLAPSED_EVENT = 'gymcore:collapsed';
+
+function readCollapsed() {
+  try {
+    return localStorage.getItem(COLLAPSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function setCollapsed(value: boolean) {
+  try {
+    localStorage.setItem(COLLAPSED_KEY, value ? '1' : '0');
+  } catch {}
+  window.dispatchEvent(new Event(COLLAPSED_EVENT));
+}
+
+function subscribeCollapsed(cb: () => void) {
+  window.addEventListener(COLLAPSED_EVENT, cb);
+  window.addEventListener('storage', cb);
+  return () => {
+    window.removeEventListener(COLLAPSED_EVENT, cb);
+    window.removeEventListener('storage', cb);
+  };
+}
+
+export function ExerciseListEditor({ exercises, onChange, editing, showChecks = true, prevSets, allExercises = [], emptyText }: Props) {
+  // 'add' = новое упражнение, число = индекс заменяемого
+  const [picker, setPicker] = useState<'add' | number | null>(null);
+  const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
   const [info, setInfo] = useState<ExerciseInfo | null>(null);
 
   const sensors = useSensors(
@@ -63,6 +93,16 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
     onChange([...exercises, { ...ex, key: newKey(), isSuperset: false, sets: [emptySet()] }]);
   }
 
+  // Ключ и связь суперсета остаются. Подходы переносятся, если тип тот же (силовое/кардио),
+  // иначе — столько же пустых: килограммы и минуты не взаимозаменяемы.
+  function replaceExercise(index: number, ex: ExerciseInfo) {
+    const old = exercises[index];
+    const sets = ex.exercise_type === old.exercise_type ? old.sets : old.sets.map(emptySet);
+    update(index, { ...ex, sets });
+  }
+
+  const onPick = (ex: ExerciseInfo) => (picker === 'add' ? addExercise(ex) : picker !== null && replaceExercise(picker, ex));
+
   const list =
     exercises.length === 0 ? (
       <div className="empty-state">{emptyText ?? 'Упражнений пока нет'}</div>
@@ -78,10 +118,13 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
                 position={group.length === 1 ? 'single' : j === 0 ? 'first' : j === group.length - 1 ? 'last' : 'middle'}
                 editing={editing}
                 showChecks={showChecks}
-                prev={prevSets[nameKey(item.name)] ?? []}
+                collapsed={collapsed}
+                prev={prevSets?.[nameKey(item.name)]}
+                showPrev={!!prevSets}
                 handleProps={handleProps}
                 onChangeSets={(sets) => update(index, { sets })}
                 onToggleSuperset={() => update(index, { isSuperset: !item.isSuperset })}
+                onReplace={() => setPicker(index)}
                 onRemove={() => confirm('Удалить упражнение?') && onChange(exercises.filter((_, i) => i !== index))}
                 onInfo={() => setInfo(item)}
               />
@@ -93,6 +136,14 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
 
   return (
     <>
+      {exercises.length > 0 && (
+        <div className="list-toolbar">
+          <span className="caps">Упражнения · {exercises.length}</span>
+          <button type="button" className="link-btn" onClick={() => setCollapsed(!collapsed)}>
+            {collapsed ? '▾ Развернуть все' : '▴ Свернуть все'}
+          </button>
+        </div>
+      )}
       {editing ? (
         <DndContext id="exercise-list" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={groups.map((g) => g[0].item.key)} strategy={verticalListSortingStrategy}>
@@ -105,10 +156,16 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
 
       {editing && (
         <>
-          <button type="button" className="outline-btn" onClick={() => setPickerOpen(true)}>
+          <button type="button" className="outline-btn" onClick={() => setPicker('add')}>
             + Добавить упражнение
           </button>
-          <ExercisePicker open={pickerOpen} exercises={allExercises} onClose={() => setPickerOpen(false)} onPick={addExercise} />
+          <ExercisePicker
+            open={picker !== null}
+            title={picker === 'add' ? undefined : 'Заменить упражнение'}
+            exercises={allExercises}
+            onClose={() => setPicker(null)}
+            onPick={onPick}
+          />
         </>
       )}
       <ExerciseInfoModal exercise={info} onClose={() => setInfo(null)} />
@@ -143,10 +200,13 @@ function ExerciseCard({
   position,
   editing,
   showChecks,
-  prev,
+  collapsed,
+  prev = [],
+  showPrev,
   handleProps,
   onChangeSets,
   onToggleSuperset,
+  onReplace,
   onRemove,
   onInfo,
 }: {
@@ -155,10 +215,13 @@ function ExerciseCard({
   position: 'single' | 'first' | 'middle' | 'last';
   editing: boolean;
   showChecks: boolean;
-  prev: PrevSetsMap[string];
+  collapsed: boolean;
+  prev?: PrevSetsMap[string];
+  showPrev: boolean;
   handleProps: HandleProps;
   onChangeSets: (sets: EditorSet[]) => void;
   onToggleSuperset: () => void;
+  onReplace: () => void;
   onRemove: () => void;
   onInfo: () => void;
 }) {
@@ -176,9 +239,14 @@ function ExerciseCard({
   const setAt = (i: number, patch: Partial<EditorSet>) => onChangeSets(ex.sets.map((s, j) => (j === i ? { ...s, ...patch } : s)));
 
   const ssClass = position === 'single' ? '' : ` superset-card ss-${position}`;
+  const done = ex.sets.filter((s) => s.completed).length;
+  // Сетка подходов: № | [прошлый] | вес | повторы | [✓] | [✕]
+  const cols = ['28px', showPrev && 'minmax(0, 1fr)', 'minmax(0, 1.1fr)', 'minmax(0, 1.1fr)', showChecks && '40px', editing && '24px']
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div className={`card exercise-card${ssClass}`}>
+    <div className={`card exercise-card${ssClass}${collapsed ? ' collapsed' : ''}`}>
       <div className="row-between">
         <h4 className="exercise-title">
           {editing && (
@@ -186,7 +254,14 @@ function ExerciseCard({
               ≡
             </span>
           )}
-          {index + 1}. {ex.name}
+          <span className="grow">
+            {index + 1}. {ex.name}
+          </span>
+          {collapsed && (
+            <span className={`pill${showChecks && done === ex.sets.length ? ' pill-done' : ''}`}>
+              {showChecks ? `${done}/${ex.sets.length}` : ex.sets.length}
+            </span>
+          )}
         </h4>
         {editing ? (
           <button
@@ -216,40 +291,50 @@ function ExerciseCard({
             🔗 {ex.isSuperset ? 'Открепить' : 'Суперсет с предыдущим'}
           </button>
         )}
+        <button type="button" className="menu-item" onClick={onReplace}>
+          🔄 Заменить
+        </button>
         <button type="button" className="menu-item danger" onClick={onRemove}>
           🗑 Удалить
         </button>
       </div>
 
-      <div className="set-header">
-        <div>П-Д</div>
-        <div>{isCardio ? 'ВРЕМЯ' : 'ВЕС'}</div>
-        <div>{isCardio ? 'МЕТРЫ' : 'ПОВТ'}</div>
-        <div></div>
-      </div>
+      {!collapsed && (
+        <div className="sets" style={{ '--set-cols': cols } as React.CSSProperties}>
+          <div className="set-header">
+            <div>#</div>
+            {showPrev && <div>ПРОШЛЫЙ</div>}
+            <div>{isCardio ? 'МИН' : 'КГ'}</div>
+            <div>{isCardio ? 'МЕТРЫ' : 'ПОВТ'}</div>
+            {showChecks && <div>✓</div>}
+            {editing && <div></div>}
+          </div>
 
-      {ex.sets.map((s, i) => (
-        <SetRow
-          key={i}
-          set={s}
-          number={i + 1}
-          editing={editing}
-          showCheck={showChecks}
-          isCardio={isCardio}
-          prev={prev[i]}
-          onChange={(patch) => setAt(i, patch)}
-          onRemove={() =>
-            ex.sets.length > 1
-              ? onChangeSets(ex.sets.filter((_, j) => j !== i))
-              : alert('Нельзя удалить единственный подход. Если нужно, удалите упражнение целиком.')
-          }
-        />
-      ))}
+          {ex.sets.map((s, i) => (
+            <SetRow
+              key={i}
+              set={s}
+              number={i + 1}
+              editing={editing}
+              showCheck={showChecks}
+              showPrev={showPrev}
+              isCardio={isCardio}
+              prev={prev[i]}
+              onChange={(patch) => setAt(i, patch)}
+              onRemove={() =>
+                ex.sets.length > 1
+                  ? onChangeSets(ex.sets.filter((_, j) => j !== i))
+                  : alert('Нельзя удалить единственный подход. Если нужно, удалите упражнение целиком.')
+              }
+            />
+          ))}
 
-      {editing && (
-        <button type="button" className="dashed-btn" onClick={() => onChangeSets([...ex.sets, emptySet()])}>
-          + Добавить подход
-        </button>
+          {editing && (
+            <button type="button" className="add-set-btn" onClick={() => onChangeSets([...ex.sets, emptySet()])}>
+              + Подход
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -268,6 +353,7 @@ function SetRow({
   number,
   editing,
   showCheck,
+  showPrev,
   isCardio,
   prev,
   onChange,
@@ -277,6 +363,7 @@ function SetRow({
   number: number;
   editing: boolean;
   showCheck: boolean;
+  showPrev: boolean;
   isCardio: boolean;
   prev?: PrevSetsMap[string][number];
   onChange: (patch: Partial<EditorSet>) => void;
@@ -284,6 +371,7 @@ function SetRow({
 }) {
   const prevW = prev?.weight != null ? String(Number(prev.weight)) : '';
   const prevR = prev?.reps != null ? String(prev.reps) : '';
+  const prevText = prevW || prevR ? [prevW || '–', prevR || '–'].join(isCardio ? ' / ' : ' × ') : '—';
 
   // Отметили подход выполненным с пустыми полями -> подставляем прошлый результат
   const toggleDone = () => {
@@ -296,8 +384,19 @@ function SetRow({
   };
 
   return (
-    <div className="set-row">
+    <div className={`set-row${set.completed && showCheck ? ' done' : ''}`}>
       <div className="set-number">{number}</div>
+      {showPrev && (
+        <button
+          type="button"
+          className="set-prev"
+          disabled={!editing || (!prevW && !prevR)}
+          onClick={() => onChange({ weight: prevW, reps: prevR })}
+          title="Подставить прошлый результат"
+        >
+          {prevText}
+        </button>
+      )}
       {editing ? (
         <>
           <div className="set-cell">
@@ -330,18 +429,16 @@ function SetRow({
           <div className="set-value">{set.reps || '-'}</div>
         </>
       )}
-      <div className="set-actions">
-        {editing && (
-          <button type="button" className="delete-set-btn" onClick={onRemove} aria-label="Удалить подход">
-            ✕
-          </button>
-        )}
-        {showCheck && (
-          <button type="button" className={`set-check${set.completed ? ' completed' : ''}`} disabled={!editing} onClick={toggleDone}>
-            ✓
-          </button>
-        )}
-      </div>
+      {showCheck && (
+        <button type="button" className={`set-check${set.completed ? ' completed' : ''}`} disabled={!editing} onClick={toggleDone}>
+          ✓
+        </button>
+      )}
+      {editing && (
+        <button type="button" className="delete-set-btn" onClick={onRemove} aria-label="Удалить подход">
+          ✕
+        </button>
+      )}
     </div>
   );
 }

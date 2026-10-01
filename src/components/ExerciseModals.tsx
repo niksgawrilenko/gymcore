@@ -184,11 +184,13 @@ export function searchExercises<T extends ExerciseInfo & { usage_count?: number 
 
 export function ExercisePicker({
   open,
+  title = 'Упражнения',
   exercises,
   onClose,
   onPick,
 }: {
   open: boolean;
+  title?: string;
   exercises: ExerciseListItem[];
   onClose: () => void;
   onPick: (ex: ExerciseInfo) => void;
@@ -206,7 +208,7 @@ export function ExercisePicker({
   return (
     <>
       <Modal open={open} onClose={onClose}>
-        <ModalHeader title="Упражнения" onClose={onClose}>
+        <ModalHeader title={title} onClose={onClose}>
           <button type="button" className="plus-btn" style={{ padding: 0 }} onClick={() => setFormOpen(true)}>
             +
           </button>
