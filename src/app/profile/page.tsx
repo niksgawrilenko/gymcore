@@ -37,6 +37,14 @@ export default async function ProfilePage() {
           <span style={{ fontSize: 20 }}>📏</span>
           <span className="bold">Замеры</span>
         </Link>
+        <Link
+          href="/ai"
+          className="card row"
+          style={{ margin: 0, padding: 15, justifyContent: 'center', textDecoration: 'none', gridColumn: '1 / -1' }}
+        >
+          <span style={{ fontSize: 20 }}>🤖</span>
+          <span className="bold">ИИ-тренер</span>
+        </Link>
       </div>
 
       {user.role === 'admin' && (
