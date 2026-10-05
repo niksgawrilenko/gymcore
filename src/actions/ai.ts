@@ -1,14 +1,18 @@
 'use server';
-// ИИ-тренер на Gemini. Ключ пользователя приходит из браузера с каждым запросом и нигде не сохраняется.
-// Модель сама запрашивает данные через функции (история тренировок, список упражнений)
-// и предлагает шаблоны через propose_template — записывает их пользователь кнопкой.
-import { ApiError, GoogleGenAI, type Content, type FunctionCall, type FunctionDeclaration } from '@google/genai';
+// AI coach. The user's API key comes from the browser with every request and is never stored.
+// The provider (Gemini / Claude / OpenAI) is picked in settings; adapters live in @/lib/ai.
+// The model fetches its own data via tools (workout history, exercise list) and proposes templates
+// with propose_template — the user saves them explicitly.
+// NOTE: tool descriptions, system prompt and tool outputs are deliberately Russian — they steer the
+// model towards the Russian exercise names stored in the database (see memory-bank/optimization-plan.md).
 import { and, desc, eq, gte } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/db';
 import { workouts } from '@/db/schema';
+import { AiProviderError, getProvider, type AiTool, type AiToolCall } from '@/lib/ai';
 import { requireUser } from '@/lib/auth';
 import { getExercises, getTz } from '@/lib/data';
+import { exerciseSearchText, matchesAllTerms, searchTerms } from '@/lib/search';
 import { fmtNum, type ExerciseListItem } from '@/lib/types';
 import { fail, ok, type ActionResult } from './_shared';
 
@@ -19,13 +23,15 @@ export type AiTemplate = {
 };
 export type AiMessage = { role: 'user' | 'model'; text: string; templates?: AiTemplate[]; model?: string };
 
-const MAX_STEPS = 8; // защита от бесконечного цикла вызовов функций
-// Если выбранная модель перегружена (503) — по очереди пробуем эти
-const FALLBACK_MODELS = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-flash-lite-latest'];
+const MAX_STEPS = 8; // guards against an endless tool-call loop
+const providerIds = ['gemini', 'claude', 'openai'] as const;
 
 const chatInput = z.object({
-  apiKey: z.string().trim().min(10, 'Укажите API-ключ Gemini').max(200),
-  model: z.string().trim().regex(/^[\w.-]{1,60}$/, 'Некорректное название модели'),
+  provider: z.enum(providerIds).default('gemini'),
+  apiKey: z.string().trim().min(10, 'aiKeyRequired').max(200),
+  model: z.string().trim().regex(/^[\w.-]{1,60}$/, 'aiModelInvalid'),
+  // Localized fallback template name: the model may omit `name`, and the server does not know the locale.
+  defaultName: z.string().trim().min(1).max(100),
   messages: z
     .array(z.object({ role: z.enum(['user', 'model']), text: z.string().max(8000) }))
     .min(1)
@@ -33,11 +39,11 @@ const chatInput = z.object({
 });
 export type AiChatInput = z.input<typeof chatInput>;
 
-const tools: FunctionDeclaration[] = [
+const tools: AiTool[] = [
   {
     name: 'get_workouts',
     description: 'История тренировок пользователя за последние N дней: дата, название, упражнения и подходы (вес × повторы).',
-    parametersJsonSchema: {
+    parameters: {
       type: 'object',
       properties: { days: { type: 'integer', description: 'За сколько дней, 1–365. По умолчанию 60.' } },
     },
@@ -47,7 +53,7 @@ const tools: FunctionDeclaration[] = [
     description:
       'Упражнения, доступные пользователю: id, название, группа мышц, тип, сколько раз выполнял. ' +
       'Без query — весь список. Только эти id можно использовать в шаблонах.',
-    parametersJsonSchema: {
+    parameters: {
       type: 'object',
       properties: { query: { type: 'string', description: 'Слова для поиска, например «жим грудь»' } },
     },
@@ -57,7 +63,7 @@ const tools: FunctionDeclaration[] = [
     description:
       'Предложить пользователю шаблон тренировки. Он увидит карточку с кнопкой «Сохранить в шаблоны». ' +
       'Вызывай для каждого предлагаемого шаблона.',
-    parametersJsonSchema: {
+    parameters: {
       type: 'object',
       properties: {
         name: { type: 'string' },
@@ -100,8 +106,8 @@ function systemPrompt(today: string) {
 export async function aiChat(input: AiChatInput): Promise<ActionResult<{ text: string; templates: AiTemplate[]; model: string }>> {
   const user = await requireUser();
   const parsed = chatInput.safeParse(input);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'Некорректные данные');
-  const { apiKey, model, messages } = parsed.data;
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? 'invalidData');
+  const { provider: providerId, apiKey, model, messages, defaultName } = parsed.data;
 
   const tz = await getTz();
   const day = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: tz }); // YYYY-MM-DD
@@ -109,7 +115,7 @@ export async function aiChat(input: AiChatInput): Promise<ActionResult<{ text: s
   const loadExercises = async () => (exerciseList ??= await getExercises(user.id));
   const proposed: AiTemplate[] = [];
 
-  async function runTool(call: FunctionCall): Promise<Record<string, unknown>> {
+  async function runTool(call: AiToolCall): Promise<Record<string, unknown>> {
     const args = call.args ?? {};
     switch (call.name) {
       case 'get_workouts': {
@@ -126,7 +132,7 @@ export async function aiChat(input: AiChatInput): Promise<ActionResult<{ text: s
           },
         });
         if (!list.length) return { output: `Тренировок за ${days} дн. нет` };
-        // Компактный текст вместо JSON — в разы меньше токенов
+        // Compact text instead of JSON — far fewer tokens
         const lines = list.map((w) => {
           const exs = w.workoutExercises
             .filter((we) => we.exercise)
@@ -136,11 +142,9 @@ export async function aiChat(input: AiChatInput): Promise<ActionResult<{ text: s
         return { output: lines.join('\n') };
       }
       case 'get_exercises': {
-        const terms = String(args.query ?? '').toLowerCase().split(/\s+/).filter(Boolean);
-        const found = (await loadExercises()).filter((ex) => {
-          const text = [ex.name, ex.category, ...ex.primary_groups, ...ex.secondary_muscles].join(' ').toLowerCase();
-          return terms.every((t) => text.includes(t));
-        });
+        const terms = searchTerms(String(args.query ?? ''));
+        const list = await loadExercises();
+        const found = terms.length ? list.filter((ex) => matchesAllTerms(exerciseSearchText(ex), terms)) : list;
         if (!found.length) return { output: 'Ничего не найдено, попробуй другие слова или без query' };
         const lines = found.map(
           (ex) => `${ex.id};${ex.name};${ex.primary_groups.join('/') || ex.category || ''};${ex.exercise_type};${ex.usage_count}`,
@@ -155,7 +159,7 @@ export async function aiChat(input: AiChatInput): Promise<ActionResult<{ text: s
         if (!raw.length) return { error: 'Шаблон без упражнений' };
         const num = (v: unknown) => (v === null || v === undefined || v === '' || Number.isNaN(Number(v)) ? null : Number(v));
         proposed.push({
-          name: String(args.name ?? 'Шаблон от ИИ').slice(0, 100),
+          name: String(args.name ?? defaultName).slice(0, 100),
           description: args.description ? String(args.description).slice(0, 2000) : null,
           exercises: raw.slice(0, 50).map((e, i) => ({
             id: Number(e.exercise_id),
@@ -173,59 +177,33 @@ export async function aiChat(input: AiChatInput): Promise<ActionResult<{ text: s
     }
   }
 
-  // 500/503 («модель перегружена») у Gemini частые и короткие -> один повтор через 2 с, дальше — запасная модель.
-  // 429 не повторяем: на бесплатном тарифе это минутный лимит, повторы его только съедят.
-  const ai = new GoogleGenAI({
-    apiKey,
-    httpOptions: { retryOptions: { attempts: 2, initialDelay: 2, maxDelay: 2, httpStatusCodes: [500, 503] } },
-  });
-
-  // Один ход диалога целиком на одной модели: подписи мыслей Gemini не переносятся между моделями
-  async function runTurn(modelName: string) {
-    proposed.length = 0;
-    // История из браузера — только текст; предложенные ранее шаблоны модель видит кратким списком
-    const contents: Content[] = messages.map((m) => ({ role: m.role, parts: [{ text: m.text || '…' }] }));
-    for (let step = 0; step < MAX_STEPS; step++) {
-      const res = await ai.models.generateContent({
-        model: modelName,
-        contents,
-        config: { systemInstruction: systemPrompt(day(new Date())), tools: [{ functionDeclarations: tools }] },
-      });
-      const calls = res.functionCalls;
-      if (!calls?.length) return ok({ text: res.text?.trim() || (proposed.length ? '' : 'Пустой ответ модели'), templates: proposed, model: modelName });
-
-      // Ответ модели кладём целиком (в нём служебные подписи мыслей, без них Gemini ругается)
-      contents.push(res.candidates?.[0]?.content ?? { role: 'model', parts: calls.map((c) => ({ functionCall: c })) });
-      const results = await Promise.all(calls.map(runTool));
-      contents.push({
-        role: 'user',
-        parts: calls.map((c, i) => ({ functionResponse: { id: c.id, name: c.name, response: results[i] } })),
-      });
-    }
-    return fail('Модель зациклилась на вызовах функций, попробуйте переформулировать');
-  }
-
-  const chain = [model, ...FALLBACK_MODELS.filter((m) => m !== model)];
+  const provider = getProvider(providerId);
+  // If the selected model is overloaded (503), walk through the provider's fallback models in order.
+  const chain = [model, ...provider.fallbackModels.filter((m) => m !== model)];
   for (const [i, modelName] of chain.entries()) {
     try {
-      return await runTurn(modelName);
+      proposed.length = 0;
+      const text = await provider.run({
+        apiKey,
+        model: modelName,
+        systemPrompt: systemPrompt(day(new Date())),
+        messages,
+        tools,
+        maxSteps: MAX_STEPS,
+        runTool,
+      });
+      return ok({ text: text || (proposed.length ? '' : 'aiEmpty'), templates: proposed, model: modelName });
     } catch (e) {
-      if (!(e instanceof ApiError)) {
+      if (!(e instanceof AiProviderError)) {
         console.error('aiChat', e);
-        return fail('Не удалось связаться с Gemini');
+        return fail(`aiUnreachable|${provider.label}`);
       }
-      // Перегружена или недоступна -> пробуем следующую модель
-      if ([500, 503, 404].includes(e.status) && i < chain.length - 1) continue;
-      // message обычно JSON вида {"error":{"message":"..."}}
-      let msg = e.message;
-      try {
-        msg = JSON.parse(msg).error?.message ?? msg;
-      } catch {}
-      if (/api key/i.test(msg) || e.status === 401 || e.status === 403) return fail('Gemini не принял API-ключ, проверьте его в настройках ⚙️');
-      if (e.status === 503 || e.status === 500 || e.status === 404) return fail('Все модели Gemini сейчас перегружены у Google. Повторите через пару минут.');
-      if (e.status === 429) return fail('Превышен лимит запросов Gemini (бесплатный тариф). Подождите минуту.');
-      return fail(`Ошибка Gemini (${e.status}): ${msg.slice(0, 200)}`);
+      // Overloaded or unreachable -> try the next model in the chain
+      if (provider.isRetryable(e.status) && i < chain.length - 1) continue;
+      // No HTTP status and no prepared message (e.g. DNS/timeout): log the raw error for debugging
+      if (e.status === undefined && !e.userMessage) console.error('aiChat', e);
+      return fail(e.userMessage ?? provider.describeError(e.status, e.raw));
     }
   }
-  return fail('Не удалось связаться с Gemini');
+  return fail(`aiUnreachable|${provider.label}`);
 }

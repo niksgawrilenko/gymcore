@@ -1,0 +1,530 @@
+{
+  "meta": {
+    "title": "GymCore — free workout journal, no ads or subscriptions",
+    "description": "Free workout journal with no ads and no subscriptions: sets and supersets, calendar history, progress charts, body measurements, program templates and an AI coach. 312 exercises with anatomy."
+  },
+  "locale": {
+    "label": "Language",
+    "en": "English",
+    "ru": "Russian"
+  },
+  "nav": {
+    "history": "History",
+    "workout": "Workout",
+    "exercises": "Exercises",
+    "profile": "Profile"
+  },
+  "theme": {
+    "toggle": "Switch theme"
+  },
+  "common": {
+    "login": "Log in",
+    "register": "Create account"
+  },
+  "login": {
+    "title": "Log in — GymCore",
+    "headingLogin": "Log in to your account",
+    "headingRegister": "New account",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "submitLogin": "Log in",
+    "submitRegister": "Sign up",
+    "pending": "Please wait…",
+    "noAccount": "No account?",
+    "haveAccount": "Already have an account?",
+    "create": "Create",
+    "signIn": "Log in",
+    "errors": {
+      "usernameTaken": "That username is already taken",
+      "credentialsRequired": "Enter your username and password",
+      "invalidCredentials": "Wrong username or password",
+      "usernameInvalid": "Username: at least 3 characters, up to 50",
+      "passwordInvalid": "Password: at least 6 characters"
+    }
+  },
+  "welcome": {
+    "badge": "🆓 Free and ad-free",
+    "heroTitle": "A free workout journal — no ads, no subscriptions",
+    "heroLead": "Log sets and supersets in a couple of seconds, follow your progress on charts, record body measurements and build programs. Every feature is unlocked right after sign-up, and the built-in AI coach will suggest a new template for your goal.",
+    "ctaStart": "Start for free",
+    "ctaHow": "How it works",
+    "heroNote": "No card and no trial period. Your AI key stays in your browser.",
+    "preview": {
+      "title": "Barbell bench press",
+      "today": "Today",
+      "unit": "kg",
+      "weight": "Working weight",
+      "progress": "+12% in a month"
+    },
+    "free": {
+      "items": {
+        "noCost": {
+          "title": "€0 and no subscriptions",
+          "text": "Every feature is available right after sign-up: no card, no trial period."
+        },
+        "noAds": {
+          "title": "No ads",
+          "text": "No banners, no pop-ups, no referral offers in the interface."
+        },
+        "noPremium": {
+          "title": "No premium tiers",
+          "text": "Statistics, measurements, templates and the AI coach are available to everyone — nothing is locked behind a paywall."
+        }
+      }
+    },
+    "pains": {
+      "title": "Sound familiar?",
+      "turn": "GymCore fixes this: you log the workout as you go, and your progress is calculated for you.",
+      "items": {
+        "notebook": {
+          "title": "A notepad on the rack",
+          "text": "And the eternal “what weight did I use last time?”"
+        },
+        "excel": {
+          "title": "A spreadsheet you never fill in",
+          "text": "After a workout there is no energy left for tables."
+        },
+        "screenshots": {
+          "title": "Screenshots and notes",
+          "text": "A month later you cannot find anything in that pile."
+        }
+      }
+    },
+    "features": {
+      "title": "What GymCore does",
+      "items": {
+        "journal": {
+          "title": "Workout journal",
+          "text": "Sets, weight, reps, supersets. The draft survives even if you close the tab by accident."
+        },
+        "history": {
+          "title": "History and calendar",
+          "text": "Every workout by day. Open a day and see exactly what you did and with which weights."
+        },
+        "stats": {
+          "title": "Progress statistics",
+          "text": "Volume and dynamics per exercise, charts across your entire history, not just the last ten workouts."
+        },
+        "measurements": {
+          "title": "Body measurements",
+          "text": "Weight, chest, waist, biceps, hips, shoulders and more — with change history."
+        },
+        "templates": {
+          "title": "Program templates",
+          "text": "Build a program once and start it in one click."
+        },
+        "sharing": {
+          "title": "Program sharing",
+          "text": "Send a program as a link — your friend adds it with a single tap."
+        },
+        "library": {
+          "title": "312 exercises with anatomy",
+          "text": "A ready-made library plus your own exercises. See which muscles are working."
+        },
+        "ownership": {
+          "title": "Your data is yours",
+          "text": "Export your entire history to JSON at any time. Nothing is locked in."
+        }
+      }
+    },
+    "ai": {
+      "badge": "🤖 AI coach",
+      "title": "An AI coach that can see your history",
+      "lead": "Connect your own Gemini, Claude or GPT key — the assistant reads your workouts and the exercise library, picks the load and suggests a ready-made program template.",
+      "bullets": {
+        "context": "understands what you did and with which weight;",
+        "program": "suggests a program with sets and reps;",
+        "control": "you decide whether to save it;",
+        "key": "the key is stored in your browser only."
+      }
+    },
+    "how": {
+      "title": "How it works",
+      "steps": {
+        "account": { "title": "Create an account", "text": "A username and a password — 20 seconds." },
+        "exercises": { "title": "Add exercises", "text": "Your own or install a ready-made program." },
+        "log": { "title": "Log your sets", "text": "Right during the workout — the draft is saved." },
+        "progress": { "title": "Watch your progress", "text": "Charts, measurements and day-by-day history." }
+      }
+    },
+    "facts": {
+      "items": {
+        "price": { "value": "€0", "label": "no ads and no subscriptions" },
+        "library": { "value": "312", "label": "exercises with anatomy" },
+        "sets": { "value": "Sets", "label": "and supersets" },
+        "charts": { "value": "Charts", "label": "across your entire history" },
+        "measurements": { "value": "Measurements", "label": "of your body" },
+        "export": { "value": "JSON", "label": "data export" }
+      }
+    },
+    "why": {
+      "title": "Why GymCore",
+      "items": {
+        "price": "Completely free: no ads, no subscriptions and no premium tiers.",
+        "backup": "Your data is not lost: there is a backup and a full-history export.",
+        "auto": "Volume and progress are calculated for you — no pivot tables needed.",
+        "mobile": "Built for your phone: large buttons and a dark theme right in the gym.",
+        "history": "Statistics across your entire history, not just the last 10 workouts.",
+        "sharing": "Programs can be shared as a link and installed in one click."
+      }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": {
+        "free": {
+          "q": "Is it free?",
+          "a": "Yes, completely. The journal, statistics, measurements, program templates and the AI coach are available right after sign-up — no subscriptions, no ads and no premium tiers."
+        },
+        "card": {
+          "q": "Do I need to enter a card or start a trial?",
+          "a": "No. All you need is a username and a password: no payment details are requested and access is not time-limited."
+        },
+        "internet": {
+          "q": "Do I need an internet connection?",
+          "a": "Yes — your data is stored in the cloud, so after logging in it is available from any device."
+        },
+        "data": {
+          "q": "Where does my data go?",
+          "a": "Into a secure database that only you can access. You can export your entire history to JSON at any time."
+        },
+        "ai": {
+          "q": "What is the AI coach and do I need my own key?",
+          "a": "It is a built-in assistant. Connect a free Gemini key or a Claude/GPT key. The key is stored in your browser only and is never sent to our server."
+        },
+        "app": {
+          "q": "Is there a mobile app?",
+          "a": "GymCore is a web app: it opens in your phone browser and can be added to your home screen."
+        },
+        "beginner": {
+          "q": "I am a beginner — is it for me?",
+          "a": "Yes. There is a library of 312 exercises with anatomy and ready-made programs — you can start with those."
+        }
+      }
+    },
+    "final": {
+      "title": "Start keeping your journal for free",
+      "text": "Signing up takes 20 seconds: a username and a password, no card and no trial period. Your first workout can be today.",
+      "ctaCreate": "Create account",
+      "ctaLogin": "Log in"
+    },
+    "footer": {
+      "login": "Log in",
+      "register": "Create account",
+      "privacy": "Privacy policy"
+    }
+  },
+  "privacy": {
+    "title": "Privacy policy — GymCore",
+    "description": "What data GymCore stores, why it is needed and how to delete it.",
+    "eyebrow": "Documents",
+    "h1": "Privacy policy",
+    "lead": "Short and to the point: what data {site} stores, why it needs it and what happens to it.",
+    "stored": {
+      "title": "What data we store",
+      "bullets": {
+        "account": "Your username and password. The password is stored only as a cryptographic hash — it cannot be recovered.",
+        "workouts": "Workout data: sets, weights, reps, dates, program templates and body measurements that you enter yourself.",
+        "media": "Uploaded photos and videos — they are hosted in the Cloudinary cloud storage.",
+        "cookies": "Service cookies: a session identifier and your device time zone (so that dates are shown in your local time)."
+      }
+    },
+    "aiKeys": {
+      "title": "AI keys",
+      "text": "If you connect Gemini, Claude or GPT, your access key is stored in your browser only (in localStorage) and is sent directly to the provider along with the request. We do not store it and do not use it for any other purpose. You can delete the key at any time by clearing the site data in your browser."
+    },
+    "purpose": {
+      "title": "Why we need it",
+      "text": "The only purpose is to make the app work: signing you in, showing your history, calculating statistics and storing your data so that it is available from any device. We never sell your data or share it with ad networks."
+    },
+    "publicLinks": {
+      "title": "Public links",
+      "text": "If you share a program or an exercise yourself, that page becomes available via the link to anyone who has it. All other content is visible to you only."
+    },
+    "retention": {
+      "title": "Storage and deletion",
+      "text": "Your data is stored for as long as your account exists. You can export your entire history to JSON in the profile settings at any time. To delete your account and the related data, write to us — we will delete it."
+    },
+    "changes": {
+      "title": "Changes",
+      "text": "If this policy changes, we will update this page. The version below is the current document."
+    },
+    "footerBack": "← Back to home",
+    "footerLogin": "Log in"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "share": "Share",
+    "moderate": "Submit for review",
+    "loading": "Loading…",
+    "loadPhoto": "Uploading photo…",
+    "showOlder": "Show older",
+    "none": "none",
+    "all": "All"
+  },
+  "errors": {
+    "invalidData": "Invalid data",
+    "usernameTooShort": "Username must be at least 3 characters",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "nameRequired": "Enter a name",
+    "titleRequired": "Enter a title",
+    "groupsRequired": "Select at least one muscle group",
+    "noPermission": "No permission",
+    "exerciseNotFound": "Exercise not found",
+    "templateNotFound": "Template not found",
+    "workoutNotFound": "Workout not found",
+    "invalidMeasurement": "Invalid value",
+    "measurementEmpty": "Fill in at least one field!",
+    "mediaNotConfigured": "Media upload is not configured",
+    "fileUploadFailed": "File upload failed",
+    "saveFailed": "Save failed",
+    "requestFailed": "Request failed",
+    "aiKeyRequired": "Enter the API key",
+    "aiModelInvalid": "Invalid model name",
+    "aiKey": "{provider} did not accept the API key — check it in settings ⚙️",
+    "aiOverloaded": "All {provider} models are overloaded right now. Try again in a couple of minutes.",
+    "aiRateLimited": "{provider} request limit reached. Wait a minute.",
+    "aiUnreachable": "Could not reach {provider}",
+    "aiFailed": "{provider} error ({status}): {detail}",
+    "aiLoop": "The model got stuck calling functions — try rephrasing"
+  },
+  "history": {
+    "title": "History",
+    "list": "List",
+    "calendar": "Calendar",
+    "empty": "You have not completed any workout yet",
+    "emptyDay": "No workouts on this day",
+    "addForDay": "+ Log a workout for this day",
+    "discardDraft": "You have an unfinished workout. Starting a new one will reset it. Continue?"
+  },
+  "exercises": {
+    "title": "Exercise library",
+    "searchPlaceholder": "🔍 Search (e.g. back row)...",
+    "empty": "No exercises found",
+    "mine": "👤 My exercises",
+    "global": "🌍 Common library",
+    "globalBadge": "🌍 Common",
+    "uncategorized": "Uncategorized",
+    "newExercise": "New exercise",
+    "confirmDelete": "Delete “{name}”? WARNING: the whole history of this exercise in workouts will be deleted with it.",
+    "confirmModerate": "Submit it to the moderator so the exercise becomes common?",
+    "shareCopied": "Link copied! Send it to a friend."
+  },
+  "workout": {
+    "freeWorkout": "Free workout",
+    "confirmCancel": "Discard the current active workout? All unsaved data and the timer will be lost.",
+    "cancel": "❌ Cancel",
+    "save": "💾 Save"
+  },
+  "workoutDetail": {
+    "confirmDelete": "Delete this workout?",
+    "templateNamePrompt": "Template name:",
+    "templateCreated": "✅ Template created with all links and sets!",
+    "toTemplate": "📑 To template",
+    "edit": "✎ Edit"
+  },
+  "templates": {
+    "activeWorkout": "🟢 Active workout",
+    "newWorkout": "New workout",
+    "freeWorkout": "+ Free workout",
+    "programs": "Programs",
+    "newTemplate": "New template",
+    "searchPlaceholder": "🔍 Search template...",
+    "empty": "No templates yet",
+    "mine": "👤 My programs",
+    "global": "🌍 Global templates",
+    "noDescription": "No description",
+    "systemTemplate": "System template",
+    "confirmDiscardWith": "You have an active workout. Discard it and start with this template?",
+    "confirmDiscardNew": "You have an active workout. Start a new one (the current one will be deleted)?",
+    "confirmDelete": "Delete this template?",
+    "confirmModerate": "Submit this template for review so it becomes common for everyone?",
+    "moderated": "Template submitted for review!",
+    "shareCopied": "Template link copied!"
+  },
+  "templateEditor": {
+    "newName": "New template",
+    "confirmDelete": "Delete this template permanently?",
+    "namePlaceholder": "Template name",
+    "subtitle": "📝 Builder for reusable programs",
+    "emptyText": "Add exercises to the template"
+  },
+  "stats": {
+    "title": "My analytics",
+    "empty": "You have no completed workouts yet. Complete at least one first!",
+    "totalSets": "Sets completed",
+    "totalWorkouts": "Workouts total",
+    "muscleBalance": "📊 Load balance (muscles)",
+    "activity": "📅 Training activity",
+    "workouts": "Workouts",
+    "setsDone": "Done: {count} sets",
+    "progress": "💪 Strength progress in an exercise",
+    "allExercises": "🏆 All exercises ({count})",
+    "times": "{count} times",
+    "selectExercise": "Select an exercise...",
+    "noData": "No data",
+    "maxWeight": "📈 Max weight (kg)",
+    "maxWeightLabel": "Max weight (kg)",
+    "setsCount": "🔋 Number of sets",
+    "setsLabel": "Sets"
+  },
+  "measurements": {
+    "title": "Body measurements",
+    "add": "+ Add measurement",
+    "empty": "No measurements yet",
+    "fields": {
+      "weight": "Weight",
+      "chest": "Chest",
+      "waist": "Waist",
+      "biceps": "Biceps",
+      "thighs": "Thighs",
+      "calves": "Calves",
+      "shoulders": "Shoulders",
+      "neck": "Neck"
+    },
+    "units": {
+      "kg": "kg",
+      "cm": "cm"
+    }
+  },
+  "profile": {
+    "workouts": "Workouts",
+    "myExercises": "My ex.",
+    "templates": "Templates",
+    "dashboard": "Dashboard",
+    "stats": "Statistics",
+    "measurements": "Measurements",
+    "aiCoach": "AI coach",
+    "moderation": "Moderator panel",
+    "logout": "Log out",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "backToProfile": "To profile",
+    "account": "Account",
+    "username": "Username",
+    "role": "Role",
+    "admin": "Administrator",
+    "user": "User",
+    "data": "Data",
+    "downloadBackup": "📥 Download backup (JSON)",
+    "clearDraft": "🧹 Reset active workout",
+    "confirmClearDraft": "Delete the active workout draft?",
+    "draftCleared": "Draft deleted"
+  },
+  "admin": {
+    "title": "🛡️ Moderation",
+    "empty": "No new requests yet. Take a break, captain! ☕",
+    "exercises": "Exercises",
+    "templates": "Templates",
+    "fromUser": "from user #{id}",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "ai": {
+    "backToProfile": "Profile",
+    "newChat": "🗑 New chat",
+    "confirmNewChat": "Start a new chat? The conversation will be deleted.",
+    "empty": "🤖 Ask the AI coach: analyze progress, pick a program for the week, swap an exercise...",
+    "modelFallback": "Primary model unavailable, answered by {model}",
+    "thinking": "Thinking...",
+    "messagePlaceholder": "Message...",
+    "settingsTitle": "AI settings",
+    "assistant": "Assistant",
+    "model": "Model",
+    "keyStored": "The key is stored only in this browser.",
+    "save": "Save",
+    "emptyResponse": "Empty response from the model",
+    "defaultTemplateName": "AI template",
+    "saveToTemplates": "💾 Save to templates",
+    "savedOpen": "✓ Saved — open",
+    "providers": {
+      "gemini": { "keyLabel": "Gemini API key", "keyHint": "Free key:" },
+      "claude": { "keyLabel": "Claude API key (Anthropic)", "keyHint": "Key in the Anthropic console:" },
+      "openai": { "keyLabel": "OpenAI API key", "keyHint": "Key on the OpenAI platform:" }
+    }
+  },
+  "shared": {
+    "loginToAdd": "Log in to add it",
+    "exercise": { "add": "📥 Add to my exercises" },
+    "template": {
+      "add": "📥 Add to my programs",
+      "program": "Workout program",
+      "content": "PROGRAM CONTENT:",
+      "sets": "{count} sets"
+    }
+  },
+  "editor": {
+    "header": "Exercises · {count}",
+    "empty": "No exercises yet",
+    "expandAll": "▾ Expand all",
+    "collapseAll": "▴ Collapse all",
+    "addExercise": "+ Add exercise",
+    "replaceTitle": "Replace exercise",
+    "confirmDelete": "Delete the exercise?",
+    "drag": "Drag",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "info": "ℹ️ Info",
+    "detach": "Unlink",
+    "superset": "Superset with previous",
+    "replace": "🔄 Replace",
+    "deleteItem": "🗑 Delete",
+    "colPrev": "PREV",
+    "colMin": "MIN",
+    "colKg": "KG",
+    "colMeters": "M",
+    "colReps": "REPS",
+    "onlySet": "Cannot delete the only set. Delete the whole exercise instead.",
+    "addSet": "+ Set",
+    "usePrev": "Insert previous result",
+    "phMin": "min",
+    "phKg": "kg",
+    "phM": "m",
+    "phReps": "reps",
+    "deleteSet": "Delete set"
+  },
+  "exerciseInfo": {
+    "type": "Type:",
+    "cardio": "Cardio",
+    "strength": "Strength",
+    "equipment": "Equipment:",
+    "bodyweight": "Bodyweight / No equipment",
+    "primaryMuscles": "Primary muscles:",
+    "notSpecified": "Not specified",
+    "secondaryMuscles": "Additional muscles:",
+    "none": "None"
+  },
+  "exerciseForm": {
+    "editTitle": "Edit exercise",
+    "newTitle": "New exercise",
+    "name": "Name",
+    "namePlaceholder": "e.g. Bench press",
+    "primaryGroups": "Primary groups (multiple allowed)",
+    "customMuscles": "Custom muscles (comma-separated)",
+    "customPlaceholder": "e.g. Brachialis, Soleus",
+    "anatomy": "Detailed anatomy (optional)",
+    "exerciseType": "Exercise type",
+    "typeStrength": "Strength (Weight + Reps)",
+    "typeCardio": "Cardio (Time + Distance)"
+  },
+  "exercisePicker": {
+    "title": "Exercises",
+    "searchPlaceholder": "🔍 Search (back row)...",
+    "notFound": "Not found",
+    "uncategorized": "Uncategorized"
+  },
+  "media": {
+    "title": "Workout media",
+    "empty": "No attached media",
+    "add": "📸 Add photo or video"
+  }
+}

@@ -23,6 +23,22 @@
     --shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
+/* Системная тёмная тема, пока пользователь не выбрал её явно (нет data-theme).
+   Значения дублируют [data-theme="dark"]: так первый визит тёмный БЕЗ мигания и без inline-скрипта
+   (inline <script> в [locale]-layout пересоздаётся при смене локали и даёт dev-предупреждение React 19). */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        --bg-color: #000000;
+        --surface-color: #1c1c1e;
+        --text-primary: #ffffff;
+        --text-secondary: #aeaeb2;
+        --accent-color: #0a84ff;
+        --accent-hover: #0060d0;
+        --border-color: #38383a;
+        --shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+}
+
 /* ==========================================================================
    2. БАЗОВЫЕ НАСТРОЙКИ (Reset & Body)
    ========================================================================== */
@@ -87,7 +103,22 @@ input[type="datetime-local"] {
     z-index: 100;
 }
 
-.app-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.app-header h1,
+.app-logo { display: inline-block; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+/* Переключатель языка: EN / RU в шапке (см. src/components/LocaleSwitcher.tsx). */
+.locale-switch { display: inline-flex; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.locale-btn {
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+.locale-btn.active { background: var(--accent-color); color: #fff; }
 .app-content { padding: 0 20px 20px 20px; flex-grow: 1; }
 .section-title { margin: 25px 0 15px 0; font-size: 20px; font-weight: 600; }
 

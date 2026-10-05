@@ -3,10 +3,10 @@ import { db } from '@/db';
 import { measurements, workouts } from '@/db/schema';
 import { getUser } from '@/lib/auth';
 
-// Полная резервная копия: все тренировки с упражнениями и подходами + все замеры.
+// Full backup: every workout with exercises and sets plus all measurements.
 export async function GET() {
   const user = await getUser();
-  if (!user) return Response.json({ error: 'Нужна авторизация' }, { status: 401 });
+  if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const [allWorkouts, allMeasurements] = await Promise.all([
     db.query.workouts.findMany({

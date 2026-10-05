@@ -7,9 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:setup": "node db/setup.mjs"
+    "db:setup": "node db/setup.mjs",
+    "db:i18n:export": "node db/i18n/export-exercises.mjs",
+    "db:i18n:import": "node db/i18n/import-translations.mjs",
+    "verify": "powershell -NoProfile -ExecutionPolicy Bypass -File .cline/skills/gymcore-verify/scripts/verify.ps1"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -19,6 +23,8 @@
     "drizzle-orm": "^0.45.3",
     "jose": "^6.2.12",
     "next": "16.3.5",
+    "next-intl": "^4.14.9",
+    "openai": "^7.28.0",
     "pg": "^8.23.0",
     "react": "19.2.8",
     "react-chartjs-2": "^5.3.1",
