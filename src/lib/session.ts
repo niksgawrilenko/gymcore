@@ -1,14 +1,14 @@
-// Сессия = подписанный JWT в httpOnly-cookie (JS в браузере его не видит, в отличие от localStorage).
+// A session is a signed JWT in an httpOnly cookie (browser JS cannot read it, unlike localStorage).
 import { jwtVerify, SignJWT } from 'jose';
 
 export type SessionUser = { id: number; username: string; role: string };
 
 export const SESSION_COOKIE = 'gymcore_session';
-export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 дней
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 function secretKey() {
   const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error('SESSION_SECRET не задан');
+  if (!secret) throw new Error('SESSION_SECRET is not set');
   return new TextEncoder().encode(secret);
 }
 

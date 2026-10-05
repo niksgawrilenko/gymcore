@@ -8,7 +8,7 @@ import { requireAdmin, requireUser } from '@/lib/auth';
 import { getExerciseProgress } from '@/lib/data';
 import { fail, ok, type ActionResult } from './_shared';
 
-// ---------- Замеры тела ----------
+// ---------- Body measurements ----------
 
 const MEASUREMENT_FIELDS = ['weight', 'chest', 'waist', 'biceps', 'thighs', 'calves', 'shoulders', 'neck'] as const;
 
@@ -19,22 +19,22 @@ export async function addMeasurement(_prev: unknown, formData: FormData): Promis
     const raw = String(formData.get(f) ?? '').replace(',', '.').trim();
     if (raw === '') continue;
     const n = Number(raw);
-    if (!Number.isFinite(n) || n < 0 || n > 999.99) return fail('Некорректное значение');
+    if (!Number.isFinite(n) || n < 0 || n > 999.99) return fail('invalidMeasurement');
     values[f] = String(n);
   }
-  if (Object.keys(values).length === 0) return fail('Заполните хотя бы один параметр!');
+  if (Object.keys(values).length === 0) return fail('measurementEmpty');
   await db.insert(measurements).values({ ...values, userId: user.id, date: new Date() });
-  revalidatePath('/measurements');
+  revalidatePath('/', 'layout');
   return ok(undefined);
 }
 
 export async function deleteMeasurement(id: number) {
   const user = await requireUser();
   await db.delete(measurements).where(and(eq(measurements.id, id), eq(measurements.userId, user.id)));
-  revalidatePath('/measurements');
+  revalidatePath('/', 'layout');
 }
 
-// ---------- Модерация ----------
+// ---------- Moderation ----------
 
 export async function moderate(type: 'exercise' | 'template', id: number, approve: boolean) {
   await requireAdmin();
@@ -43,19 +43,19 @@ export async function moderate(type: 'exercise' | 'template', id: number, approv
     .update(table)
     .set(approve ? { moderationStatus: 'approved', isPublic: true } : { moderationStatus: 'rejected' })
     .where(eq(table.id, id));
-  revalidatePath('/admin');
+  revalidatePath('/', 'layout');
 }
 
-// ---------- Статистика ----------
+// ---------- Stats ----------
 
 export async function loadExerciseProgress(name: string) {
   const user = await requireUser();
   return getExerciseProgress(user.id, name);
 }
 
-// ---------- Медиа: подпись для прямой загрузки в Cloudinary ----------
-// Файл летит из браузера сразу в Cloudinary (не через наш сервер — у Vercel лимит тела 4.5 МБ).
-// Сервер только подписывает параметры, поэтому чужие не могут заливать файлы в твой аккаунт.
+// ---------- Media: signature for a direct upload to Cloudinary ----------
+// The file goes from the browser straight to Cloudinary (not through our server — Vercel caps bodies at 4.5 MB).
+// The server only signs the parameters, so nobody can upload into someone else's account.
 
 const ALLOWED_FORMATS = 'jpg,jpeg,png,webp,heic,mp4,mov';
 const FOLDER = 'gymcore_media';
@@ -65,10 +65,10 @@ export async function signUpload(): Promise<
 > {
   await requireUser();
   const { CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
-  if (!CLOUDINARY_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) return fail('Загрузка медиа не настроена');
+  if (!CLOUDINARY_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) return fail('mediaNotConfigured');
 
   const timestamp = Math.floor(Date.now() / 1000);
-  // Параметры в алфавитном порядке + секрет -> SHA-1 (формат подписи Cloudinary)
+  // Parameters in alphabetical order + secret -> SHA-1 (the Cloudinary signature format)
   const toSign = `allowed_formats=${ALLOWED_FORMATS}&folder=${FOLDER}&timestamp=${timestamp}`;
   const signature = createHash('sha1').update(toSign + CLOUDINARY_API_SECRET).digest('hex');
 

@@ -1,31 +1,34 @@
 'use client';
-// Черновик активной тренировки живёт в localStorage (тот же ключ, что в старой версии —
-// незаконченная тренировка переживёт переезд). Сервер о черновике ничего не знает до «Сохранить».
+// The active workout draft lives in localStorage (same key as the legacy version, so an unfinished
+// workout survives the migration). The server knows nothing about it until the user saves; the title
+// fallback for drafts without a title comes from the UI (localized), not from this module.
 import { useSyncExternalStore } from 'react';
-import { toEditorExercises, type Media, type WorkoutDraft } from './types';
+import { toEditorExercises, type PendingMedia, type WorkoutDraft } from './types';
 
 const KEY = 'gymcore_active_workout';
 const EVENT = 'gymcore:draft';
 
-/** Выбранные, но ещё не загруженные файлы (File нельзя положить в localStorage). */
-export const pendingMedia: { file: File; url: string; type: Media['type'] }[] = [];
+/** Selected but not yet uploaded files (a File cannot be stored in localStorage). */
+export const pendingMedia: PendingMedia[] = [];
 
 function readRaw() {
   try {
     return localStorage.getItem(KEY);
   } catch {
+    // Storage can be blocked (private mode) — behave as if there were no draft.
     return null;
   }
 }
 
-export function loadDraft(): WorkoutDraft | null {
+/** `fallbackTitle` is the localized label used when the draft has no title. */
+export function loadDraft(fallbackTitle: string): WorkoutDraft | null {
   const raw = readRaw();
   if (!raw) return null;
   try {
     const d = JSON.parse(raw);
     if (!d || typeof d !== 'object') return null;
     return {
-      title: d.title || 'Свободная тренировка',
+      title: d.title || fallbackTitle,
       template_id: d.template_id ? Number(d.template_id) : null,
       workout_date: Number(d.workout_date) || Date.now(),
       exercises: toEditorExercises(Array.isArray(d.exercises) ? d.exercises : []),
@@ -39,21 +42,25 @@ export function loadDraft(): WorkoutDraft | null {
 export function saveDraft(draft: WorkoutDraft) {
   try {
     localStorage.setItem(KEY, JSON.stringify(draft));
-  } catch {}
+  } catch {
+    // Quota exceeded or storage blocked — the in-memory state still works.
+  }
   window.dispatchEvent(new Event(EVENT));
 }
 
 export function clearDraft() {
   try {
     localStorage.removeItem(KEY);
-  } catch {}
+  } catch {
+    // Storage blocked — nothing to clean up.
+  }
   pendingMedia.length = 0;
   window.dispatchEvent(new Event(EVENT));
 }
 
 export const hasDraft = () => !!readRaw();
 
-/** Спрашивает подтверждение, если есть незаконченная тренировка. true = можно начинать новую. */
+/** Asks for confirmation when an unfinished workout exists. true = a new one may start. */
 export function confirmDiscardDraft(message: string) {
   if (!hasDraft()) return true;
   if (!confirm(message)) return false;
@@ -70,13 +77,13 @@ function subscribe(cb: () => void) {
   };
 }
 
-/** Заголовок и старт активной тренировки (для мини-плеера и карточки на экране шаблонов). */
-export function useDraftMeta(): { title: string; start: number } | null {
+/** Title and start time of the active workout (mini player and the templates-screen card). */
+export function useDraftMeta(fallbackTitle: string): { title: string; start: number } | null {
   const raw = useSyncExternalStore(subscribe, readRaw, () => null);
   if (!raw) return null;
   try {
     const d = JSON.parse(raw);
-    return d ? { title: d.title || 'Тренировка', start: Number(d.workout_date) || 0 } : null;
+    return d ? { title: d.title || fallbackTitle, start: Number(d.workout_date) || 0 } : null;
   } catch {
     return null;
   }

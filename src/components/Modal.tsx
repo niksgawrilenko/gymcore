@@ -3,7 +3,7 @@ import { useEffect, type ReactNode } from 'react';
 
 let openModals = 0;
 
-/** Нижняя «шторка» в iOS-стиле (классы .modal-overlay / .modal-content из globals.css). */
+/** iOS-style bottom sheet (classes .modal-overlay / .modal-content from globals.css). */
 export function Modal({
   open,
   onClose,

@@ -1,7 +1,10 @@
-// Общие типы и чистые функции (используются и на сервере, и в браузере).
+// Shared types and pure helpers (used both on the server and in the browser).
 import type { Media } from '@/db/schema';
 
 export type { Media };
+
+/** Selected but not yet uploaded media file (a File cannot be stored in localStorage). */
+export type PendingMedia = { file: File; url: string; type: Media['type'] };
 
 export type ExerciseInfo = {
   id: number;
@@ -23,8 +26,8 @@ export type ExerciseListItem = ExerciseInfo & {
 export type EditorSet = { weight: string; reps: string; completed: boolean };
 
 export type EditorExercise = ExerciseInfo & {
-  key: string; // стабильный ключ для React и drag-n-drop
-  isSuperset: boolean; // true = связан с предыдущим упражнением
+  key: string; // stable key for React and drag-n-drop
+  isSuperset: boolean; // true = chained to the previous exercise
   sets: EditorSet[];
 };
 
@@ -36,7 +39,7 @@ export type WorkoutDraft = {
   media: Media[];
 };
 
-/** Прошлые подходы по имени упражнения (lowercase) — для подсказок и бейджей +/-. */
+/** Previous sets keyed by lowercase exercise name — for hints and +/- badges. */
 export type PrevSetsMap = Record<string, { weight: string | number | null; reps: number | null }[]>;
 
 export const emptySet = (): EditorSet => ({ weight: '', reps: '', completed: false });
@@ -58,11 +61,13 @@ type RawExercise = Partial<ExerciseInfo> & {
   sets?: { weight?: string | number | null; reps?: string | number | null; completed?: boolean | null }[];
 };
 
-/** Приводит упражнения из БД / старого черновика к виду редактора. superset_id -> isSuperset. */
+/** Normalizes exercises from the DB / a legacy draft into editor shape. superset_id -> isSuperset. */
 export function toEditorExercises(list: RawExercise[]): EditorExercise[] {
   let prevSS: string | null | undefined = null;
   return list.map((ex) => {
-    const isSuperset = 'superset_id' in ex ? !!ex.superset_id && ex.superset_id === prevSS : !!ex.isSuperset;
+    // DB rows carry superset_id (equal to the previous row = superset); drafts carry isSuperset.
+    const hasSupersetId = 'superset_id' in ex;
+    const isSuperset = hasSupersetId ? !!ex.superset_id && ex.superset_id === prevSS : !!ex.isSuperset;
     prevSS = ex.superset_id;
     const sets = ex.sets?.length
       ? ex.sets.map((s) => ({ weight: fmtNum(s.weight), reps: fmtNum(s.reps), completed: !!s.completed }))
@@ -82,7 +87,7 @@ export function toEditorExercises(list: RawExercise[]): EditorExercise[] {
   });
 }
 
-/** Группы для отрисовки: суперсет = несколько подряд идущих упражнений. */
+/** Render groups: a superset is a run of consecutive exercises. */
 export function groupExercises<T extends { isSuperset: boolean }>(list: T[]): { item: T; index: number }[][] {
   const groups: { item: T; index: number }[][] = [];
   list.forEach((item, index) => {
@@ -92,7 +97,7 @@ export function groupExercises<T extends { isSuperset: boolean }>(list: T[]): { 
   return groups;
 }
 
-/** Формат, который принимают экшены сохранения. */
+/** Payload shape accepted by the save actions. */
 export function toSavePayload(list: EditorExercise[]) {
   return list.map((ex) => ({
     id: ex.id,

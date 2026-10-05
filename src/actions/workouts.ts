@@ -8,8 +8,8 @@ import { assignSupersetIds, firstError, workoutInput, type WorkoutInput } from '
 import { exercisesVisible, fail, ok, type ActionResult } from './_shared';
 
 /**
- * Создание/обновление тренировки. Было: 1 INSERT на КАЖДЫЙ подход (~45 запросов подряд).
- * Стало: 3 запроса в транзакции — тренировка, все упражнения пачкой, все подходы пачкой.
+ * Creating/updating a workout. Before: one INSERT per set (~45 round-trips).
+ * Now: 3 queries in a transaction — the workout, all exercises in one batch, all sets in one batch.
  */
 export async function saveWorkout(input: WorkoutInput, id?: number): Promise<ActionResult<{ id: number }>> {
   const user = await requireUser();
@@ -17,7 +17,7 @@ export async function saveWorkout(input: WorkoutInput, id?: number): Promise<Act
   if (!parsed.success) return fail(firstError(parsed.error));
   const w = parsed.data;
 
-  if (!(await exercisesVisible(user.id, w.exercises.map((e) => e.id)))) return fail('Упражнение не найдено');
+  if (!(await exercisesVisible(user.id, w.exercises.map((e) => e.id)))) return fail('exerciseNotFound');
 
   const supersetIds = assignSupersetIds(w.exercises);
   const values = { title: w.title, workoutDate: new Date(w.workout_date), media: w.media };
@@ -32,7 +32,7 @@ export async function saveWorkout(input: WorkoutInput, id?: number): Promise<Act
         .returning({ id: workouts.id });
       if (!updated.length) return null;
       wid = id;
-      await tx.delete(workoutExercises).where(eq(workoutExercises.workoutId, wid)); // подходы удалятся каскадом
+      await tx.delete(workoutExercises).where(eq(workoutExercises.workoutId, wid)); // sets go with the cascade
     } else {
       const [created] = await tx
         .insert(workouts)
@@ -62,7 +62,7 @@ export async function saveWorkout(input: WorkoutInput, id?: number): Promise<Act
     return wid;
   });
 
-  if (!workoutId) return fail('Тренировка не найдена');
+  if (!workoutId) return fail('workoutNotFound');
   revalidatePath('/', 'layout');
   return ok({ id: workoutId });
 }

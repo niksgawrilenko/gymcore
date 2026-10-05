@@ -8,6 +8,7 @@ import { requireUser } from '@/lib/auth';
 import { getSharedExercise, toExerciseInfo } from '@/lib/data';
 import type { ExerciseInfo } from '@/lib/types';
 import { exerciseInput, firstError, type ExerciseInput } from '@/lib/validation';
+import { localeHref } from '@/i18n/server';
 import { fail, ok, type ActionResult } from './_shared';
 
 export async function saveExercise(input: ExerciseInput, id?: number): Promise<ActionResult<ExerciseInfo>> {
@@ -28,12 +29,12 @@ export async function saveExercise(input: ExerciseInput, id?: number): Promise<A
     ? await db.update(exercises).set(values).where(and(eq(exercises.id, id), eq(exercises.userId, user.id))).returning()
     : await db.insert(exercises).values({ ...values, userId: user.id }).returning();
 
-  if (!row) return fail('Нет прав');
-  revalidatePath('/exercises');
+  if (!row) return fail('noPermission');
+  revalidatePath('/', 'layout');
   return ok(toExerciseInfo(row));
 }
 
-// ВНИМАНИЕ: в текущей схеме FK с ON DELETE CASCADE — вместе с упражнением удаляется и его история.
+// WARNING: the foreign key is ON DELETE CASCADE — the whole workout history of an exercise goes with it.
 export async function deleteExercise(id: number): Promise<ActionResult> {
   const user = await requireUser();
   await db.delete(exercises).where(and(eq(exercises.id, id), eq(exercises.userId, user.id)));
@@ -47,14 +48,14 @@ export async function submitExerciseForModeration(id: number): Promise<ActionRes
     .update(exercises)
     .set({ moderationStatus: 'pending' })
     .where(and(eq(exercises.id, id), eq(exercises.userId, user.id)));
-  revalidatePath('/exercises');
+  revalidatePath('/', 'layout');
   return ok(undefined);
 }
 
 export async function importSharedExercise(shareId: string) {
   await requireUser();
   const ex = await getSharedExercise(shareId);
-  if (!ex) return fail('Упражнение не найдено');
+  if (!ex) return fail('exerciseNotFound');
   const res = await saveExercise({
     name: ex.name,
     exercise_type: ex.exercise_type === 'cardio' ? 'cardio' : 'strength',
@@ -62,5 +63,5 @@ export async function importSharedExercise(shareId: string) {
     secondary_muscles: ex.secondary_muscles,
   });
   if (!res.ok) return res;
-  redirect('/exercises');
+  redirect(await localeHref('/exercises'));
 }

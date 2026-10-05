@@ -1,0 +1,65 @@
+# GymCore i18n: датасет ПЕРЕВОДОВ СПРАВОЧНЫХ СТРОК (см. таблицу reference_translations и memory-bank/optimization-plan.md, блок 7).
+# Кодировка UTF-8, разделитель — табы.
+#
+# Колонки:
+#   kind         — вид справочника: primary_group | secondary_muscle | category | equipment | ui_string | llm_prompt
+#   source_value — КЛЮЧ: русское значение КАК ЕСТЬ (значение в БД или строковый литерал в коде). Не менять без правки кода.
+#   value_en     — английский перевод; пусто = перевода нет, строка пропускается импортом
+#   source       — откуда взято значение (db:<таблица.колонка> или <файл>:<строка>) — чтобы найти место после рефакторинга
+#   destination  — куда попадает перевод:
+#                    db:reference_translations — импортируется в БД (kind-и справочников);
+#                    messages:<ns>.<key>       — строку УЖЕ убрали из кода в каталог messages/*.json (в БД не нужна);
+#                    code-only                 — служебная строка, переведена прямо в коде;
+#                    keep:llm                  — остаётся русской ОСОЗНАННО: это промпт/описание инструмента/ответ AI,
+#                                                модель ищет по русским именам упражнений в БД (язык данных = ru).
+#
+# Наполнение DB-части (primary_group/secondary_muscle/category/equipment) из реальной базы:
+# экспортный скрипт по образцу db/i18n/export-exercises.mjs (ещё не написан — следующий шаг блока 7);
+# в файле ниже уже лежат значения, известные из кода (src/lib/anatomy.ts — канонический список формы).
+# Импорт (по образцу import-translations.mjs) должен брать только kind-и справочников и игнорировать ui_string/llm_prompt.
+kind	source_value	value_en	source	destination
+primary_group	Спина и шея	Back & neck	src/lib/anatomy.ts:2	db:reference_translations
+primary_group	Грудь	Chest	src/lib/anatomy.ts:3	db:reference_translations
+primary_group	Плечи	Shoulders	src/lib/anatomy.ts:4	db:reference_translations
+primary_group	Руки	Arms	src/lib/anatomy.ts:5	db:reference_translations
+primary_group	Пресс и косые	Abs & obliques	src/lib/anatomy.ts:6	db:reference_translations
+primary_group	Ноги	Legs	src/lib/anatomy.ts:7	db:reference_translations
+primary_group	Ягодицы	Glutes	src/lib/anatomy.ts:8	db:reference_translations
+primary_group	Другое	Other	src/actions/exercises.ts:62 (фолбэк при импорте упражнения)	db:reference_translations
+secondary_muscle	Широчайшие мышцы	Lats	src/lib/anatomy.ts:2	db:reference_translations
+secondary_muscle	Верх спины	Upper back	src/lib/anatomy.ts:2	db:reference_translations
+secondary_muscle	Поясница	Lower back	src/lib/anatomy.ts:2	db:reference_translations
+secondary_muscle	Передняя поверхность шеи	Neck flexors	src/lib/anatomy.ts:2	db:reference_translations
+secondary_muscle	Задняя поверхность шеи	Neck extensors	src/lib/anatomy.ts:2	db:reference_translations
+secondary_muscle	Грудь	Chest	src/lib/anatomy.ts:3	db:reference_translations
+secondary_muscle	Передняя дельта	Front delts	src/lib/anatomy.ts:4	db:reference_translations
+secondary_muscle	Средняя дельта	Side delts	src/lib/anatomy.ts:4	db:reference_translations
+secondary_muscle	Задняя дельта	Rear delts	src/lib/anatomy.ts:4	db:reference_translations
+secondary_muscle	Бицепс	Biceps	src/lib/anatomy.ts:5	db:reference_translations
+secondary_muscle	Трицепс	Triceps	src/lib/anatomy.ts:5	db:reference_translations
+secondary_muscle	Предплечья	Forearms	src/lib/anatomy.ts:5	db:reference_translations
+secondary_muscle	Пресс	Abs	src/lib/anatomy.ts:6	db:reference_translations
+secondary_muscle	Косые мышцы	Obliques	src/lib/anatomy.ts:6	db:reference_translations
+secondary_muscle	Подвздошно-поясничная	Iliopsoas	src/lib/anatomy.ts:6	db:reference_translations
+secondary_muscle	Передняя часть бедра	Quads	src/lib/anatomy.ts:7	db:reference_translations
+secondary_muscle	Задняя часть бедра	Hamstrings	src/lib/anatomy.ts:7	db:reference_translations
+secondary_muscle	Внутренняя часть бедра	Adductors	src/lib/anatomy.ts:7	db:reference_translations
+secondary_muscle	Наружная часть бедра	Abductors	src/lib/anatomy.ts:7	db:reference_translations
+secondary_muscle	Голень	Calves	src/lib/anatomy.ts:7	db:reference_translations
+secondary_muscle	Ягодицы	Glutes	src/lib/anatomy.ts:8	db:reference_translations
+category	Другое	Other	src/lib/data.ts:202 (фолбэк подписи на графике статистики)	db:reference_translations
+equipment	(нет — заполняется экспортом из exercises.equipment)		db:exercises.equipment	db:reference_translations
+category	(нет — заполняется экспортом из exercises.category)		db:exercises.category	db:reference_translations
+ui_string	Некорректные данные	Invalid data	src/actions/ai.ts:107 (было захардкожено)	messages:errors.invalidData
+ui_string	Шаблон от ИИ	AI template	src/actions/ai.ts:160 (было захардкожено)	messages:ai.defaultTemplateName
+ui_string	Свободная тренировка	Free workout	src/lib/draft.ts:31 (было захардкожено)	messages:workout.freeWorkout
+ui_string	Тренировка	Workout	src/lib/draft.ts:86 (было захардкожено)	messages:workout.freeWorkout
+ui_string	Логин: минимум 3 символа	Username must be at least 3 characters	src/lib/validation.ts:42 (было захардкожено)	messages:errors.usernameTooShort
+ui_string	Пароль: минимум 6 символов	Password must be at least 6 characters	src/lib/validation.ts:43 (было захардкожено)	messages:errors.passwordTooShort
+ui_string	Нужна авторизация	Unauthorized	src/app/api/export/route.ts:9 (JSON API, не UI)	code-only
+ui_string	SESSION_SECRET не задан	SESSION_SECRET is not set	src/lib/session.ts:11 (внутренняя ошибка)	code-only
+ui_string	дневник тренировок	workout journal	src/app/manifest.ts:7 (PWA-имя вне [locale], основной язык EN)	code-only
+llm_prompt	Системный промпт ИИ-тренера	(остаётся русским)	src/actions/ai.ts:97-101	keep:llm
+llm_prompt	Описания инструментов get_workouts/get_exercises/propose_template	(остаётся русским)	src/actions/ai.ts:43-82	keep:llm
+llm_prompt	Ответы инструментов («Ничего не найдено…», «Шаблон показан пользователю», заголовок таблицы)	(остаётся русским)	src/actions/ai.ts:132,146,150,156,157,171,174	keep:llm
+llm_prompt	Маркер предложенного шаблона в истории диалога	(остаётся русским)	src/app/[locale]/ai/AiChat.tsx:38	keep:llm

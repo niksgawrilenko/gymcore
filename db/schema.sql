@@ -92,3 +92,32 @@ CREATE TABLE IF NOT EXISTS measurements (
     shoulders NUMERIC(5,2),
     neck      NUMERIC(5,2)
 );
+
+-- Локализация (i18n): переводы названий упражнений.
+-- Существующие таблицы и данные НЕ меняются: русское название остаётся в exercises.name как есть,
+-- английское хранится здесь (locale='en'; отдельная запись для 'ru' не нужна — см. docs/i18n-plan.md §5).
+CREATE TABLE IF NOT EXISTS exercise_translations (
+    id          SERIAL PRIMARY KEY,
+    exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+    locale      VARCHAR(5) NOT NULL,
+    name        VARCHAR(100) NOT NULL,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (exercise_id, locale)
+);
+
+-- Локализация (i18n): переводы СПРАВОЧНЫХ строк, у которых нет собственного id,
+-- поэтому их некуда привязать через exercise_id (см. db/i18n/reference-translations.en.tsv).
+-- kind          — вид справочника: primary_group | secondary_muscle | category | equipment | ui_string
+-- source_value  — значение-источник КАК ЕСТЬ (русское): перевод ищется по паре (kind, source_value),
+--                 поэтому переименование русского значения в коде/БД требует правки этой таблицы.
+-- locale/value  — перевод для локали (locale='en'; запись для 'ru' не нужна — оригинал уже русский).
+-- Существующие таблицы, столбцы и данные не меняются: миграция только добавляет эту таблицу.
+CREATE TABLE IF NOT EXISTS reference_translations (
+    id           SERIAL PRIMARY KEY,
+    kind         VARCHAR(30)  NOT NULL,
+    source_value VARCHAR(255) NOT NULL,
+    locale       VARCHAR(5)   NOT NULL,
+    value        VARCHAR(255) NOT NULL,
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (kind, source_value, locale)
+);

@@ -1,11 +1,10 @@
 'use client';
+import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 import { signUpload } from '@/actions/misc';
-import type { Media } from '@/lib/types';
+import type { Media, PendingMedia } from '@/lib/types';
 
-export type PendingMedia = { file: File; url: string; type: Media['type'] };
-
-/** Загружает выбранные файлы прямо в Cloudinary по подписи от сервера. */
+/** Uploads the selected files straight to Cloudinary using a signature from the server. */
 export async function uploadPending(pending: PendingMedia[]): Promise<Media[]> {
   if (!pending.length) return [];
   const sig = await signUpload();
@@ -23,7 +22,7 @@ export async function uploadPending(pending: PendingMedia[]): Promise<Media[]> {
       fd.append('allowed_formats', allowedFormats);
       const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, { method: 'POST', body: fd });
       const json = await res.json();
-      if (!res.ok) throw new Error(json?.error?.message ?? 'Ошибка загрузки файла');
+      if (!res.ok) throw new Error(json?.error?.message ?? 'fileUploadFailed');
       return { type: json.resource_type === 'video' ? 'video' : 'image', url: json.secure_url } as Media;
     }),
   );
@@ -42,6 +41,7 @@ export function MediaSection({
   onMediaChange: (m: Media[]) => void;
   onPendingChange: (p: PendingMedia[]) => void;
 }) {
+  const t = useTranslations('media');
   const fileRef = useRef<HTMLInputElement>(null);
   const empty = media.length === 0 && pending.length === 0;
   if (!editing && media.length === 0) return null;
@@ -49,10 +49,10 @@ export function MediaSection({
   return (
     <div className="card mt" style={{ padding: 15 }}>
       <h4 className="mb" style={{ fontSize: 15 }}>
-        Медиафайлы тренировки
+        {t('title')}
       </h4>
       <div className="media-grid">
-        {empty && <div className="muted small">Нет прикрепленных медиафайлов</div>}
+        {empty && <div className="muted small">{t('empty')}</div>}
         {media.map((m, i) => (
           <Thumb key={m.url} item={m} href={m.url} onRemove={editing ? () => onMediaChange(media.filter((_, j) => j !== i)) : undefined} />
         ))}
@@ -85,7 +85,7 @@ export function MediaSection({
             }}
           />
           <button type="button" className="dashed-btn accent" onClick={() => fileRef.current?.click()}>
-            📸 Добавить фото или видео
+            {t('add')}
           </button>
         </>
       )}
@@ -94,7 +94,7 @@ export function MediaSection({
 }
 
 function Thumb({ item, pending, href, onRemove }: { item: Media; pending?: boolean; href?: string; onRemove?: () => void }) {
-  // eslint-disable-next-line @next/next/no-img-element -- превью blob:/Cloudinary, оптимизация не нужна
+  // eslint-disable-next-line @next/next/no-img-element -- blob:/Cloudinary preview, next/image adds nothing here
   const inner = item.type === 'video' ? <video src={item.url} muted playsInline /> : <img src={item.url} alt="" />;
   return (
     <div className={`media-thumb${pending ? ' pending' : ''}`}>

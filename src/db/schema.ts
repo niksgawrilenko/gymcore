@@ -1,8 +1,7 @@
-// Описание СУЩЕСТВУЮЩЕЙ схемы БД (снято через `drizzle-kit pull`).
-// Структуру таблиц этот проект не меняет — только читает/пишет данные.
-// Индексы добавляются отдельно: см. db/indexes.sql.
+// Types for the EXISTING database schema (dumped with `drizzle-kit pull`).
+// This project never alters table structure — it only reads and writes data; indexes live in db/indexes.sql.
 import { relations, sql } from 'drizzle-orm';
-import { boolean, integer, jsonb, numeric, pgTable, serial, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, integer, jsonb, numeric, pgTable, serial, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core';
 
 export type Media = { type: 'image' | 'video'; url: string };
 
@@ -28,6 +27,39 @@ export const exercises = pgTable('exercises', {
   equipment: varchar({ length: 255 }),
 });
 
+// i18n: translations of exercise names. The Russian name stays in exercises.name; this table only
+// holds the per-locale translation (see db/schema.sql and docs/i18n-plan.md §5).
+export const exerciseTranslations = pgTable(
+  'exercise_translations',
+  {
+    id: serial().primaryKey(),
+    exerciseId: integer('exercise_id')
+      .notNull()
+      .references(() => exercises.id, { onDelete: 'cascade' }),
+    locale: varchar({ length: 5 }).notNull(),
+    name: varchar({ length: 100 }).notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [unique().on(t.exerciseId, t.locale)],
+);
+
+// i18n: translations of reference strings that have no id of their own (muscle groups, categories,
+// equipment, service labels). `source_value` keeps the original Russian value as is: a translation is
+// looked up by (kind, source_value), so renaming a Russian value requires updating this table.
+// kind: primary_group | secondary_muscle | category | equipment | ui_string
+export const referenceTranslations = pgTable(
+  'reference_translations',
+  {
+    id: serial().primaryKey(),
+    kind: varchar({ length: 30 }).notNull(),
+    sourceValue: varchar('source_value', { length: 255 }).notNull(),
+    locale: varchar({ length: 5 }).notNull(),
+    value: varchar({ length: 255 }).notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [unique().on(t.kind, t.sourceValue, t.locale)],
+);
+
 export const templates = pgTable('templates', {
   id: serial().primaryKey(),
   name: varchar({ length: 100 }).notNull(),
@@ -52,6 +84,8 @@ export const templateSets = pgTable('template_sets', {
   setOrder: integer('set_order').default(0),
   weight: numeric({ precision: 5, scale: 2 }),
   reps: integer(),
+  // Legacy columns: never read or written by the app (cardio is stored as weight = minutes, reps = meters).
+  // Kept only to mirror the database; do not start using them without a new migration.
   durationSec: integer('duration_sec'),
   distanceM: integer('distance_m'),
 });
@@ -79,6 +113,7 @@ export const sets = pgTable('sets', {
   setOrder: integer('set_order').default(0),
   weight: numeric({ precision: 5, scale: 2 }),
   reps: integer(),
+  // Legacy columns, same as template_sets: unused by the app (see the note there).
   durationSec: integer('duration_sec'),
   distanceM: integer('distance_m'),
   completed: boolean().default(false),
@@ -98,7 +133,7 @@ export const measurements = pgTable('measurements', {
   neck: numeric({ precision: 5, scale: 2 }),
 });
 
-// --- Связи для реляционных запросов (одна SQL-выборка вместо N+1) ---
+// --- Relations for nested relational queries (one SQL query instead of N+1) ---
 
 export const templatesRelations = relations(templates, ({ many }) => ({
   templateExercises: many(templateExercises),
@@ -110,10 +145,6 @@ export const templateExercisesRelations = relations(templateExercises, ({ one, m
   templateSets: many(templateSets),
 }));
 
-export const templateSetsRelations = relations(templateSets, ({ one }) => ({
-  templateExercise: one(templateExercises, { fields: [templateSets.templateExerciseId], references: [templateExercises.id] }),
-}));
-
 export const workoutsRelations = relations(workouts, ({ many }) => ({
   workoutExercises: many(workoutExercises),
 }));
@@ -122,8 +153,4 @@ export const workoutExercisesRelations = relations(workoutExercises, ({ one, man
   workout: one(workouts, { fields: [workoutExercises.workoutId], references: [workouts.id] }),
   exercise: one(exercises, { fields: [workoutExercises.exerciseId], references: [exercises.id] }),
   sets: many(sets),
-}));
-
-export const setsRelations = relations(sets, ({ one }) => ({
-  workoutExercise: one(workoutExercises, { fields: [sets.workoutExerciseId], references: [workoutExercises.id] }),
 }));

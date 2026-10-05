@@ -1,10 +1,10 @@
-// Чтение данных для страниц. Каждая функция — 1 SQL-запрос (реляционные запросы Drizzle
-// собирают вложенные упражнения/подходы через json-агрегацию на стороне Postgres).
+// Page data reads. Every function issues a single SQL query: Drizzle relational queries nest
+// exercises/sets through json aggregation on the Postgres side (no N+1).
 import 'server-only';
 import { and, asc, desc, eq, getTableColumns, or, sql, type SQL } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { db } from '@/db';
-import { exercises, measurements, templates, workouts } from '@/db/schema';
+import { exercises, measurements, templates, workoutExercises, workouts } from '@/db/schema';
 import { DEFAULT_TZ, isValidTz, TZ_COOKIE } from './dates';
 import { nameKey, type ExerciseInfo, type ExerciseListItem, type PrevSetsMap } from './types';
 
@@ -25,21 +25,23 @@ export const toExerciseInfo = (e: ExerciseRow): ExerciseInfo => ({
   equipment: e.equipment,
 });
 
-const visibleTo = (userId: number) => or(eq(exercises.isPublic, true), eq(exercises.userId, userId));
+/** Access rule shared with the actions layer: an exercise is visible if it is public or the user's own. */
+export const visibleTo = (userId: number) => or(eq(exercises.isPublic, true), eq(exercises.userId, userId));
 
-/** Все доступные пользователю упражнения + сколько раз он их делал (для сортировки в поиске). */
+/** All exercises available to the user plus how many times they were performed (search sorting). */
 export async function getExercises(userId: number): Promise<ExerciseListItem[]> {
+  // Single pass: the usage counter is aggregated over the same join instead of a correlated
+  // sub-select executed once per exercise row.
   const rows = await db
     .select({
       ...getTableColumns(exercises),
-      usage: sql<number>`(
-        select count(*)::int from workout_exercises we
-        join workouts w on w.id = we.workout_id
-        where we.exercise_id = "exercises"."id" and w.user_id = ${userId}
-      )`,
+      usage: sql<number>`count(${workouts.id})::int`,
     })
     .from(exercises)
+    .leftJoin(workoutExercises, eq(workoutExercises.exerciseId, exercises.id))
+    .leftJoin(workouts, and(eq(workouts.id, workoutExercises.workoutId), eq(workouts.userId, userId)))
     .where(visibleTo(userId))
+    .groupBy(exercises.id)
     .orderBy(asc(exercises.name));
 
   return rows.map((r) => ({
@@ -60,7 +62,7 @@ export async function getWorkoutList(userId: number) {
   return rows.map((r) => ({ id: r.id, title: r.title, date: r.date?.getTime() ?? 0 }));
 }
 
-/** Тренировка целиком. Проверка владельца — прямо в WHERE (в старом API её не было). */
+/** A whole workout. Ownership is enforced right in the WHERE clause. */
 export async function getWorkout(userId: number, id: number) {
   const w = await db.query.workouts.findFirst({
     where: and(eq(workouts.id, id), eq(workouts.userId, userId)),
@@ -140,11 +142,10 @@ export async function getSharedExercise(shareId: string) {
 }
 
 /**
- * Последний выполненный набор подходов для каждого упражнения (по имени).
- * Раньше фронт на каждый старт тренировки скачивал ВСЮ историю подходов и считал это в браузере.
+ * Latest performed set list per exercise (keyed by lowercase exercise name).
+ * The key is lowercased in JS: Postgres lower() is locale-dependent and may not handle Cyrillic.
  */
 export async function getPrevSets(userId: number): Promise<PrevSetsMap> {
-  // Регистр приводим в JS: lower() в Postgres зависит от локали БД и может не понимать кириллицу
   const { rows } = await db.execute<{ name: string; sets: PrevSetsMap[string] }>(sql`
     with last_we as (
       select distinct on (e.name) e.name, w.workout_date, we.id as we_id
@@ -161,7 +162,7 @@ export async function getPrevSets(userId: number): Promise<PrevSetsMap> {
     from last_we l
     order by l.workout_date asc
   `);
-  // Сортировка по дате: при совпадении имён без учёта регистра побеждает более свежая тренировка
+  // Ordered by date: among case-insensitive name matches the fresher workout wins
   return Object.fromEntries(rows.map((r) => [nameKey(r.name), r.sets ?? []]));
 }
 
@@ -184,7 +185,7 @@ export async function getMeasurements(userId: number, limit: number) {
     .limit(limit);
 }
 
-// "Выполненный" подход — как в старой статистике: отмечен галочкой ИЛИ заполнен.
+// A "performed" set — same rule as the legacy stats: checked OR filled in.
 const DONE = sql.raw('(s.completed or s.weight is not null or s.reps is not null)');
 
 export async function getStats(userId: number) {
@@ -229,7 +230,7 @@ export async function getStats(userId: number) {
   };
 }
 
-/** Прогресс по упражнению: максимальный вес и число подходов за каждую тренировку. */
+/** Per-exercise progress: max weight and set count for each workout. */
 export async function getExerciseProgress(userId: number, exerciseName: string) {
   const { rows } = await db.execute<{ date: string; max_weight: string | null; sets: number }>(sql`
     select to_char(w.workout_date, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as date,

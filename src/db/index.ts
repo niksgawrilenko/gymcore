@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 
-// Один пул на процесс (в dev переживает hot-reload через globalThis).
+// One pool per process (kept across hot reloads in dev via globalThis).
 const globalForDb = globalThis as unknown as { pgPool?: Pool };
 
 const pool =

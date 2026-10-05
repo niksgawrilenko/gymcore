@@ -7,6 +7,7 @@ import { templateExercises, templateSets, templates } from '@/db/schema';
 import { requireUser } from '@/lib/auth';
 import { getSharedTemplate } from '@/lib/data';
 import { assignSupersetIds, firstError, templateInput, type TemplateInput } from '@/lib/validation';
+import { localeHref } from '@/i18n/server';
 import { exercisesVisible, fail, ok, type ActionResult } from './_shared';
 
 export async function saveTemplate(input: TemplateInput, id?: number): Promise<ActionResult<{ id: number }>> {
@@ -15,7 +16,7 @@ export async function saveTemplate(input: TemplateInput, id?: number): Promise<A
   if (!parsed.success) return fail(firstError(parsed.error));
   const t = parsed.data;
 
-  if (!(await exercisesVisible(user.id, t.exercises.map((e) => e.id)))) return fail('Упражнение не найдено');
+  if (!(await exercisesVisible(user.id, t.exercises.map((e) => e.id)))) return fail('exerciseNotFound');
 
   const supersetIds = assignSupersetIds(t.exercises);
 
@@ -58,15 +59,15 @@ export async function saveTemplate(input: TemplateInput, id?: number): Promise<A
     return tid;
   });
 
-  if (!templateId) return fail('Нет прав или шаблон не найден');
-  revalidatePath('/templates');
+  if (!templateId) return fail('noPermission');
+  revalidatePath('/', 'layout');
   return ok({ id: templateId });
 }
 
 export async function deleteTemplate(id: number): Promise<ActionResult> {
   const user = await requireUser();
   await db.delete(templates).where(and(eq(templates.id, id), eq(templates.userId, user.id)));
-  revalidatePath('/templates');
+  revalidatePath('/', 'layout');
   return ok(undefined);
 }
 
@@ -76,15 +77,15 @@ export async function submitTemplateForModeration(id: number): Promise<ActionRes
     .update(templates)
     .set({ moderationStatus: 'pending' })
     .where(and(eq(templates.id, id), eq(templates.userId, user.id)));
-  revalidatePath('/templates');
+  revalidatePath('/', 'layout');
   return ok(undefined);
 }
 
-/** Копия чужого шаблона по ссылке — вместе с подходами и суперсетами. */
+/** A copy of a shared template, together with its sets and supersets. */
 export async function importSharedTemplate(shareId: string) {
   await requireUser();
   const tpl = await getSharedTemplate(shareId);
-  if (!tpl) return fail('Шаблон не найден');
+  if (!tpl) return fail('templateNotFound');
 
   let prev: string | null = null;
   const res = await saveTemplate({
@@ -97,5 +98,5 @@ export async function importSharedTemplate(shareId: string) {
     }),
   });
   if (!res.ok) return res;
-  redirect('/templates');
+  redirect(await localeHref('/templates'));
 }

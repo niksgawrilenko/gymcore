@@ -1,6 +1,7 @@
 'use client';
-// Список упражнений с подходами. Используется в активной тренировке, при правке тренировки из истории
-// и в конструкторе шаблонов. Суперсет = группа подряд идущих упражнений, перетаскивается целиком.
+// Exercise list with sets. Used by the active workout, the history editor and the template builder.
+// A superset is a group of consecutive exercises and is dragged as a whole.
+import { useTranslations } from 'next-intl';
 import {
   closestCenter,
   DndContext,
@@ -13,7 +14,7 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useEffect, useState, useSyncExternalStore, type HTMLAttributes } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type HTMLAttributes } from 'react';
 import {
   emptySet,
   groupExercises,
@@ -31,13 +32,13 @@ type Props = {
   exercises: EditorExercise[];
   onChange: (next: EditorExercise[]) => void;
   editing: boolean;
-  showChecks?: boolean; // галочки «выполнено» — только в тренировке
-  prevSets?: PrevSetsMap; // есть только в активной тренировке -> колонка «Прошлый»
+  showChecks?: boolean; // "done" checkboxes — on the workout screens only
+  prevSets?: PrevSetsMap; // active workout only -> shows the "previous" column
   allExercises?: ExerciseListItem[];
   emptyText?: string;
 };
 
-// «Свернуть все» — общая настройка для всех списков, хранится в localStorage
+// "Collapse all" is a shared setting for every list, stored in localStorage
 const COLLAPSED_KEY = 'gymcore_sets_collapsed';
 const COLLAPSED_EVENT = 'gymcore:collapsed';
 
@@ -66,10 +67,11 @@ function subscribeCollapsed(cb: () => void) {
 }
 
 export function ExerciseListEditor({ exercises, onChange, editing, showChecks = true, prevSets, allExercises = [], emptyText }: Props) {
-  // 'add' = новое упражнение, число = индекс заменяемого
+  const t = useTranslations('editor');
+  // 'add' = new exercise, a number = index of the exercise being replaced
   const [picker, setPicker] = useState<'add' | number | null>(null);
   const allCollapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
-  // Ручное сворачивание отдельных упражнений поверх общего состояния (сбрасывается кнопкой «все»)
+  // Per-exercise manual collapsing on top of the global flag (reset by the "all" button)
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const isCollapsed = (key: string) => overrides[key] ?? allCollapsed;
   const everyCollapsed = exercises.length > 0 && exercises.every((ex) => isCollapsed(ex.key));
@@ -85,15 +87,18 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const groups = groupExercises(exercises);
+  // Grouping and the sortable id list are derived from the exercise list only — memoize them so that
+  // typing in a set input does not rebuild both arrays on every keystroke.
+  const groups = useMemo(() => groupExercises(exercises), [exercises]);
+  const groupIds = useMemo(() => groups.map((g) => g[0].item.key), [groups]);
   const update = (index: number, patch: Partial<EditorExercise>) =>
     onChange(exercises.map((ex, i) => (i === index ? { ...ex, ...patch } : ex)));
 
   function onDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return;
-    const ids = groups.map((g) => g[0].item.key);
+    const ids = groupIds;
     const moved = arrayMove(groups, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
-    // Первое упражнение каждой группы — «голова», не связанная с предыдущим
+    // The first exercise of each group is the head and is never linked to the previous one
     onChange(moved.flatMap((g) => g.map(({ item }, j) => (j === 0 ? { ...item, isSuperset: false } : item))));
   }
 
@@ -101,8 +106,8 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
     onChange([...exercises, { ...ex, key: newKey(), isSuperset: false, sets: [emptySet()] }]);
   }
 
-  // Ключ и связь суперсета остаются. Подходы переносятся, если тип тот же (силовое/кардио),
-  // иначе — столько же пустых: килограммы и минуты не взаимозаменяемы.
+  // The key and the superset link are kept. Sets are carried over when the exercise type matches
+  // (strength/cardio), otherwise the same number of empty ones: kilograms and minutes are not interchangeable.
   function replaceExercise(index: number, ex: ExerciseInfo) {
     const old = exercises[index];
     const sets = ex.exercise_type === old.exercise_type ? old.sets : old.sets.map(emptySet);
@@ -113,7 +118,7 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
 
   const list =
     exercises.length === 0 ? (
-      <div className="empty-state">{emptyText ?? 'Упражнений пока нет'}</div>
+      <div className="empty-state">{emptyText ?? t('empty')}</div>
     ) : (
       groups.map((group) => (
         <Group key={group[0].item.key} id={group[0].item.key} sortable={editing}>
@@ -134,7 +139,7 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
                 onChangeSets={(sets) => update(index, { sets })}
                 onToggleSuperset={() => update(index, { isSuperset: !item.isSuperset })}
                 onReplace={() => setPicker(index)}
-                onRemove={() => confirm('Удалить упражнение?') && onChange(exercises.filter((_, i) => i !== index))}
+                onRemove={() => confirm(t('confirmDelete')) && onChange(exercises.filter((_, i) => i !== index))}
                 onInfo={() => setInfo(item)}
               />
             ))
@@ -147,15 +152,15 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
     <>
       {exercises.length > 0 && (
         <div className="list-toolbar">
-          <span className="caps">Упражнения · {exercises.length}</span>
+          <span className="caps">{t('header', { count: exercises.length })}</span>
           <button type="button" className="link-btn" onClick={toggleAll}>
-            {everyCollapsed ? '▾ Развернуть все' : '▴ Свернуть все'}
+            {everyCollapsed ? t('expandAll') : t('collapseAll')}
           </button>
         </div>
       )}
       {editing ? (
         <DndContext id="exercise-list" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext items={groups.map((g) => g[0].item.key)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
             {list}
           </SortableContext>
         </DndContext>
@@ -166,11 +171,11 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
       {editing && (
         <>
           <button type="button" className="outline-btn" onClick={() => setPicker('add')}>
-            + Добавить упражнение
+            {t('addExercise')}
           </button>
           <ExercisePicker
             open={picker !== null}
-            title={picker === 'add' ? undefined : 'Заменить упражнение'}
+            title={picker === 'add' ? undefined : t('replaceTitle')}
             exercises={allExercises}
             onClose={() => setPicker(null)}
             onPick={onPick}
@@ -236,10 +241,11 @@ function ExerciseCard({
   onRemove: () => void;
   onInfo: () => void;
 }) {
+  const t = useTranslations('editor');
   const [menuOpen, setMenuOpen] = useState(false);
   const isCardio = ex.exercise_type === 'cardio';
 
-  // Закрытие меню «⋮» по клику в любом месте
+  // Close the "⋮" menu on any click outside
   useEffect(() => {
     if (!menuOpen) return;
     const close = () => setMenuOpen(false);
@@ -251,7 +257,7 @@ function ExerciseCard({
 
   const ssClass = position === 'single' ? '' : ` superset-card ss-${position}`;
   const done = ex.sets.filter((s) => s.completed).length;
-  // Сетка подходов: № | [прошлый] | вес | повторы | [✓] | [✕]
+  // Set grid: # | [previous] | weight | reps | [✓] | [✕]
   const cols = ['28px', showPrev && 'minmax(0, 1fr)', 'minmax(0, 1.1fr)', 'minmax(0, 1.1fr)', showChecks && '40px', editing && '24px']
     .filter(Boolean)
     .join(' ');
@@ -261,11 +267,11 @@ function ExerciseCard({
       <div className="row-between">
         <h4 className="exercise-title">
           {editing && (
-            <span className="drag-handle" {...handleProps} aria-label="Перетащить">
+            <span className="drag-handle" {...handleProps} aria-label={t('drag')}>
               ≡
             </span>
           )}
-          <span className="grow clickable" onClick={onToggleCollapsed} title={collapsed ? 'Развернуть' : 'Свернуть'}>
+          <span className="grow clickable" onClick={onToggleCollapsed} title={collapsed ? t('expand') : t('collapse')}>
             {index + 1}. {ex.name}
           </span>
           {collapsed && (
@@ -287,7 +293,7 @@ function ExerciseCard({
             ⋮
           </button>
         ) : (
-          <button type="button" className="ghost-btn muted" style={{ fontSize: 16 }} onClick={onInfo} aria-label="Информация">
+          <button type="button" className="ghost-btn muted" style={{ fontSize: 16 }} onClick={onInfo} aria-label={t('info')}>
             ℹ️
           </button>
         )}
@@ -295,21 +301,21 @@ function ExerciseCard({
 
       <div className={`exercise-menu${menuOpen ? ' active' : ''}`}>
         <button type="button" className="menu-item" onClick={onInfo}>
-          ℹ️ Информация
+          {t('info')}
         </button>
         {index > 0 && (
           <button type="button" className="menu-item" onClick={onToggleSuperset}>
-            🔗 {ex.isSuperset ? 'Открепить' : 'Суперсет с предыдущим'}
+            🔗 {ex.isSuperset ? t('detach') : t('superset')}
           </button>
         )}
         <button type="button" className="menu-item" onClick={onReplace}>
-          🔄 Заменить
+          {t('replace')}
         </button>
         <button type="button" className="menu-item" onClick={onToggleCollapsed}>
-          {collapsed ? '▾ Развернуть' : '▴ Свернуть'}
+          {collapsed ? `▾ ${t('expand')}` : `▴ ${t('collapse')}`}
         </button>
         <button type="button" className="menu-item danger" onClick={onRemove}>
-          🗑 Удалить
+          {t('deleteItem')}
         </button>
       </div>
 
@@ -317,9 +323,9 @@ function ExerciseCard({
         <div className="sets" style={{ '--set-cols': cols } as React.CSSProperties}>
           <div className="set-header">
             <div>#</div>
-            {showPrev && <div>ПРОШЛЫЙ</div>}
-            <div>{isCardio ? 'МИН' : 'КГ'}</div>
-            <div>{isCardio ? 'МЕТРЫ' : 'ПОВТ'}</div>
+            {showPrev && <div>{t('colPrev')}</div>}
+            <div>{isCardio ? t('colMin') : t('colKg')}</div>
+            <div>{isCardio ? t('colMeters') : t('colReps')}</div>
             {showChecks && <div>✓</div>}
             {editing && <div></div>}
           </div>
@@ -338,14 +344,14 @@ function ExerciseCard({
               onRemove={() =>
                 ex.sets.length > 1
                   ? onChangeSets(ex.sets.filter((_, j) => j !== i))
-                  : alert('Нельзя удалить единственный подход. Если нужно, удалите упражнение целиком.')
+                  : alert(t('onlySet'))
               }
             />
           ))}
 
           {editing && (
             <button type="button" className="add-set-btn" onClick={() => onChangeSets([...ex.sets, emptySet()])}>
-              + Подход
+              {t('addSet')}
             </button>
           )}
         </div>
@@ -383,11 +389,12 @@ function SetRow({
   onChange: (patch: Partial<EditorSet>) => void;
   onRemove: () => void;
 }) {
+  const t = useTranslations('editor');
   const prevW = prev?.weight != null ? String(Number(prev.weight)) : '';
   const prevR = prev?.reps != null ? String(prev.reps) : '';
   const prevText = prevW || prevR ? [prevW || '–', prevR || '–'].join(isCardio ? ' / ' : ' × ') : '—';
 
-  // Отметили подход выполненным с пустыми полями -> подставляем прошлый результат
+  // Marking a set as done while the fields are empty -> fill in the previous result
   const toggleDone = () => {
     const completed = !set.completed;
     onChange({
@@ -406,7 +413,7 @@ function SetRow({
           className="set-prev"
           disabled={!editing || (!prevW && !prevR)}
           onClick={() => onChange({ weight: prevW, reps: prevR })}
-          title="Подставить прошлый результат"
+          title={t('usePrev')}
         >
           {prevText}
         </button>
@@ -420,7 +427,7 @@ function SetRow({
               inputMode="decimal"
               step="0.1"
               className="set-input"
-              placeholder={prevW || (isCardio ? 'мин' : 'кг')}
+              placeholder={prevW || (isCardio ? t('phMin') : t('phKg'))}
               value={set.weight}
               onChange={(e) => onChange({ weight: e.target.value })}
             />
@@ -431,7 +438,7 @@ function SetRow({
               type="number"
               inputMode="numeric"
               className="set-input"
-              placeholder={prevR || (isCardio ? 'м' : 'раз')}
+              placeholder={prevR || (isCardio ? t('phM') : t('phReps'))}
               value={set.reps}
               onChange={(e) => onChange({ reps: e.target.value })}
             />
@@ -449,7 +456,7 @@ function SetRow({
         </button>
       )}
       {editing && (
-        <button type="button" className="delete-set-btn" onClick={onRemove} aria-label="Удалить подход">
+        <button type="button" className="delete-set-btn" onClick={onRemove} aria-label={t('deleteSet')}>
           ✕
         </button>
       )}

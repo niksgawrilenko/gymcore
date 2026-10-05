@@ -15,3 +15,10 @@ CREATE INDEX IF NOT EXISTS templates_user_idx              ON templates (user_id
 CREATE INDEX IF NOT EXISTS measurements_user_date_idx      ON measurements (user_id, date DESC);
 CREATE INDEX IF NOT EXISTS exercises_share_idx             ON exercises (share_id);
 CREATE INDEX IF NOT EXISTS templates_share_idx             ON templates (share_id);
+
+-- Локализация (i18n): выборка переводов для локали; уникальность (exercise_id, locale) объявлена в schema.sql.
+CREATE INDEX IF NOT EXISTS exercise_translations_locale_idx ON exercise_translations (locale);
+
+-- Локализация (i18n): поиск перевода справочной строки по паре (kind, source_value);
+-- уникальность (kind, source_value, locale) объявлена в schema.sql.
+CREATE INDEX IF NOT EXISTS reference_translations_lookup_idx ON reference_translations (kind, source_value);

@@ -1,13 +1,18 @@
 'use client';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { saveExercise } from '@/actions/exercises';
+import { useActionError } from '@/i18n/errors';
 import { ANATOMY, PRIMARY_GROUPS } from '@/lib/anatomy';
 import type { ExerciseInfo, ExerciseListItem } from '@/lib/types';
+import { searchExercises } from '@/lib/search';
 import { Modal, ModalHeader } from './Modal';
 
-// ---------- Информация об упражнении ----------
+// ---------- Exercise info ----------
 
 export function ExerciseInfoModal({ exercise, onClose }: { exercise: ExerciseInfo | null; onClose: () => void }) {
+  const t = useTranslations('exerciseInfo');
+  const tc = useTranslations('common');
   const ex = exercise;
   return (
     <Modal open={!!ex} onClose={onClose} className="auto" zIndex={1100}>
@@ -16,28 +21,28 @@ export function ExerciseInfoModal({ exercise, onClose }: { exercise: ExerciseInf
           <ModalHeader title={ex.name} onClose={onClose} />
           <div style={{ padding: '10px 0', fontSize: 15, lineHeight: 1.5 }}>
             <p className="info-row">
-              <span className="muted">Тип:</span>
+              <span className="muted">{t('type')}</span>
               <br />
-              <b>{ex.exercise_type === 'cardio' ? 'Кардио' : 'Силовое'}</b>
+              <b>{ex.exercise_type === 'cardio' ? t('cardio') : t('strength')}</b>
             </p>
             <p className="info-row">
-              <span className="muted">Оборудование:</span>
+              <span className="muted">{t('equipment')}</span>
               <br />
-              <b>{ex.equipment || 'Собственный вес / Без оборудования'}</b>
+              <b>{ex.equipment || t('bodyweight')}</b>
             </p>
             <p className="info-row">
-              <span className="muted">Основные мышцы:</span>
+              <span className="muted">{t('primaryMuscles')}</span>
               <br />
-              <b className="accent-text">{ex.primary_groups.length ? ex.primary_groups.join(', ') : ex.category || 'Не указано'}</b>
+              <b className="accent-text">{ex.primary_groups.length ? ex.primary_groups.join(', ') : ex.category || t('notSpecified')}</b>
             </p>
             <p>
-              <span className="muted">Дополнительные мышцы:</span>
+              <span className="muted">{t('secondaryMuscles')}</span>
               <br />
-              <b>{ex.secondary_muscles.length ? ex.secondary_muscles.join(', ') : 'Нет'}</b>
+              <b>{ex.secondary_muscles.length ? ex.secondary_muscles.join(', ') : t('none')}</b>
             </p>
           </div>
           <button type="button" className="primary-btn mt" onClick={onClose}>
-            Закрыть
+            {tc('close')}
           </button>
         </>
       )}
@@ -45,7 +50,7 @@ export function ExerciseInfoModal({ exercise, onClose }: { exercise: ExerciseInf
   );
 }
 
-// ---------- Создание / правка упражнения ----------
+// ---------- Create / edit an exercise ----------
 
 export function ExerciseFormModal({
   open,
@@ -54,13 +59,13 @@ export function ExerciseFormModal({
   onSaved,
 }: {
   open: boolean;
-  editing: ExerciseInfo | null; // null = новое
+  editing: ExerciseInfo | null; // null = a new exercise
   onClose: () => void;
   onSaved: (ex: ExerciseInfo) => void;
 }) {
   return (
     <Modal open={open} onClose={onClose} className="auto" zIndex={1050}>
-      {/* key пересоздаёт форму при каждом открытии -> чистое состояние */}
+      {/* the key re-creates the form on every open -> clean state */}
       {open && <ExerciseForm key={editing?.id ?? 'new'} editing={editing} onClose={onClose} onSaved={onSaved} />}
     </Modal>
   );
@@ -75,6 +80,9 @@ function ExerciseForm({
   onClose: () => void;
   onSaved: (ex: ExerciseInfo) => void;
 }) {
+  const t = useTranslations('exerciseForm');
+  const tc = useTranslations('common');
+  const err = useActionError();
   const initialPrimary = editing ? (editing.primary_groups.length ? editing.primary_groups : editing.category ? [editing.category] : []) : [];
   const [name, setName] = useState(editing?.name ?? '');
   const [type, setType] = useState(editing?.exercise_type === 'cardio' ? 'cardio' : 'strength');
@@ -97,22 +105,22 @@ function ExerciseForm({
       editing?.id,
     );
     setSaving(false);
-    if (!res.ok) return setError(res.error);
+    if (!res.ok) return setError(err(res.error));
     onSaved(res.data);
     onClose();
   }
 
   return (
     <>
-      <ModalHeader title={editing ? 'Правка упражнения' : 'Новое упражнение'} onClose={onClose} />
+      <ModalHeader title={editing ? t('editTitle') : t('newTitle')} onClose={onClose} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 15, marginBottom: 25 }}>
         <div className="field">
-          <label>Название</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Например: Жим лежа" />
+          <label>{t('name')}</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('namePlaceholder')} />
         </div>
 
         <div>
-          <div className="caps xsmall">Основные группы (можно несколько)</div>
+          <div className="caps xsmall">{t('primaryGroups')}</div>
           <div className="chip-group">
             {PRIMARY_GROUPS.map((g) => (
               <label key={g}>
@@ -122,14 +130,14 @@ function ExerciseForm({
             ))}
           </div>
           <div className="field" style={{ marginTop: 10 }}>
-            <label>Свои мышцы (через запятую)</label>
-            <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Например: Брахиалис, Камбаловидная" />
+            <label>{t('customMuscles')}</label>
+            <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder={t('customPlaceholder')} />
           </div>
         </div>
 
         <div>
           <button type="button" className="ghost-btn accent-text bold" style={{ fontSize: 13, padding: 0 }} onClick={() => setAnatomyOpen(!anatomyOpen)}>
-            {anatomyOpen ? '▼' : '▶'} Детальная анатомия (опционально)
+            {anatomyOpen ? '▼' : '▶'} {t('anatomy')}
           </button>
           {anatomyOpen && (
             <div className="anatomy-details open" style={{ background: 'rgba(0,0,0,0.05)', padding: 10, borderRadius: 8 }}>
@@ -153,38 +161,25 @@ function ExerciseForm({
         </div>
 
         <div className="field">
-          <label>Тип тренировки</label>
+          <label>{t('exerciseType')}</label>
           <select value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="strength">Силовое (Вес + Повторы)</option>
-            <option value="cardio">Кардио (Время + Расстояние)</option>
+            <option value="strength">{t('typeStrength')}</option>
+            <option value="cardio">{t('typeCardio')}</option>
           </select>
         </div>
       </div>
       {error && <div className="error-box">{error}</div>}
       <button type="button" className="primary-btn" disabled={saving} onClick={submit}>
-        {saving ? '⏳...' : 'Сохранить'}
+        {saving ? '⏳...' : tc('save')}
       </button>
     </>
   );
 }
 
-// ---------- Выбор упражнения (поиск по словам: «тяга спина») ----------
-
-export function searchExercises<T extends ExerciseInfo & { usage_count?: number }>(list: T[], query: string) {
-  const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const filtered = terms.length
-    ? list.filter((ex) => {
-        const text = [ex.name, ex.category, ...ex.primary_groups, ...ex.secondary_muscles].join(' ').toLowerCase();
-        return terms.every((t) => text.includes(t));
-      })
-    : list;
-  // Сначала то, что делаешь чаще всего
-  return [...filtered].sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.name.localeCompare(b.name, 'ru'));
-}
-
+// ---------- Exercise picker (multi-word search: "back row") ----------
 export function ExercisePicker({
   open,
-  title = 'Упражнения',
+  title,
   exercises,
   onClose,
   onPick,
@@ -195,9 +190,11 @@ export function ExercisePicker({
   onClose: () => void;
   onPick: (ex: ExerciseInfo) => void;
 }) {
+  const t = useTranslations('exercisePicker');
+  const locale = useLocale();
   const [query, setQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
-  const results = useMemo(() => searchExercises(exercises, query), [exercises, query]);
+  const results = useMemo(() => searchExercises(exercises, query, locale), [exercises, query, locale]);
 
   const pick = (ex: ExerciseInfo) => {
     onPick(ex);
@@ -208,24 +205,24 @@ export function ExercisePicker({
   return (
     <>
       <Modal open={open} onClose={onClose}>
-        <ModalHeader title={title} onClose={onClose}>
+        <ModalHeader title={title ?? t('title')} onClose={onClose}>
           <button type="button" className="plus-btn" style={{ padding: 0 }} onClick={() => setFormOpen(true)}>
             +
           </button>
         </ModalHeader>
         <input
           className="set-input left mb"
-          placeholder="🔍 Поиск (тяга спина)..."
+          placeholder={t('searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="modal-list">
-          {results.length === 0 && <div className="empty-state">Не найдено</div>}
+          {results.length === 0 && <div className="empty-state">{t('notFound')}</div>}
           {results.map((ex) => (
             <div key={ex.id} className="exercise-list-item" onClick={() => pick(ex)}>
               <b>{ex.name}</b>
               <br />
-              <small className="muted">{ex.primary_groups[0] ?? ex.category ?? 'Без категории'}</small>
+              <small className="muted">{ex.primary_groups[0] ?? ex.category ?? t('uncategorized')}</small>
             </div>
           ))}
         </div>
