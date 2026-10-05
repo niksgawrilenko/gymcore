@@ -70,8 +70,10 @@ npm run dev                     # http://localhost:3000
    `src/app/[locale]/layout.tsx`) и выводится `<meta name="google-site-verification">` на всех страницах.
    Для `*.vercel.app` подходит **только URL-prefix-ресурс** (`https://<домен>/`) с методом «HTML-тег»:
    DNS TXT-запись добавить нельзя — домен принадлежит Vercel. Значение можно перекрыть переменной
-   `GOOGLE_SITE_VERIFICATION` в Vercel (другой домен/перевыпущенный токен); альтернатива без правок кода —
-   HTML-файл в `public/`.
+   `GOOGLE_SITE_VERIFICATION` в Vercel (другой домен/перевыпущенный токен). Резервный путь, если хочется
+   подтвердить именно методом «HTML-файл»: `public/google0823b479960c35e6.html` (содержимое —
+   `google-site-verification: google0823b479960c35e6.html`) отдаётся как
+   `https://<домен>/google0823b479960c35e6.html`. Токен перевыпустят — файл переименовывается под выданное имя.
 2. **Google Search Console:** добавить ресурс → «Файлы Sitemap» → `sitemap.xml` → «Проверка URL» →
    «Запросить индексирование» для `/welcome` и `/privacy` (для русской версии — `/ru/welcome`, `/ru/privacy`).
 3. **Проверить, что в выдаче правильный домен:** в `robots.txt` и `sitemap.xml` не должно быть `localhost` —

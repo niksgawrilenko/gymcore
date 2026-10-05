@@ -156,7 +156,7 @@ Description: rewrite of the first Reddit paragraph. В галерею кладё
 - [ ] Settings → Pages → Source: `Deploy from a branch`, Branch `main`, folder `/docs` — включает зеркало
       лендинга на `https://niksgawrilenko.github.io/gymcore/` (после включения добавлю ссылку в README).
 - [ ] Закрепить репозиторий в профиле и добавить ссылку в profile README (`niksgawrilenko/niksgawrilenko`).
-- [ ] Google Search Console: URL-prefix-ресурс + «HTML-тег» (токен уже вшит в приложение), затем отправить `sitemap.xml`.
+- [ ] Google Search Console: URL-prefix-ресурс + «HTML-тег» (токен уже вшит в приложение; резерв — метод «HTML-файл», `public/google0823b479960c35e6.html`), затем отправить `sitemap.xml`.
 - [ ] PR в тематические awesome-списки (`awesome-selfhosted`, `awesome-fitness`, списки PWA/Next.js) —
       сначала проверить критерии каждого списка.
 
