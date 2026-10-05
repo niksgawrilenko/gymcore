@@ -54,5 +54,9 @@ Development and deployment notes: [docs/DEV.md](docs/DEV.md).
   a notebook on the rack — or send them a **program link** from inside the app.
 - 🐞 **Found a bug or want a feature?** Open an issue.
 
+## License
+
+MIT — see [LICENSE](LICENSE). Use it, fork it, self-host it.
+
 <!-- Screenshots: drop 2-3 PNGs into docs/ and reference them here — a README with screenshots converts much better. -->
 
