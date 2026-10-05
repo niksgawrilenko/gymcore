@@ -256,3 +256,19 @@ $env:DATABASE_URL = '<prod-url>'; npm run db:i18n:import -- --yes
 `templates/*`, `exercises/*`, `stats/*`, `measurements/*`, `profile`, `settings`, `admin`, `ai/*`, `shared/*` — замена
 русских литералов на `t(...)`, перенос соответствующих разделов в `messages/*.json` и (там же) коды ошибок вместо
 текстов zod (`firstError`).
+
+## 9. Прод-раскатка (2026-10-05)
+
+Схема и данные применены к прод-БД (Neon `neondb`): `npm run db:setup` (идемпотентно, таблица `exercises` не менялась), затем импорт с `--yes` —
+`exercise_translations(en)` = 453 (покрытие `exercises` 100 %), `reference_translations(en)` = 61 (category 16 / equipment 9 / primary_group 8 /
+secondary_muscle 28). Датасеты в репо = прод-набор: `db/i18n/exercise-translations.en.tsv` (452 имени, все переведены; 155 последних — EN-черновик
+агента, вычитывает владелец) и `db/i18n/reference-translations.en.tsv` (69 значений, включая 6 прод-специфичных категорий). Бэкап перед
+изменениями — `.backups/prod-20261005.sql` (локальный, вне репозитория).
+
+Код релиза: EN-поиск матчит переведённые подписи (`src/lib/search.ts` — `RefLabel`; `useRefLabel()` стал стабильным), `localizedAlternates()`
+(`src/i18n/server.ts`) даёт canonical + hreflang (`en`/`ru`/`x-default`) на публичных страницах, `sitemap.ts` отдаёт обе локали с
+`alternates.languages`. `npm run verify` — ALL PASS; каталоги `messages/*` синхронны (381/381 ключей).
+
+Открыто: вычитка 155 EN-черновиков владельцем; 16 baseline-only имён в `.backups/exercise-translations.en.local-baseline.tsv` (в прод-БД их нет);
+ручной прогон `/en/exercises`, `/en/stats`, `/en/ai` под логином после деплоя. Долг Фазы 4 (плюрализация, `users.locale`, `i18n:check`) — отдельно.
+
