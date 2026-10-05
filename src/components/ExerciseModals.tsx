@@ -206,7 +206,7 @@ export function ExercisePicker({
   const refLabel = useRefLabel();
   const [query, setQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
-  const results = useMemo(() => searchExercises(exercises, query, locale), [exercises, query, locale]);
+  const results = useMemo(() => searchExercises(exercises, query, locale, refLabel), [exercises, query, locale, refLabel]);
 
   const pick = (ex: ExerciseInfo) => {
     onPick(ex);

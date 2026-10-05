@@ -23,8 +23,9 @@ export function ExercisesClient({ exercises, userId }: { exercises: ExerciseList
 
   const filtered = useMemo(() => {
     const byGroup = filter ? exercises.filter((ex) => ex.category === filter || ex.primary_groups.includes(filter)) : exercises;
-    return searchExercises(byGroup, deferredQuery, locale);
-  }, [exercises, filter, deferredQuery, locale]);
+    // `refLabel` lets the EN search match the displayed muscle-group/category/equipment labels as well.
+    return searchExercises(byGroup, deferredQuery, locale, refLabel);
+  }, [exercises, filter, deferredQuery, locale, refLabel]);
 
   const [mine, global] = useMemo(
     () => [filtered.filter((ex) => ex.user_id === userId), filtered.filter((ex) => ex.user_id !== userId)],

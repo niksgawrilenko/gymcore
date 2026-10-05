@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { localeHref } from '@/i18n/server';
+import { localeHref, localizedAlternates } from '@/i18n/server';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
 // The markup holds icons and keys only; every label lives in messages('welcome').
@@ -53,12 +53,14 @@ const AI_BULLETS = ['context', 'program', 'control', 'key'] as const;
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('meta');
-  const canonical = await localeHref('/welcome');
+  // Canonical + hreflang for both locales — the landing page is the main indexed page.
+  const alternates = await localizedAlternates('/welcome');
+  const canonical = alternates.canonical;
   const openGraphLocale = (await getLocale()) === 'ru' ? 'ru_RU' : 'en_US';
   return {
     title: t('title'),
     description: t('description'),
-    alternates: { canonical },
+    alternates,
     openGraph: {
       type: 'website',
       url: canonical,

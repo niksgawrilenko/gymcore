@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { localeHref } from '@/i18n/server';
+import { localizedAlternates } from '@/i18n/server';
 import { SITE_NAME } from '@/lib/site';
 
 // Section keys live in messages('privacy'); the markup keeps the structure only.
@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t('title'),
     description: t('description'),
-    alternates: { canonical: await localeHref('/privacy') },
+    alternates: await localizedAlternates('/privacy'),
   };
 }
 

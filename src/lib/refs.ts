@@ -7,6 +7,9 @@ export type RefKind = 'primary_group' | 'secondary_muscle' | 'category' | 'equip
 /** { kind: { sourceValue: label } } — plain object, serializable to client components. */
 export type RefDict = Record<RefKind, Record<string, string>>;
 
+/** Reference-value translator: raw DB value -> display label. Neither side knows the kind. */
+export type RefLabel = (value: string | null | undefined) => string;
+
 export const EMPTY_REF_DICT: RefDict = { primary_group: {}, secondary_muscle: {}, category: {}, equipment: {} };
 
 export const REF_KINDS: readonly RefKind[] = ['primary_group', 'secondary_muscle', 'category', 'equipment'];
