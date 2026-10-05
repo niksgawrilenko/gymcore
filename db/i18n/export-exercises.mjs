@@ -4,30 +4,14 @@
 // Заполненный шаблон не перезаписывается: если в файле уже есть переводы, результат пишется в *.new.tsv.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { config } from 'dotenv';
-import pg from 'pg';
+import { arg, cell, connect, dbTarget, requireDatabaseUrl } from './_shared.mjs';
 
-config({ path: '.env.local' });
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL не задан (см. .env.example)');
-  process.exit(1);
-}
-
-const outArg = process.argv.find((a) => a.startsWith('--out='));
-const target = outArg
-  ? outArg.slice('--out='.length)
-  : fileURLToPath(new URL('exercise-translations.en.tsv', import.meta.url));
+const url = requireDatabaseUrl();
+const target = arg('out', fileURLToPath(new URL('exercise-translations.en.tsv', import.meta.url)));
 
 // Только чтение, поэтому подтверждение не нужно — но полезно видеть, из какой базы выгружаем
 // (локальная или прод: переводы в прод-базу заводятся тем же TSV, см. docs/i18n-plan.md §5.2).
-const dbLabel = (() => {
-  try {
-    const url = new URL(process.env.DATABASE_URL);
-    return `${url.hostname}:${url.port || '5432'}${url.pathname}`;
-  } catch {
-    return '(DATABASE_URL не удалось разобрать)';
-  }
-})();
+const base = dbTarget(url);
 
 const PREAMBLE = [
   '# Шаблон английских переводов названий упражнений (GymCore i18n). Кодировка UTF-8, разделитель — табы.',
@@ -47,12 +31,8 @@ const PREAMBLE = [
 ];
 const HEADER = ['name_ru', 'name_en', 'used_by', 'types', 'groups', 'public'].join('\t');
 
-// Табы/переводы строк внутри полей сломали бы TSV.
-const cell = (value) => String(value ?? '').replace(/[\t\r\n]+/g, ' ').trim();
-
-const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
-await client.connect();
-console.log(`База (только чтение): ${dbLabel}`);
+const client = await connect(url);
+console.log(`База (только чтение): ${base.label}`);
 let groups = [];
 try {
   const { rows } = await client.query(

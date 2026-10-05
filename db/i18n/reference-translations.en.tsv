@@ -14,9 +14,9 @@
 #                                                модель ищет по русским именам упражнений в БД (язык данных = ru).
 #
 # Наполнение DB-части (primary_group/secondary_muscle/category/equipment) из реальной базы:
-# экспортный скрипт по образцу db/i18n/export-exercises.mjs (ещё не написан — следующий шаг блока 7);
-# в файле ниже уже лежат значения, известные из кода (src/lib/anatomy.ts — канонический список формы).
-# Импорт (по образцу import-translations.mjs) должен брать только kind-и справочников и игнорировать ui_string/llm_prompt.
+#   npm run db:i18n:export-refs  — отчёт: какие значения реально лежат в БД и какие из них без перевода
+#   npm run db:i18n:import-refs  — записать переводы из этого файла в reference_translations (идемпотентно)
+# Ниже — значения из src/lib/anatomy.ts (канонический список формы) и из фактических данных БД.
 kind	source_value	value_en	source	destination
 primary_group	Спина и шея	Back & neck	src/lib/anatomy.ts:2	db:reference_translations
 primary_group	Грудь	Chest	src/lib/anatomy.ts:3	db:reference_translations
@@ -47,9 +47,32 @@ secondary_muscle	Внутренняя часть бедра	Adductors	src/lib/an
 secondary_muscle	Наружная часть бедра	Abductors	src/lib/anatomy.ts:7	db:reference_translations
 secondary_muscle	Голень	Calves	src/lib/anatomy.ts:7	db:reference_translations
 secondary_muscle	Ягодицы	Glutes	src/lib/anatomy.ts:8	db:reference_translations
+secondary_muscle	Квадрицепс	Quads	db:exercises.primary_groups (вариант написания «Передняя часть бедра»)	db:reference_translations
+secondary_muscle	Бицепс бедра	Hamstrings	db:exercises.secondary_muscles (вариант написания «Задняя часть бедра»)	db:reference_translations
+secondary_muscle	Широчайшие	Lats	db:exercises.primary_groups (вариант написания «Широчайшие мышцы»)	db:reference_translations
+secondary_muscle	Ягодичные	Glutes	db:exercises.primary_groups (вариант написания «Ягодицы»)	db:reference_translations
+secondary_muscle	Трапеция	Traps	db:exercises.primary_groups	db:reference_translations
+secondary_muscle	Ромбовидные	Rhomboids	db:exercises.primary_groups	db:reference_translations
+secondary_muscle	Группамышц-стабилизаторов	Stabilizer muscles	db:exercises.secondary_muscles (похоже на опечатку в данных; значение-ключ не меняем)	db:reference_translations
 category	Другое	Other	src/lib/data.ts:202 (фолбэк подписи на графике статистики)	db:reference_translations
-equipment	(нет — заполняется экспортом из exercises.equipment)		db:exercises.equipment	db:reference_translations
-category	(нет — заполняется экспортом из exercises.category)		db:exercises.category	db:reference_translations
+category	Спина и шея	Back & neck	db:exercises.category	db:reference_translations
+category	Грудь	Chest	db:exercises.category	db:reference_translations
+category	Плечи	Shoulders	db:exercises.category	db:reference_translations
+category	Руки	Arms	db:exercises.category	db:reference_translations
+category	Пресс и косые	Abs & obliques	db:exercises.category	db:reference_translations
+category	Ноги	Legs	db:exercises.category	db:reference_translations
+category	Ягодицы	Glutes	db:exercises.category	db:reference_translations
+category	Спина	Back	db:exercises.category	db:reference_translations
+category	Пресс	Abs	db:exercises.category	db:reference_translations
+equipment	Тренажер	Machine	db:exercises.equipment	db:reference_translations
+equipment	Собственный вес	Bodyweight	db:exercises.equipment	db:reference_translations
+equipment	Резина	Resistance band	db:exercises.equipment	db:reference_translations
+equipment	Гантели	Dumbbells	db:exercises.equipment	db:reference_translations
+equipment	Штанга	Barbell	db:exercises.equipment	db:reference_translations
+equipment	TRX	TRX	db:exercises.equipment	db:reference_translations
+equipment	Сэндбэг	Sandbag	db:exercises.equipment	db:reference_translations
+equipment	Брусья	Dip bars	db:exercises.equipment	db:reference_translations
+equipment	Турник	Pull-up bar	db:exercises.equipment	db:reference_translations
 ui_string	Некорректные данные	Invalid data	src/actions/ai.ts:107 (было захардкожено)	messages:errors.invalidData
 ui_string	Шаблон от ИИ	AI template	src/actions/ai.ts:160 (было захардкожено)	messages:ai.defaultTemplateName
 ui_string	Свободная тренировка	Free workout	src/lib/draft.ts:31 (было захардкожено)	messages:workout.freeWorkout

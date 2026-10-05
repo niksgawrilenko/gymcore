@@ -101,7 +101,7 @@ src/proxy.ts                            # i18n-обработка + сущест
    - `getExerciseProgress(userId, exerciseName)` / `loadExerciseProgress(name)` → `exerciseId`;
    - `getStats().exercises` → `group by e.id`;
    - SQL-литерал `'Другое'` (`src/lib/data.ts`, `src/actions/exercises.ts`) → сентинел-ключ, перевод в UI;
-   - справочники мышц/оборудования (RU-строки в БД) → маппинг RU→ключ на выходе.
+   - ✅ справочники мышц/групп/категорий/оборудования — переводятся **на выводе** через `reference_translations` (не «маппинг RU→ключ»: ключ остаётся русским, локализуется только подпись — `src/lib/refs.ts`, §5.3).
 5. `revalidatePath('/exercises' | '/measurements' | '/templates' | '/admin')` → `revalidatePath('/', 'layout')`.
 6. Синхронизация переводов: `saveExercise` (владелец пишет перевод текущей локали; `exercises.name` не трогаем) и
    `importSharedExercise` (копирование переводов исходника одной `INSERT … SELECT`) — см. §2.1.
@@ -187,6 +187,26 @@ $env:DATABASE_URL = '<prod-url>'; npm run db:i18n:import -- --yes
   и что UI показывает перевод: `coalesce(t_L.name, e.name)` (§3).
 
 
+### 5.3 Справочные строки: группы мышц, мышцы, категории, оборудование
+
+Справочные значения (`exercises.primary_groups`, `secondary_muscles`, `category`, `equipment`) лежат в БД **по-русски** и переводятся
+**только при показе** — как имена упражнений. Фильтры, группировка, поиск и запись продолжают работать с русскими строками: подмена
+значений в данных сломала бы логику и привела бы к сохранению английского значения в `text[]`.
+
+| Слой | Файл | Роль |
+| --- | --- | --- |
+| Словарь (shared) | `src/lib/refs.ts` | `RefKind`/`RefDict` + `refLabel(dict, value)`: перевода ищется по значению в порядке `primary_group → category → secondary_muscle → equipment` (одна мышца встречается и в группах, и в списке мышц), иначе возвращается русский оригинал |
+| Чтение | `src/lib/data.ts` → `loadRefDict(locale)` | один `SELECT` на запрос (`React cache`); для `ru` — без запроса (язык данных) |
+| Клиент | `src/components/RefsProvider.tsx` → `useRefLabel()` | словарь передаётся из `src/app/[locale]/layout.tsx` (рядом с `TzProvider`); используется в `ExercisesClient`, `ExerciseModals`, `ExercisePicker` |
+| Сервер | `getStats()` (подписи графика), `shared/exercise/[shareId]` | перевод на месте, словарь в клиент не передаётся |
+| Данные | `db/i18n/reference-translations.en.tsv` | 55 строк: 7 групп, 28 мышц (включая варианты написания из БД), 10 категорий, 9 единиц оборудования |
+| Скрипты | `npm run db:i18n:export-refs` / `npm run db:i18n:import-refs` | отчёт покрытия значений БД (`--out=` — полный TSV) / upsert в `reference_translations` (kind-фильтр, `--dry-run`, `--yes`, `--locale`, `--file`) |
+| Обвязка скриптов | `db/i18n/_shared.mjs` | общее для всех `db/i18n/*.mjs`: флаги CLI, определение целевой базы (локальная/прод) и защита от записи в прод без `--yes`, разбор TSV |
+
+Ограничения: неизвестные значения (пользовательские группы/категории) показываются как есть — это безопасный фолбэк; поиск упражнений
+(`src/lib/search.ts`) матчит только по именам и группы не учитывает. Откат: `DROP TABLE reference_translations` — переводы восстановимы импортом из TSV.
+
+
 ## 6. Ловушки миграции роутов (проверять в каждой фазе)
 
 | Что | Где | Как правильно |
@@ -199,6 +219,7 @@ $env:DATABASE_URL = '<prod-url>'; npm run db:i18n:import -- --yes
 | `saveExercise` | `actions/exercises.ts` | upsert перевода текущей локали; `exercises.name` не перезаписывается (EN-правка не должна затирать русское имя) |
 | `importSharedExercise` | `actions/exercises.ts` | копировать переводы исходника одной `INSERT … SELECT` |
 | `getExercises` / `ExercisesClient` | сортировка по `exercises.name`, группировка по `'Без категории'` | сортировать/искать/группировать по отображаемому имени; хардкод-фолбэк вынести в ключ перевода |
+| Справочные строки (группы, мышцы, категории, оборудование) | `ExercisesClient`, `ExerciseModals`, `getStats`, `shared/exercise/[shareId]` | подпись — через `refLabel`/`useRefLabel` (`src/lib/refs.ts`, §5.3); в логике (фильтр `filter === g`, группировка по `primary_groups[0]`, `saveExercise`, поиск) остаются **русские** значения |
 
 ## 7. Приёмка
 

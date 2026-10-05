@@ -3,94 +3,50 @@
 //   node db/i18n/import-translations.mjs --file=file.tsv --locale=en --dry-run
 // Идемпотентно (ON CONFLICT (exercise_id, locale)); таблица exercises и другие данные НЕ меняются,
 // русские названия остаются в exercises.name как есть. Совпадение — по нормализованному name_ru.
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { config } from 'dotenv';
-import pg from 'pg';
+import {
+  arg,
+  assertWriteAllowed,
+  connect,
+  dbTarget,
+  hasFlag,
+  readTsvLines,
+  requireDatabaseUrl,
+  requireLocale,
+} from './_shared.mjs';
 
-config({ path: '.env.local' });
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL не задан (см. .env.example)');
-  process.exit(1);
-}
-
-const arg = (name, fallback) => {
-  const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
-  return hit ? hit.slice(name.length + 3) : fallback;
-};
+const url = requireDatabaseUrl();
 const file = arg('file', fileURLToPath(new URL('exercise-translations.en.tsv', import.meta.url)));
-const locale = arg('locale', 'en');
-const dryRun = process.argv.includes('--dry-run');
-const confirmed = process.argv.includes('--yes');
-if (!/^[a-z]{2}(-[A-Z]{2})?$/.test(locale)) {
-  console.error(`Некорректная локаль: ${locale} (ожидается en / ru / en-US)`);
-  process.exit(1);
-}
-
+const locale = requireLocale(arg('locale', 'en'));
+const dryRun = hasFlag('dry-run');
 // --- куда пишем: локальная база или прод/удалённая (нужно --yes) ---
-// URL разбираем без логина/пароля: в логах остаётся только хост, порт и имя базы.
-const dbHost = (() => {
-  try {
-    return new URL(process.env.DATABASE_URL).hostname;
-  } catch {
-    return '';
-  }
-})();
-const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '0.0.0.0', 'host.docker.internal', 'db', 'postgres'];
-const isLocalDb = LOCAL_HOSTS.includes(dbHost) || dbHost.endsWith('.local');
-const dbLabel = (() => {
-  try {
-    const url = new URL(process.env.DATABASE_URL);
-    return `${url.hostname}:${url.port || '5432'}${url.pathname}`;
-  } catch {
-    return '(DATABASE_URL не удалось разобрать)';
-  }
-})();
-
-// Pre-flight: в не-локальную базу (прод) пишем только с явным подтверждением --yes.
-// Читающие режимы (--dry-run) проходят всегда: они ничего не меняют.
-if (!dryRun && !isLocalDb && !confirmed) {
-  console.error(`[стоп] ${dbLabel} — база не локальная. Записи в неё требуют подтверждения.`);
-  console.error('Проверьте план: npm run db:i18n:import -- --dry-run');
-  console.error(`Затем повторите с флагом --yes${locale === 'en' ? '' : ` --locale=${locale}`}`);
-  console.error('Если это прод: DATABASE_URL из окружения перекрывает .env.local (см. docs/i18n-plan.md §5.2).');
-  process.exit(1);
-}
+const target = dbTarget(url);
+assertWriteAllowed({ target, dryRun, confirmed: hasFlag('yes'), command: 'db:i18n:import', locale });
 
 // --- разбор TSV: name_ru <tab> name_en <tab> контекст… ---
-const text = readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
+const { rows: lines, hasHeader } = readTsvLines(file, 'name_ru');
 const translations = new Map(); // ключ: name_ru.toLowerCase() → { nameRu, nameEn }
 const warnings = [];
-let hasHeader = false;
-text.split(/\r?\n/).forEach((raw, index) => {
-  const line = raw.trim();
-  if (!line || line.startsWith('#')) return;
-  const cols = line.split('\t');
-  if (!hasHeader) {
-    if (cols[0] === 'name_ru') hasHeader = true;
-    else warnings.push(`строка ${index + 1}: ожидался заголовок "name_ru …", строка пропущена`);
-    return;
-  }
+if (!hasHeader) warnings.push(`в файле ${file} не найден заголовок "name_ru …" — проверьте формат TSV`);
+for (const { cols, line } of lines) {
   const nameRu = (cols[0] ?? '').trim();
   const nameEn = (cols[1] ?? '').trim();
-  if (!nameRu) return;
-  if (!nameEn) return; // пустой перевод — строку пропускаем
+  if (!nameRu) continue;
+  if (!nameEn) continue; // пустой перевод — строку пропускаем
   if (nameEn.length > 100) {
-    warnings.push(`строка ${index + 1}: перевод «${nameRu}» длиннее 100 символов (лимит exercises.name) — пропущен`);
-    return;
+    warnings.push(`строка ${line}: перевод «${nameRu}» длиннее 100 символов (лимит exercises.name) — пропущен`);
+    continue;
   }
   const key = nameRu.toLowerCase();
   const previous = translations.get(key);
   if (previous) {
-    if (previous.nameEn !== nameEn) warnings.push(`строка ${index + 1}: повтор «${nameRu}» с другим переводом — оставлен первый`);
-    return;
+    if (previous.nameEn !== nameEn) warnings.push(`строка ${line}: повтор «${nameRu}» с другим переводом — оставлен первый`);
+    continue;
   }
   translations.set(key, { nameRu, nameEn });
-});
-if (!hasHeader) warnings.push(`в файле ${file} не найден заголовок "name_ru …" — проверьте формат TSV`);
+}
 
-const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
-await client.connect();
+const client = await connect(url);
 try {
   const { rows: table } = await client.query("SELECT to_regclass('public.exercise_translations') AS oid");
   if (!table[0].oid) {
@@ -122,7 +78,7 @@ try {
   const fresh = writes.filter((write) => !translated.has(write.id)).length;
 
   console.log(`Файл: ${file}`);
-  console.log(`База: ${dbLabel}${isLocalDb ? ' (локальная)' : ' (ВНИМАНИЕ: не локальная)'}`);
+  console.log(`База: ${target.label}${target.isLocal ? ' (локальная)' : ' (ВНИМАНИЕ: не локальная)'}`);
   console.log(
     `Переводов в файле: ${translations.size}; совпадений в exercises: ${writes.length} (новых ${fresh}, на обновление ${writes.length - fresh})`,
   );
