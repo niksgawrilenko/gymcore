@@ -66,9 +66,12 @@ npm run dev                     # http://localhost:3000
 `FAQPage`, `WebSite`, `Organization`) и `llms.txt` для ИИ-ассистентов. Приложение за логином закрыто от
 индексации намеренно — индексируются только публичные страницы.
 
-1. **Подтвердить владение домена.** Присвойте в Vercel переменную `GOOGLE_SITE_VERIFICATION` (значение из
-   консоли) — тег попадёт в `<head>` автоматически (`src/app/[locale]/layout.tsx`). Альтернатива — DNS
-   TXT-запись или HTML-файл в `public/`.
+1. **Подтвердить владение доменом.** Токен Google уже вшит в проект (константа в
+   `src/app/[locale]/layout.tsx`) и выводится `<meta name="google-site-verification">` на всех страницах.
+   Для `*.vercel.app` подходит **только URL-prefix-ресурс** (`https://<домен>/`) с методом «HTML-тег»:
+   DNS TXT-запись добавить нельзя — домен принадлежит Vercel. Значение можно перекрыть переменной
+   `GOOGLE_SITE_VERIFICATION` в Vercel (другой домен/перевыпущенный токен); альтернатива без правок кода —
+   HTML-файл в `public/`.
 2. **Google Search Console:** добавить ресурс → «Файлы Sitemap» → `sitemap.xml` → «Проверка URL» →
    «Запросить индексирование» для `/welcome` и `/privacy` (для русской версии — `/ru/welcome`, `/ru/privacy`).
 3. **Проверить, что в выдаче правильный домен:** в `robots.txt` и `sitemap.xml` не должно быть `localhost` —

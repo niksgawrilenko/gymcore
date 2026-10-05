@@ -36,16 +36,18 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const t = await getTranslations({ locale, namespace: 'meta' });
-  // Ownership proof for Google Search Console (Vercel env var; a runtime layout metadata call picks it up).
-  const verification = {
-    ...(process.env.GOOGLE_SITE_VERIFICATION && { google: process.env.GOOGLE_SITE_VERIFICATION }),
-  };
+  // Ownership proof for Google Search Console. The token is public (it ends up in <head>), so the project
+  // ships it built in: a *.vercel.app domain has no DNS zone we could add a TXT record to, and a committed
+  // default makes the deployed site verifiable without a Vercel env change. The env var, when set, wins
+  // (another domain or a re-issued token).
+  const googleVerification =
+    process.env.GOOGLE_SITE_VERIFICATION ?? 'cal3bUeLo7bshvFHTogFNHFIjNdrwH33CdHRuFST8X4';
   // The absolute base URL is required for the OG image and the canonical link.
   return {
     metadataBase: new URL(SITE_URL),
     title: t('title'),
     description: t('description'),
-    ...(Object.keys(verification).length > 0 && { verification }),
+    verification: { google: googleVerification },
   };
 }
 
