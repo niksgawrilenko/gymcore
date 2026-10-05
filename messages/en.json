@@ -1,6 +1,7 @@
 {
   "meta": {
     "title": "GymCore — free workout journal, no ads or subscriptions",
+    "keywords": "workout journal, workout log, gym tracker, training diary, exercise library, progress charts, body measurements, workout templates, AI coach, free fitness app",
     "description": "Free workout journal with no ads and no subscriptions: sets and supersets, calendar history, progress charts, body measurements, program templates and an AI coach. 312 exercises with anatomy."
   },
   "locale": {
@@ -41,7 +42,8 @@
       "credentialsRequired": "Enter your username and password",
       "invalidCredentials": "Wrong username or password",
       "usernameInvalid": "Username: at least 3 characters, up to 50",
-      "passwordInvalid": "Password: at least 6 characters"
+      "passwordInvalid": "Password: at least 6 characters",
+      "tooManyAttempts": "Too many attempts. Please wait a few minutes and try again."
     }
   },
   "welcome": {
@@ -284,6 +286,7 @@
     "measurementEmpty": "Fill in at least one field!",
     "mediaNotConfigured": "Media upload is not configured",
     "fileUploadFailed": "File upload failed",
+    "uploadLimit": "Upload limit reached. Please try again later.",
     "saveFailed": "Save failed",
     "requestFailed": "Request failed",
     "aiKeyRequired": "Enter the API key",
@@ -528,5 +531,16 @@
     "title": "Workout media",
     "empty": "No attached media",
     "add": "📸 Add photo or video"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "text": "The link is broken or the item was deleted. Try starting from the main page.",
+    "cta": "Go to the main page"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "text": "The page failed to load. Please try again — your data is safe.",
+    "retry": "Try again",
+    "home": "Main page"
   }
 }

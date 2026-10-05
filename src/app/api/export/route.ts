@@ -32,6 +32,8 @@ export async function GET() {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Content-Disposition': `attachment; filename="GymCore_Backup_${new Date().toISOString().slice(0, 10)}.json"`,
+      // Personal data: keep it out of browser and proxy caches (the route is also matched in next.config.ts).
+      'Cache-Control': 'no-store',
     },
   });
 }

@@ -6,6 +6,7 @@ import { db } from '@/db';
 import { exercises, measurements, templates } from '@/db/schema';
 import { requireAdmin, requireUser } from '@/lib/auth';
 import { getExerciseProgress } from '@/lib/data';
+import { allowRequest, RATE_LIMITS } from '@/lib/rate-limit';
 import { fail, ok, type ActionResult } from './_shared';
 
 // ---------- Body measurements ----------
@@ -63,7 +64,9 @@ const FOLDER = 'gymcore_media';
 export async function signUpload(): Promise<
   ActionResult<{ cloudName: string; apiKey: string; timestamp: number; signature: string; folder: string; allowedFormats: string }>
 > {
-  await requireUser();
+  const user = await requireUser();
+  // Every signature can be turned into an upload that spends the operator's Cloudinary quota.
+  if (!allowRequest(`upload:${user.id}`, RATE_LIMITS.uploadUser)) return fail('uploadLimit');
   const { CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
   if (!CLOUDINARY_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) return fail('mediaNotConfigured');
 

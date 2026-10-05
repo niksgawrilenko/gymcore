@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { importSharedTemplate } from '@/actions/templates';
@@ -5,6 +6,9 @@ import { currentLocale } from '@/i18n/server';
 import { getUser } from '@/lib/auth';
 import { getSharedTemplate } from '@/lib/data';
 import { ImportButton } from '../../ImportButton';
+
+// A personal link: anyone holding it can open the page, but it must never end up in search results.
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 const UUID = /^[0-9a-f-]{36}$/i;
 

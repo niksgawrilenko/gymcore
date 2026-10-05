@@ -13,9 +13,11 @@ const PAGES = [
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
   return PAGES.flatMap(({ path, changeFrequency, priority }) => {
-    const languages = Object.fromEntries(
+    const languages: Record<string, string> = Object.fromEntries(
       routing.locales.map((locale) => [locale, `${SITE_URL}${getPathname({ href: path, locale })}`]),
     );
+    // Mirrors the page metadata: x-default always points at the primary locale.
+    languages['x-default'] = `${SITE_URL}${getPathname({ href: path, locale: routing.defaultLocale })}`;
     return routing.locales.map((locale) => ({
       url: `${SITE_URL}${getPathname({ href: path, locale })}`,
       lastModified,

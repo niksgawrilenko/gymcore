@@ -36,11 +36,19 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const t = await getTranslations({ locale, namespace: 'meta' });
+  // Ownership proof for search consoles (Vercel env vars; a runtime layout metadata call picks them up):
+  // google = google-site-verification, yandex = yandex-verification, Bing/DuckDuckGo use msvalidate.01.
+  const verification = {
+    ...(process.env.GOOGLE_SITE_VERIFICATION && { google: process.env.GOOGLE_SITE_VERIFICATION }),
+    ...(process.env.YANDEX_VERIFICATION && { yandex: process.env.YANDEX_VERIFICATION }),
+    ...(process.env.BING_SITE_VERIFICATION && { other: { 'msvalidate.01': process.env.BING_SITE_VERIFICATION } }),
+  };
   // The absolute base URL is required for the OG image and the canonical link.
   return {
     metadataBase: new URL(SITE_URL),
     title: t('title'),
     description: t('description'),
+    ...(Object.keys(verification).length > 0 && { verification }),
   };
 }
 

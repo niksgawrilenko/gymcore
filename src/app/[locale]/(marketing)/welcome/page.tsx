@@ -60,6 +60,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t('title'),
     description: t('description'),
+    // Search engines mostly ignore keywords, but Yandex and a few others still read them.
+    keywords: t('keywords').split(',').map((word) => word.trim()),
     alternates,
     openGraph: {
       type: 'website',
@@ -91,6 +93,18 @@ export default async function WelcomePage() {
         isAccessibleForFree: true,
         offers: { '@type': 'Offer', price: '0', priceCurrency: locale === 'ru' ? 'RUB' : 'EUR' },
         featureList: FEATURES.map((f) => t(`features.items.${f.key}.title`)),
+      },
+      {
+        '@type': 'WebSite',
+        name: SITE_NAME,
+        url: `${SITE_URL}${await localeHref('/welcome')}`,
+        inLanguage: locale,
+      },
+      {
+        '@type': 'Organization',
+        name: SITE_NAME,
+        url: SITE_URL,
+        logo: `${SITE_URL}/icon.png`,
       },
       {
         '@type': 'FAQPage',
