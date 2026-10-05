@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GymCore — бесплатный дневник тренировок, без рекламы и подписок</title>
+<meta name="description" content="GymCore — бесплатный дневник тренировок без рекламы и подписок: подходы и суперсеты, 312 упражнений с анатомией, графики прогресса, замеры тела, шаблоны программ и ИИ-тренер. Без карты, без пробного периода, без премиум-режимов.">
+<link rel="canonical" href="https://niksgawrilenko.github.io/gymcore/ru/">
+<link rel="alternate" hreflang="en" href="https://niksgawrilenko.github.io/gymcore/">
+<link rel="alternate" hreflang="ru" href="https://niksgawrilenko.github.io/gymcore/ru/">
+<link rel="alternate" hreflang="x-default" href="https://niksgawrilenko.github.io/gymcore/">
+<meta name="theme-color" content="#0a0a0c">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GymCore">
+<meta property="og:title" content="GymCore — бесплатный дневник тренировок, без рекламы и подписок">
+<meta property="og:description" content="Записывай подходы и суперсеты за пару секунд, следи за прогрессом в графиках, веди замеры тела и собирай программы. Все функции открыты сразу после регистрации.">
+<meta property="og:url" content="https://niksgawrilenko.github.io/gymcore/ru/">
+<meta property="og:image" content="https://niksgawrilenko.github.io/gymcore/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GymCore — бесплатный дневник тренировок">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="GymCore — бесплатный дневник тренировок">
+<meta name="twitter:description" content="Подходы и суперсеты, 312 упражнений с анатомией, графики, замеры тела, шаблоны программ и ИИ-тренер. Бесплатно, без рекламы.">
+<meta name="twitter:image" content="https://niksgawrilenko.github.io/gymcore/og.png">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --panel: #141419;
+    --border: #26262d;
+    --fg: #f4f4f5;
+    --muted: #a1a1aa;
+    --accent: #3b82f6;
+    --accent-fg: #ffffff;
+    --ok: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 20px 0; }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .logo { font-size: 20px; font-weight: 800; color: var(--fg); text-decoration: none; letter-spacing: -0.02em; }
+  .lang { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; font-size: 13px; }
+  .lang a, .lang span { padding: 5px 12px; text-decoration: none; color: var(--muted); }
+  .lang .on { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  .hero { padding-top: 40px; padding-bottom: 8px; }
+  .badge {
+    display: inline-block; border: 1px solid var(--accent); color: var(--accent);
+    border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; margin-bottom: 20px;
+  }
+  h1 { font-size: clamp(28px, 5.5vw, 50px); line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 18px; }
+  .lead { font-size: clamp(16px, 2.2vw, 19px); color: var(--muted); max-width: 660px; margin: 0 0 26px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn {
+    display: inline-block; padding: 13px 24px; border-radius: 12px; font-weight: 700;
+    text-decoration: none; transition: transform .12s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: var(--accent-fg); }
+  .btn-ghost { border: 1px solid var(--border); color: var(--fg); }
+  .note { color: var(--muted); font-size: 14px; margin: 16px 0 0; }
+  .shots, .features { padding-top: 44px; }
+  .shots img { width: 100%; height: auto; border: 1px solid var(--border); border-radius: 14px; display: block; }
+  .phones { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; }
+  .phones img { width: 215px; max-width: 42vw; border: 1px solid var(--border); border-radius: 14px; display: block; }
+  h2 { font-size: 24px; letter-spacing: -0.02em; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  footer { margin-top: 56px; border-top: 1px solid var(--border); padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
+  footer a { color: var(--muted); }
+  footer p { margin: 0 0 8px; }
+  .dot { color: var(--ok); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="https://niksgawrilenko.github.io/gymcore/ru/">GymCore</a>
+    <nav class="lang">
+      <a href="../">EN</a>
+      <span class="on">RU</span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <span class="badge">Бесплатно и без рекламы</span>
+    <h1>Бесплатный дневник тренировок — без рекламы и подписок</h1>
+    <p class="lead">
+      Записывай подходы и суперсеты за пару секунд, следи за прогрессом в графиках, веди замеры
+      тела и собирай программы. Все функции — статистика, замеры, шаблоны и ИИ-тренер — открыты
+      сразу после регистрации.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://gymcore-omega.vercel.app/ru/welcome">Начать бесплатно</a>
+      <a class="btn btn-ghost" href="https://gymcore-omega.vercel.app/ru/welcome">Как это работает</a>
+    </div>
+    <p class="note">Без карты и пробного периода. Ключ ИИ хранится только в твоём браузере.</p>
+  </section>
+
+  <section class="shots wrap">
+    <a href="https://gymcore-omega.vercel.app/ru/welcome">
+      <img src="../screenshots/welcome-desktop-ru.png" alt="Лендинг GymCore — бесплатный дневник тренировок без рекламы и подписок" width="1280">
+    </a>
+    <div class="phones">
+      <a href="https://gymcore-omega.vercel.app/ru/welcome"><img src="../screenshots/welcome-mobile-ru.png" alt="GymCore — дневник тренировок на телефоне (русская версия)"></a>
+      <a href="https://gymcore-omega.vercel.app/"><img src="../screenshots/welcome-mobile-en.png" alt="GymCore workout journal on a phone (English)"></a>
+    </div>
+  </section>
+
+  <section class="features wrap">
+    <h2>Что внутри</h2>
+    <p class="sub">Все функции открыты сразу после регистрации — интерфейс на русском и английском.</p>
+    <div class="grid">
+      <div class="card"><h3>🏋️ Дневник тренировок</h3><p>Подходы, вес, повторы, суперсеты. Черновик не теряется, даже если случайно закрыть вкладку.</p></div>
+      <div class="card"><h3>📅 История и календарь</h3><p>Все тренировки по дням — открыл день и видишь, что делал и с какими весами.</p></div>
+      <div class="card"><h3>📈 Статистика прогресса</h3><p>Объём и динамика по упражнениям, графики по всей истории, а не по последним десяти тренировкам.</p></div>
+      <div class="card"><h3>📏 Замеры тела</h3><p>Вес, грудь, талия, бицепс, бёдра, плечи — с историей изменений.</p></div>
+      <div class="card"><h3>🧩 Шаблоны программ</h3><p>Собери программу один раз и запускай её в один клик.</p></div>
+      <div class="card"><h3>🤝 Шеринг программ</h3><p>Отправь программу ссылкой — друг добавит её себе одним нажатием.</p></div>
+      <div class="card"><h3>📚 312 упражнений с анатомией</h3><p>Готовая база плюс свои упражнения; видно, какие мышцы работают.</p></div>
+      <div class="card"><h3>🤖 ИИ-тренер (по желанию)</h3><p>Подключается свой ключ Gemini / Claude / GPT — он хранится только в твоём браузере.</p></div>
+      <div class="card"><h3>📤 Твои данные — твои</h3><p>Экспорт всей истории в JSON в любой момент. Никаких запертых данных.</p></div>
+      <div class="card"><h3>📱 Сделано для телефона</h3><p>Открывается в браузере, ставится на домашний экран; тёмная тема и крупные кнопки для зала.</p></div>
+    </div>
+  </section>
+
+  <section class="features wrap">
+    <h2>Бесплатно — по-настоящему</h2>
+    <div class="grid">
+      <div class="card"><h3>Это бесплатно?</h3><p>Да, полностью: дневник, статистика, замеры, шаблоны и ИИ-тренер. Без подписок, без рекламы и «премиум-режимов».</p></div>
+      <div class="card"><h3>Нужна карта или пробный период?</h3><p>Нет. Только логин и пароль: платёжные данные не запрашиваются, доступ не ограничен по времени.</p></div>
+      <div class="card"><h3>Куда попадают данные?</h3><p>В защищённую базу, доступ к ним есть только у тебя. Всю историю можно выгрузить в JSON.</p></div>
+    </div>
+    <div class="cta" style="padding-top:26px">
+      <a class="btn btn-primary" href="https://gymcore-omega.vercel.app/ru/welcome">Начать бесплатно</a>
+      <a class="btn btn-ghost" href="https://github.com/niksgawrilenko/gymcore/blob/main/docs/DEV.md">Как это сделано</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><span class="dot">●</span> <a href="https://gymcore-omega.vercel.app/ru/welcome">gymcore-omega.vercel.app</a> &nbsp;·&nbsp; <a href="https://github.com/niksgawrilenko/gymcore">исходный код на GitHub</a> &nbsp;·&nbsp; <a href="https://github.com/niksgawrilenko/gymcore/blob/main/README.ru.md">README</a></p>
+    <p>Лицензия MIT — можно использовать, форкать и ставить у себя.</p>
+  </div>
+</footer>
+</body>
+</html>

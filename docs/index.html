@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GymCore — free workout journal, no ads and no subscriptions</title>
+<meta name="description" content="GymCore is a free, ad-free web workout journal: sets and supersets, 312 exercises with anatomy, progress charts, body measurements, program templates and an optional AI coach. No card, no trial, no premium tiers.">
+<link rel="canonical" href="https://niksgawrilenko.github.io/gymcore/">
+<link rel="alternate" hreflang="en" href="https://niksgawrilenko.github.io/gymcore/">
+<link rel="alternate" hreflang="ru" href="https://niksgawrilenko.github.io/gymcore/ru/">
+<link rel="alternate" hreflang="x-default" href="https://niksgawrilenko.github.io/gymcore/">
+<meta name="theme-color" content="#0a0a0c">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GymCore">
+<meta property="og:title" content="GymCore — free workout journal, no ads or subscriptions">
+<meta property="og:description" content="Log sets and supersets in seconds, watch your progress on charts, keep body measurements and build training programs. Every feature is unlocked right after sign-up.">
+<meta property="og:url" content="https://niksgawrilenko.github.io/gymcore/">
+<meta property="og:image" content="https://niksgawrilenko.github.io/gymcore/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GymCore — free workout journal">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="GymCore — free workout journal, no ads or subscriptions">
+<meta name="twitter:description" content="A free, ad-free workout journal: sets and supersets, 312 exercises with anatomy, charts, measurements, program templates, optional AI coach.">
+<meta name="twitter:image" content="https://niksgawrilenko.github.io/gymcore/og.png">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --panel: #141419;
+    --border: #26262d;
+    --fg: #f4f4f5;
+    --muted: #a1a1aa;
+    --accent: #3b82f6;
+    --accent-fg: #ffffff;
+    --ok: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 20px 0; }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .logo { font-size: 20px; font-weight: 800; color: var(--fg); text-decoration: none; letter-spacing: -0.02em; }
+  .lang { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; font-size: 13px; }
+  .lang a, .lang span { padding: 5px 12px; text-decoration: none; color: var(--muted); }
+  .lang .on { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  .hero { padding-top: 40px; padding-bottom: 8px; }
+  .badge {
+    display: inline-block; border: 1px solid var(--accent); color: var(--accent);
+    border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; margin-bottom: 20px;
+  }
+  h1 { font-size: clamp(28px, 5.5vw, 50px); line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 18px; }
+  .lead { font-size: clamp(16px, 2.2vw, 19px); color: var(--muted); max-width: 660px; margin: 0 0 26px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn {
+    display: inline-block; padding: 13px 24px; border-radius: 12px; font-weight: 700;
+    text-decoration: none; transition: transform .12s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: var(--accent-fg); }
+  .btn-ghost { border: 1px solid var(--border); color: var(--fg); }
+  .note { color: var(--muted); font-size: 14px; margin: 16px 0 0; }
+  .shots, .features { padding-top: 44px; }
+  .shots img { width: 100%; height: auto; border: 1px solid var(--border); border-radius: 14px; display: block; }
+  .phones { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; }
+  .phones img { width: 215px; max-width: 42vw; border: 1px solid var(--border); border-radius: 14px; display: block; }
+  h2 { font-size: 24px; letter-spacing: -0.02em; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  footer { margin-top: 56px; border-top: 1px solid var(--border); padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
+  footer a { color: var(--muted); }
+  footer p { margin: 0 0 8px; }
+  .dot { color: var(--ok); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="https://niksgawrilenko.github.io/gymcore/">GymCore</a>
+    <nav class="lang">
+      <span class="on">EN</span>
+      <a href="ru/">RU</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <span class="badge">Free and ad-free</span>
+    <h1>A free workout journal — no ads, no subscriptions</h1>
+    <p class="lead">
+      Log sets and supersets in a couple of seconds, follow your progress on charts, record body
+      measurements and build programs. Every feature — statistics, measurements, templates and the
+      AI coach — is unlocked right after sign-up.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://gymcore-omega.vercel.app/">Start for free</a>
+      <a class="btn btn-ghost" href="https://gymcore-omega.vercel.app/welcome">How it works</a>
+    </div>
+    <p class="note">No card and no trial period. Your AI key stays in your browser.</p>
+  </section>
+
+  <section class="shots wrap">
+    <a href="https://gymcore-omega.vercel.app/">
+      <img src="screenshots/welcome-desktop-en.png" alt="GymCore landing page — a free workout journal with no ads and no subscriptions" width="1280">
+    </a>
+    <div class="phones">
+      <a href="https://gymcore-omega.vercel.app/"><img src="screenshots/welcome-mobile-en.png" alt="GymCore workout journal on a phone (English)"></a>
+      <a href="https://gymcore-omega.vercel.app/ru/welcome"><img src="screenshots/welcome-mobile-ru.png" alt="GymCore — дневник тренировок на телефоне (русская версия)"></a>
+    </div>
+  </section>
+
+  <section class="features wrap">
+    <h2>What you get</h2>
+    <p class="sub">Every feature is unlocked right after sign-up — interface in English and Russian.</p>
+    <div class="grid">
+      <div class="card"><h3>🏋️ Workout journal</h3><p>Sets, weight, reps and supersets. The draft survives a closed tab.</p></div>
+      <div class="card"><h3>📅 History and calendar</h3><p>Every workout by day — open a day and see exactly what you did.</p></div>
+      <div class="card"><h3>📈 Progress statistics</h3><p>Volume and dynamics per exercise across your whole history, not just the last 10 workouts.</p></div>
+      <div class="card"><h3>📏 Body measurements</h3><p>Weight, chest, waist, biceps, hips, shoulders — with change history.</p></div>
+      <div class="card"><h3>🧩 Program templates</h3><p>Build a program once and start it in one click.</p></div>
+      <div class="card"><h3>🤝 Program sharing</h3><p>Send a program as a link — a friend installs it with one tap.</p></div>
+      <div class="card"><h3>📚 312 exercises with anatomy</h3><p>Ready-made library plus your own exercises; you see which muscles work.</p></div>
+      <div class="card"><h3>🤖 AI coach (optional)</h3><p>Plug in your own Gemini / Claude / GPT key — it is stored in your browser only.</p></div>
+      <div class="card"><h3>📤 Your data is yours</h3><p>Export your whole history to JSON at any time. Nothing is locked in.</p></div>
+      <div class="card"><h3>📱 Phone-first, installable</h3><p>Opens in the browser, adds to the home screen; dark theme and large buttons for the gym.</p></div>
+    </div>
+  </section>
+
+  <section class="features wrap">
+    <h2>Free, for real</h2>
+    <div class="grid">
+      <div class="card"><h3>Is it free?</h3><p>Yes, completely: journal, statistics, measurements, templates and the AI coach. No subscriptions, no ads, no premium tiers.</p></div>
+      <div class="card"><h3>Card or trial?</h3><p>No. A username and a password — no payment details, no time limit, 20 seconds to sign up.</p></div>
+      <div class="card"><h3>Where does my data go?</h3><p>Into a secure database only you can access. Full JSON export any time.</p></div>
+    </div>
+    <div class="cta" style="padding-top:26px">
+      <a class="btn btn-primary" href="https://gymcore-omega.vercel.app/">Start for free</a>
+      <a class="btn btn-ghost" href="https://github.com/niksgawrilenko/gymcore/blob/main/docs/DEV.md">How it is built</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><span class="dot">●</span> <a href="https://gymcore-omega.vercel.app/">gymcore-omega.vercel.app</a> &nbsp;·&nbsp; <a href="https://github.com/niksgawrilenko/gymcore">source on GitHub</a> &nbsp;·&nbsp; <a href="https://github.com/niksgawrilenko/gymcore/blob/main/README.md">README</a></p>
+    <p>MIT licensed — use it, fork it, self-host it.</p>
+  </div>
+</footer>
+</body>
+</html>

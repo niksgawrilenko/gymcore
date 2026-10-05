@@ -1,10 +1,26 @@
 # GymCore — free workout journal, no ads and no subscriptions
 
+[![Live demo](https://img.shields.io/badge/live_demo-gymcore--omega.vercel.app-22c55e?logo=vercel&logoColor=white)](https://gymcore-omega.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/niksgawrilenko/gymcore/issues)
+
 **▶ Try it now: [gymcore-omega.vercel.app](https://gymcore-omega.vercel.app/)** &nbsp;·&nbsp; [Русская версия →](README.ru.md)
 
 Log sets and supersets in a couple of seconds, watch your progress on charts, keep body measurements
 and build training programs. Every feature — statistics, measurements, templates and the AI coach —
 is unlocked right after sign-up. No card, no trial period, no ads, no premium tiers.
+
+## Screenshots
+
+[![GymCore landing page — a free workout journal with no ads and no subscriptions](docs/screenshots/welcome-desktop-en.png)](https://gymcore-omega.vercel.app/)
+
+Phone-first — the same app in English and Russian:
+
+<p>
+  <a href="https://gymcore-omega.vercel.app/"><img src="docs/screenshots/welcome-mobile-en.png" alt="GymCore workout journal on a phone (English)" width="215"></a>
+  <a href="https://gymcore-omega.vercel.app/ru/welcome"><img src="docs/screenshots/welcome-mobile-ru.png" alt="GymCore — дневник тренировок на телефоне (русская версия)" width="215"></a>
+</p>
 
 ## What you get
 
@@ -42,6 +58,7 @@ no subscriptions, no ads, no premium tiers.
 **Where does my data go?** Into a secure database only you can access; full JSON export any time.
 
 **Is there a mobile app?** GymCore is a web app — it opens in your phone browser and installs to the home screen.
+
 ## Tech
 
 Next.js 16 (App Router, Server Actions) · React 19 · TypeScript · Drizzle ORM · PostgreSQL · Cloudinary · next-intl (en/ru).
@@ -57,6 +74,4 @@ Development and deployment notes: [docs/DEV.md](docs/DEV.md).
 ## License
 
 MIT — see [LICENSE](LICENSE). Use it, fork it, self-host it.
-
-<!-- Screenshots: drop 2-3 PNGs into docs/ and reference them here — a README with screenshots converts much better. -->
 
