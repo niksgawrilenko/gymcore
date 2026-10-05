@@ -1,103 +1,58 @@
-# GymCore — трекер тренировок
+# GymCore — free workout journal, no ads and no subscriptions
 
-Веб-приложение для записи тренировок: подходы, суперсеты, шаблоны программ, база упражнений с анатомией,
-история с календарём, статистика, замеры тела, шеринг и модерация.
+**▶ Try it now: [gymcore-omega.vercel.app](https://gymcore-omega.vercel.app/)** &nbsp;·&nbsp; [Русская версия →](README.ru.md)
 
-**Стек:** Next.js 16 (App Router, Server Actions) · React 19 · TypeScript · Drizzle ORM · PostgreSQL · Cloudinary.
-Это одно приложение: страницы получают данные прямо на сервере, отдельного API-сервера нет.
+Log sets and supersets in a couple of seconds, watch your progress on charts, keep body measurements
+and build training programs. Every feature — statistics, measurements, templates and the AI coach —
+is unlocked right after sign-up. No card, no trial period, no ads, no premium tiers.
 
-## Локальный запуск
+## What you get
 
-Нужны Node.js 20.9+ и PostgreSQL.
+| Feature | What it does |
+| --- | --- |
+| 🏋️ **Workout journal** | Sets, weight, reps and supersets. The draft survives a closed tab. |
+| 📅 **History and calendar** | Every workout by day — open a day and see exactly what you did. |
+| 📈 **Progress statistics** | Volume and dynamics per exercise across your whole history, not just the last 10 workouts. |
+| 📏 **Body measurements** | Weight, chest, waist, biceps, hips, shoulders — with change history. |
+| 🧩 **Program templates** | Build a program once and start it in one click. |
+| 🤝 **Program sharing** | Send a program as a link — a friend installs it with one tap. |
+| 📚 **312 exercises with anatomy** | Ready-made library plus your own exercises; you see which muscles work. |
+| 🤖 **AI coach (optional)** | Plug in your own Gemini / Claude / GPT key — it is stored in your browser only. |
+| 📤 **Your data is yours** | Export your whole history to JSON at any time. Nothing is locked in. |
+| 📱 **Phone-first, installable** | Opens in the browser, adds to the home screen; dark theme and large buttons for the gym. |
 
-```bash
-npm install
-cp .env.example .env.local      # заполни DATABASE_URL и SESSION_SECRET
-npm run db:setup                # создаст недостающие таблицы и индексы (существующие данные не трогает)
-npm run dev                     # http://localhost:3000
-```
+Interface in **English and Russian** (switch any time).
 
-## Деплой (Vercel + Neon)
+## How it works
 
-1. **База.** Neon → создать проект в регионе **Frankfurt (eu-central-1)**. Если база уже есть, ничего не создавай.
-2. **Схема.** Один раз с локальной машины: вписать Neon-строку в `DATABASE_URL` и выполнить `npm run db:setup`.
-   На существующей базе команда только добавит индексы.
-3. **Vercel.** New Project → импорт этого репозитория, настройки по умолчанию (Next.js определится сам).
-4. **Environment Variables** в Vercel — те же, что в `.env.example`:
-   `DATABASE_URL` (pooled-строка Neon, хост с `-pooler`, `?sslmode=require`), `SESSION_SECRET`, `CLOUDINARY_*`,
-   **`NEXT_PUBLIC_SITE_URL`** (`https://ваш-домен`, без слэша на конце) — от него зависят canonical, hreflang,
-   sitemap, robots.txt и `llms.txt`; при пустом значении подставится `http://localhost:3000`.
-   `NEXT_PUBLIC_LOCALES` — необязательный список локалей (по умолчанию `en,ru`).
-5. Регион функций задан в `vercel.json` (`fra1`). Он должен совпадать с регионом Neon, иначе каждый запрос
-   к базе пойдёт между континентами.
+1. **Create an account** — a username and a password, 20 seconds.
+2. **Add exercises** — your own, or install a ready-made program.
+3. **Log your sets** during the workout — the draft is saved as you go.
+4. **Watch your progress** — charts, measurements and day-by-day history.
 
-После этого каждый `git push` в `main` деплоится автоматически.
+## FAQ
 
-## Публикация: безопасность и SEO
+**Is it free?** Yes, completely: journal, statistics, measurements, templates and the AI coach —
+no subscriptions, no ads, no premium tiers.
 
-**Безопасность.**
-- Заголовки на всех ответах (`next.config.ts`): HSTS, `X-Content-Type-Options`, `Referrer-Policy`,
-  `X-Frame-Options`/`frame-ancestors`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `X-Powered-By` выключен.
-  CSP включается только в проде (`script-src 'self' 'unsafe-inline'`, наружу разрешены лишь Cloudinary-домены);
-  в `next dev` она не мешает HMR.
-- Ограничение частоты (`src/lib/rate-limit.ts`): логин — 10 попыток/10 мин на адрес и 5 на пару адрес+логин,
-  регистрация — 5/час, подписи загрузки в Cloudinary — 60/час на пользователя. Счётчики живут в памяти
-  инстанса (serverless), то есть тормозят перебор, но не заменяют внешний WAF/store.
-- Успешный вход сбрасывает счётчики; неизвестный логин проверяется по фиктивному bcrypt-хешу, чтобы время
-  ответа не выдавало существование аккаунта.
-- `/api/export` отдаётся с `Cache-Control: no-store`, `/shared/*` и `/api/*` — с `X-Robots-Tag: noindex`.
-- Сессия — подписанный JWT (HS256) в httpOnly-cookie; владелец данных проверяется в каждой Server Action.
+**Do I need a card or a trial?** No. A username and a password, no payment details, no time limit.
 
-**SEO и продвижение.**
-- `src/app/robots.ts` (индексируются только `/welcome`, `/privacy`, `/llms.txt`), `src/app/sitemap.ts`
-  (обе локали + `alternates.languages`), `src/app/manifest.ts` (PWA-установка).
-- Canonical и hreflang (`en`/`ru`/`x-default`) — `localizedAlternates()` в `src/i18n/server.ts`.
-- OG/Twitter-картинка (`welcome/opengraph-image.tsx`), JSON-LD `SoftwareApplication` + `FAQPage` + `WebSite` +
-  `Organization`, `llms.txt` для ИИ-краулеров.
-- Локализованные 404 (`not-found.tsx`) и экран ошибки (`error.tsx`) внутри приложения.
+**Do I need internet?** Yes, the data lives in the cloud, so after signing in it is available on any device.
 
-**Чек-лист после первого деплоя:** задать домен и `NEXT_PUBLIC_SITE_URL`, отправить `https://домен/sitemap.xml`
-в Google Search Console, проверить `robots.txt` и OG-карточку (например, в валидаторе Facebook/Telegram),
-затем проверить `/en/exercises`, `/ru/exercises` под логином.
+**Where does my data go?** Into a secure database only you can access; full JSON export any time.
 
-### Как попасть в индекс поисковиков
+**Is there a mobile app?** GymCore is a web app — it opens in your phone browser and installs to the home screen.
+## Tech
 
-Со стороны сайта всё готово: `robots.txt` пускает только `/welcome`, `/privacy`, `/llms.txt`; `sitemap.xml`
-отдаёт обе локали с hreflang (`en`, `ru`, `x-default`); есть OG-картинка, JSON-LD (`SoftwareApplication`,
-`FAQPage`, `WebSite`, `Organization`) и `llms.txt` для ИИ-ассистентов. Приложение за логином закрыто от
-индексации намеренно — индексируются только публичные страницы.
+Next.js 16 (App Router, Server Actions) · React 19 · TypeScript · Drizzle ORM · PostgreSQL · Cloudinary · next-intl (en/ru).
+Development and deployment notes: [docs/DEV.md](docs/DEV.md).
 
-1. **Подтвердить владение домена.** Присвойте в Vercel переменную `GOOGLE_SITE_VERIFICATION` (значение из
-   консоли) — тег попадёт в `<head>` автоматически (`src/app/[locale]/layout.tsx`). Альтернатива — DNS
-   TXT-запись или HTML-файл в `public/`.
-2. **Google Search Console:** добавить ресурс → «Файлы Sitemap» → `sitemap.xml` → «Проверка URL» →
-   «Запросить индексирование» для `/welcome` и `/privacy` (для русской версии — `/ru/welcome`, `/ru/privacy`).
-3. **Проверить, что в выдаче правильный домен:** в `robots.txt` и `sitemap.xml` не должно быть `localhost` —
-   значит `NEXT_PUBLIC_SITE_URL` задан (или сработал фолбэк на домен Vercel).
-4. **Ускорить индексацию:** внешние ссылки на сайт (профиль GitHub, соцсети, каталоги приложений,
-   Product Hunt / Reddit / профильные форумы) — по ним краулер доходит до страниц быстрее.
-5. **Смотреть метрики раз в 1–2 недели:** «Покрытие»/«Страницы в индексе». Локализованный 404 на битых
-   ссылках — норма; «Обнаружено, но не проиндексировано» на `/welcome` означает нехватку внешних ссылок.
+## Help it grow (free)
 
-## Структура
+- ⭐ **Star this repo** — the easiest way to support a small free project.
+- 🔗 **Share the link** [gymcore-omega.vercel.app](https://gymcore-omega.vercel.app/) with someone who still keeps
+  a notebook on the rack — or send them a **program link** from inside the app.
+- 🐞 **Found a bug or want a feature?** Open an issue.
 
-```
-src/app/          страницы (история, тренировка, шаблоны, упражнения, профиль, статистика, замеры, админка, шеринг)
-src/actions/      Server Actions — все изменения данных (с проверкой владельца в каждом)
-src/components/   общие клиентские компоненты (редактор упражнений, модалки, медиа)
-src/lib/          запросы к БД, сессия, валидация, даты
-src/db/           подключение и описание схемы для Drizzle
-src/proxy.ts      редирект неавторизованных на /login
-db/schema.sql     схема БД (идемпотентная)
-db/indexes.sql    индексы
-db/setup.mjs      `npm run db:setup`
-```
+<!-- Screenshots: drop 2-3 PNGs into docs/ and reference them here — a README with screenshots converts much better. -->
 
-## Заметки
-
-- Сессия — подписанный JWT в httpOnly-cookie (`SESSION_SECRET`).
-- Черновик активной тренировки хранится в `localStorage` и переживает перезагрузку. На сервер он попадает при «Сохранить».
-- Фото и видео грузятся из браузера прямо в Cloudinary по подписи сервера.
-- Даты форматируются в таймзоне устройства (cookie `tz`), а не сервера.
-- Удаление своего упражнения удаляет и его историю в тренировках (`ON DELETE CASCADE` в схеме).
-- Не запускай `drizzle-kit push` на проде: схема ведётся в `db/schema.sql`.
