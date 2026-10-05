@@ -373,7 +373,8 @@
     "maxWeight": "📈 Max weight (kg)",
     "maxWeightLabel": "Max weight (kg)",
     "setsCount": "🔋 Number of sets",
-    "setsLabel": "Sets"
+    "setsLabel": "Sets",
+    "other": "Other"
   },
   "measurements": {
     "title": "Body measurements",
@@ -514,7 +515,8 @@
     "anatomy": "Detailed anatomy (optional)",
     "exerciseType": "Exercise type",
     "typeStrength": "Strength (Weight + Reps)",
-    "typeCardio": "Cardio (Time + Distance)"
+    "typeCardio": "Cardio (Time + Distance)",
+    "nameHint": "Saved as the name for the current interface language"
   },
   "exercisePicker": {
     "title": "Exercises",

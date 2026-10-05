@@ -18,7 +18,6 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type HTMLAttributes
 import {
   emptySet,
   groupExercises,
-  nameKey,
   newKey,
   type EditorExercise,
   type EditorSet,
@@ -133,7 +132,7 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
                 showChecks={showChecks}
                 collapsed={isCollapsed(item.key)}
                 onToggleCollapsed={() => setOverrides({ ...overrides, [item.key]: !isCollapsed(item.key) })}
-                prev={prevSets?.[nameKey(item.name)]}
+                prev={prevSets?.[String(item.id)]}
                 showPrev={!!prevSets}
                 handleProps={handleProps}
                 onChangeSets={(sets) => update(index, { sets })}

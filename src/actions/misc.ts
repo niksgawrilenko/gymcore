@@ -48,9 +48,9 @@ export async function moderate(type: 'exercise' | 'template', id: number, approv
 
 // ---------- Stats ----------
 
-export async function loadExerciseProgress(name: string) {
+export async function loadExerciseProgress(id: number) {
   const user = await requireUser();
-  return getExerciseProgress(user.id, name);
+  return getExerciseProgress(user.id, id);
 }
 
 // ---------- Media: signature for a direct upload to Cloudinary ----------

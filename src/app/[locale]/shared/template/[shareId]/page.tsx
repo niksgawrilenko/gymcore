@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { importSharedTemplate } from '@/actions/templates';
+import { currentLocale } from '@/i18n/server';
 import { getUser } from '@/lib/auth';
 import { getSharedTemplate } from '@/lib/data';
 import { ImportButton } from '../../ImportButton';
@@ -10,7 +11,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 export default async function SharedTemplatePage({ params }: PageProps<'/[locale]/shared/template/[shareId]'>) {
   const { shareId } = await params;
   if (!UUID.test(shareId)) notFound();
-  const [tpl, user] = await Promise.all([getSharedTemplate(shareId), getUser()]);
+  const [tpl, user] = await Promise.all([getSharedTemplate(shareId, await currentLocale()), getUser()]);
   if (!tpl) notFound();
   const t = await getTranslations('shared');
 

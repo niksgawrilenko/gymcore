@@ -39,15 +39,13 @@ export type WorkoutDraft = {
   media: Media[];
 };
 
-/** Previous sets keyed by lowercase exercise name — for hints and +/- badges. */
+/** Previous sets keyed by exercise_id (as a string) — for hints and +/- badges. */
 export type PrevSetsMap = Record<string, { weight: string | number | null; reps: number | null }[]>;
 
 export const emptySet = (): EditorSet => ({ weight: '', reps: '', completed: false });
 
 export const newKey = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Math.random()).slice(2);
-
-export const nameKey = (name: string) => name.trim().toLowerCase();
 
 /** "80.00" -> "80", "82.50" -> "82.5" */
 export const fmtNum = (v: string | number | null | undefined) =>

@@ -5,9 +5,10 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { BottomNav, LegacyHashRedirect, ThemeToggle, TzProvider } from '@/components/Chrome';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { RefsProvider } from '@/components/RefsProvider';
 import { Link } from '@/i18n/navigation';
 import { isLocale } from '@/i18n/routing';
-import { getTz } from '@/lib/data';
+import { getTz, loadRefDict } from '@/lib/data';
 import { SITE_URL } from '@/lib/site';
 import { parseTheme, THEME_COOKIE } from '@/lib/theme';
 import '../globals.css';
@@ -55,24 +56,29 @@ export default async function LocaleLayout({ children, params }: LocaleParams & 
   // to live in localStorage only). An explicit dark/light choice is rendered as an attribute; without
   // one it stays undefined and the system CSS media query applies.
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  // Reference strings (muscle groups, categories, equipment) are translated on display: the dictionary
+  // is loaded once per request and handed to client components through RefsProvider.
+  const refDict = await loadRefDict(locale);
   return (
     <html lang={locale} data-theme={theme} suppressHydrationWarning>
       <body>
         <NextIntlClientProvider>
           <TzProvider tz={tz}>
-            <header className="app-header">
-              <Link href="/">
-                {/* Not an h1: the page heading must own the single H1 (important for the landing page). */}
-                <span className="app-logo">GymCore</span>
-              </Link>
-              <div className="header-actions">
-                <LocaleSwitcher />
-                <ThemeToggle />
-              </div>
-            </header>
-            <main className="app-content">{children}</main>
-            <BottomNav />
-            <LegacyHashRedirect />
+            <RefsProvider dict={refDict}>
+              <header className="app-header">
+                <Link href="/">
+                  {/* Not an h1: the page heading must own the single H1 (important for the landing page). */}
+                  <span className="app-logo">GymCore</span>
+                </Link>
+                <div className="header-actions">
+                  <LocaleSwitcher />
+                  <ThemeToggle />
+                </div>
+              </header>
+              <main className="app-content">{children}</main>
+              <BottomNav />
+              <LegacyHashRedirect />
+            </RefsProvider>
           </TzProvider>
         </NextIntlClientProvider>
       </body>

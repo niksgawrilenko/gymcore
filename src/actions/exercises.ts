@@ -1,18 +1,19 @@
 'use server';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
-import { exercises } from '@/db/schema';
+import { exerciseTranslations, exercises } from '@/db/schema';
 import { requireUser } from '@/lib/auth';
 import { getSharedExercise, toExerciseInfo } from '@/lib/data';
 import type { ExerciseInfo } from '@/lib/types';
 import { exerciseInput, firstError, type ExerciseInput } from '@/lib/validation';
-import { localeHref } from '@/i18n/server';
+import { currentLocale, localeHref } from '@/i18n/server';
 import { fail, ok, type ActionResult } from './_shared';
 
 export async function saveExercise(input: ExerciseInput, id?: number): Promise<ActionResult<ExerciseInfo>> {
   const user = await requireUser();
+  const locale = await currentLocale();
   const parsed = exerciseInput.safeParse(input);
   if (!parsed.success) return fail(firstError(parsed.error));
   const e = parsed.data;
@@ -30,6 +31,19 @@ export async function saveExercise(input: ExerciseInput, id?: number): Promise<A
     : await db.insert(exercises).values({ ...values, userId: user.id }).returning();
 
   if (!row) return fail('noPermission');
+
+  // i18n: the Russian original lives in exercises.name (the "data language"); every other locale is
+  // stored as a translation (docs/i18n-plan.md §5). A Russian edit updates the original itself.
+  if (locale !== 'ru') {
+    await db
+      .insert(exerciseTranslations)
+      .values({ exerciseId: row.id, locale, name: e.name })
+      .onConflictDoUpdate({
+        target: [exerciseTranslations.exerciseId, exerciseTranslations.locale],
+        set: { name: e.name, updatedAt: new Date() },
+      });
+  }
+
   revalidatePath('/', 'layout');
   return ok(toExerciseInfo(row));
 }
@@ -54,6 +68,7 @@ export async function submitExerciseForModeration(id: number): Promise<ActionRes
 
 export async function importSharedExercise(shareId: string) {
   await requireUser();
+  // No locale: the copy is created under the original (Russian) name — the "data language".
   const ex = await getSharedExercise(shareId);
   if (!ex) return fail('exerciseNotFound');
   const res = await saveExercise({
@@ -63,5 +78,15 @@ export async function importSharedExercise(shareId: string) {
     secondary_muscles: ex.secondary_muscles,
   });
   if (!res.ok) return res;
+
+  // Copy the source translations, otherwise an English user sees the Russian original.
+  await db.execute(sql`
+    insert into exercise_translations (exercise_id, locale, name, updated_at)
+    select ${res.data.id}, locale, name, CURRENT_TIMESTAMP
+    from exercise_translations
+    where exercise_id = ${ex.id}
+    on conflict (exercise_id, locale) do nothing
+  `);
+
   redirect(await localeHref('/exercises'));
 }

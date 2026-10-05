@@ -26,7 +26,7 @@ type Stats = {
   totalWorkouts: number;
   muscles: { label: string; sets: number }[];
   months: { month: string; count: number }[];
-  exercises: { name: string; count: number }[];
+  exercises: { id: number; name: string; count: number }[];
 };
 
 const COLORS = ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#5856d6', '#ff2d55', '#5ac8fa', '#af52de', '#ffcc00', '#8e8e93'];
@@ -63,7 +63,7 @@ export function StatsClient({ stats }: { stats: Stats }) {
         <div className="chart-box" style={{ height: 320 }}>
           <Doughnut
             data={{
-              labels: stats.muscles.map((m) => `${m.label}: ${Math.round((m.sets / totalMuscleSets) * 100)}%`),
+              labels: stats.muscles.map((m) => `${m.label || t('other')}: ${Math.round((m.sets / totalMuscleSets) * 100)}%`),
               datasets: [{ data: stats.muscles.map((m) => m.sets), backgroundColor: COLORS, borderWidth: 0 }],
             }}
             options={{
@@ -102,13 +102,13 @@ export function StatsClient({ stats }: { stats: Stats }) {
 
       <details className="card">
         <summary>{t('progress')}</summary>
-        <Progress names={stats.exercises.map((e) => e.name).sort((a, b) => a.localeCompare(b, locale))} tz={tz} />
+        <Progress items={stats.exercises.map(({ id, name }) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, locale))} tz={tz} />
       </details>
 
       <details className="card">
         <summary>{t('allExercises', { count: stats.exercises.length })}</summary>
         {stats.exercises.map((ex, i) => (
-          <div key={ex.name} className="list-row">
+          <div key={ex.id} className="list-row">
             <div className="ellipsis">
               {i + 1}. {ex.name}
             </div>
@@ -120,7 +120,7 @@ export function StatsClient({ stats }: { stats: Stats }) {
   );
 }
 
-function Progress({ names, tz }: { names: string[]; tz: string }) {
+function Progress({ items, tz }: { items: { id: number; name: string }[]; tz: string }) {
   const t = useTranslations('stats');
   const tc = useTranslations('common');
   const locale = useLocale();
@@ -128,10 +128,12 @@ function Progress({ names, tz }: { names: string[]; tz: string }) {
   const [data, setData] = useState<{ date: number; maxWeight: number | null; sets: number }[]>([]);
   const [loading, startLoading] = useTransition();
 
-  const choose = (name: string) => {
-    setSelected(name);
-    if (!name) return setData([]);
-    startLoading(async () => setData(await loadExerciseProgress(name)));
+  // The exercise is identified by id, not by name: the same exercise can be displayed
+  // under different names (translations) without splitting its history.
+  const choose = (id: string) => {
+    setSelected(id);
+    if (!id) return setData([]);
+    startLoading(async () => setData(await loadExerciseProgress(Number(id))));
   };
 
   const labels = data.map((d) => fmtDate(d.date, tz, { day: 'numeric', month: 'short' }, locale));
@@ -140,9 +142,9 @@ function Progress({ names, tz }: { names: string[]; tz: string }) {
     <>
       <select className="form-input mb" value={selected} onChange={(e) => choose(e.target.value)}>
         <option value="">{t('selectExercise')}</option>
-        {names.map((n) => (
-          <option key={n} value={n}>
-            {n}
+        {items.map((it) => (
+          <option key={it.id} value={it.id}>
+            {it.name}
           </option>
         ))}
       </select>

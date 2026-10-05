@@ -3,6 +3,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { deleteExercise, submitExerciseForModeration } from '@/actions/exercises';
 import { ExerciseFormModal, ExerciseInfoModal } from '@/components/ExerciseModals';
+import { useRefLabel } from '@/components/RefsProvider';
 import { PRIMARY_GROUPS } from '@/lib/anatomy';
 import { searchExercises } from '@/lib/search';
 import type { ExerciseInfo, ExerciseListItem } from '@/lib/types';
@@ -11,6 +12,9 @@ export function ExercisesClient({ exercises, userId }: { exercises: ExerciseList
   const t = useTranslations('exercises');
   const tc = useTranslations('common');
   const locale = useLocale();
+  // Reference strings (groups, categories, muscles) are stored in Russian and translated for display only;
+  // filtering/grouping above still use the raw values.
+  const refLabel = useRefLabel();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<string | null>(null);
   const [info, setInfo] = useState<ExerciseInfo | null>(null);
@@ -50,7 +54,7 @@ export function ExercisesClient({ exercises, userId }: { exercises: ExerciseList
     return Object.entries(grouped).map(([cat, items]) => (
       <div key={cat} className="mb">
         <h4 className="muted" style={{ marginBottom: 8, fontSize: 13, textTransform: 'uppercase', paddingLeft: 5 }}>
-          {cat}
+          {refLabel(cat)}
         </h4>
         {items.map((ex) => {
           const tags = [...(ex.primary_groups.length ? ex.primary_groups : ex.category ? [ex.category] : []), ...ex.secondary_muscles];
@@ -61,9 +65,9 @@ export function ExercisesClient({ exercises, userId }: { exercises: ExerciseList
                   {ex.name}
                 </div>
                 <div className="row wrap" style={{ gap: 4, marginTop: 6 }}>
-                  {tags.slice(0, 3).map((t) => (
-                    <span key={t} className="tag">
-                      {t}
+                  {tags.slice(0, 3).map((tag) => (
+                    <span key={tag} className="tag">
+                      {refLabel(tag)}
                     </span>
                   ))}
                   {tags.length > 3 && <span className="muted" style={{ fontSize: 10 }}>+{tags.length - 3}</span>}
@@ -111,7 +115,7 @@ export function ExercisesClient({ exercises, userId }: { exercises: ExerciseList
           </button>
           {PRIMARY_GROUPS.map((g) => (
             <button key={g} className={`chip-btn${filter === g ? ' active' : ''}`} onClick={() => setFilter(g)}>
-              {g}
+              {refLabel(g)}
             </button>
           ))}
         </div>

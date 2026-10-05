@@ -112,7 +112,9 @@ export async function aiChat(input: AiChatInput): Promise<ActionResult<{ text: s
   const tz = await getTz();
   const day = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: tz }); // YYYY-MM-DD
   let exerciseList: ExerciseListItem[] | null = null;
-  const loadExercises = async () => (exerciseList ??= await getExercises(user.id));
+  // The AI works with the original (Russian) names — the "data language" (docs/i18n-plan.md §5):
+  // the model matches the request against names and passes ids to propose_template.
+  const loadExercises = async () => (exerciseList ??= await getExercises(user.id, 'ru'));
   const proposed: AiTemplate[] = [];
 
   async function runTool(call: AiToolCall): Promise<Record<string, unknown>> {

@@ -84,7 +84,8 @@ export async function submitTemplateForModeration(id: number): Promise<ActionRes
 /** A copy of a shared template, together with its sets and supersets. */
 export async function importSharedTemplate(shareId: string) {
   await requireUser();
-  const tpl = await getSharedTemplate(shareId);
+  // locale is not needed here: only exercise ids are copied (names come from the shared template as is).
+  const tpl = await getSharedTemplate(shareId, 'ru');
   if (!tpl) return fail('templateNotFound');
 
   let prev: string | null = null;

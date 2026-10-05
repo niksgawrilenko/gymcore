@@ -7,12 +7,15 @@ import { ANATOMY, PRIMARY_GROUPS } from '@/lib/anatomy';
 import type { ExerciseInfo, ExerciseListItem } from '@/lib/types';
 import { searchExercises } from '@/lib/search';
 import { Modal, ModalHeader } from './Modal';
+import { useRefLabel } from './RefsProvider';
 
 // ---------- Exercise info ----------
 
 export function ExerciseInfoModal({ exercise, onClose }: { exercise: ExerciseInfo | null; onClose: () => void }) {
   const t = useTranslations('exerciseInfo');
   const tc = useTranslations('common');
+  // Muscle groups, muscles and equipment are data-language strings — translated for display only.
+  const refLabel = useRefLabel();
   const ex = exercise;
   return (
     <Modal open={!!ex} onClose={onClose} className="auto" zIndex={1100}>
@@ -28,17 +31,17 @@ export function ExerciseInfoModal({ exercise, onClose }: { exercise: ExerciseInf
             <p className="info-row">
               <span className="muted">{t('equipment')}</span>
               <br />
-              <b>{ex.equipment || t('bodyweight')}</b>
+              <b>{refLabel(ex.equipment) || t('bodyweight')}</b>
             </p>
             <p className="info-row">
               <span className="muted">{t('primaryMuscles')}</span>
               <br />
-              <b className="accent-text">{ex.primary_groups.length ? ex.primary_groups.join(', ') : ex.category || t('notSpecified')}</b>
+              <b className="accent-text">{ex.primary_groups.length ? ex.primary_groups.map((m) => refLabel(m)).join(', ') : refLabel(ex.category) || t('notSpecified')}</b>
             </p>
             <p>
               <span className="muted">{t('secondaryMuscles')}</span>
               <br />
-              <b>{ex.secondary_muscles.length ? ex.secondary_muscles.join(', ') : t('none')}</b>
+              <b>{ex.secondary_muscles.length ? ex.secondary_muscles.map((m) => refLabel(m)).join(', ') : t('none')}</b>
             </p>
           </div>
           <button type="button" className="primary-btn mt" onClick={onClose}>
@@ -82,7 +85,10 @@ function ExerciseForm({
 }) {
   const t = useTranslations('exerciseForm');
   const tc = useTranslations('common');
+  const locale = useLocale();
   const err = useActionError();
+  // Chip labels are translated; the values in state stay Russian (the data language) — that is what gets saved.
+  const refLabel = useRefLabel();
   const initialPrimary = editing ? (editing.primary_groups.length ? editing.primary_groups : editing.category ? [editing.category] : []) : [];
   const [name, setName] = useState(editing?.name ?? '');
   const [type, setType] = useState(editing?.exercise_type === 'cardio' ? 'cardio' : 'strength');
@@ -117,6 +123,11 @@ function ExerciseForm({
         <div className="field">
           <label>{t('name')}</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('namePlaceholder')} />
+          {locale !== 'ru' && (
+            <div className="xsmall muted" style={{ marginTop: 4 }}>
+              {t('nameHint')}
+            </div>
+          )}
         </div>
 
         <div>
@@ -125,7 +136,7 @@ function ExerciseForm({
             {PRIMARY_GROUPS.map((g) => (
               <label key={g}>
                 <input type="checkbox" className="chip-checkbox" checked={primary.includes(g)} onChange={() => toggle(primary, setPrimary, g)} />
-                <span className="chip-label">{g}</span>
+                <span className="chip-label">{refLabel(g)}</span>
               </label>
             ))}
           </div>
@@ -143,13 +154,13 @@ function ExerciseForm({
             <div className="anatomy-details open" style={{ background: 'rgba(0,0,0,0.05)', padding: 10, borderRadius: 8 }}>
               {PRIMARY_GROUPS.map((group) => (
                 <div key={group} style={{ marginBottom: 8 }}>
-                  <div className="xsmall bold">{group}</div>
+                  <div className="xsmall bold">{refLabel(group)}</div>
                   <div className="chip-group">
                     {ANATOMY[group].map((m) => (
                       <label key={m}>
                         <input type="checkbox" className="chip-checkbox" checked={secondary.includes(m)} onChange={() => toggle(secondary, setSecondary, m)} />
                         <span className="chip-label" style={{ fontSize: 11 }}>
-                          {m}
+                          {refLabel(m)}
                         </span>
                       </label>
                     ))}
@@ -192,6 +203,7 @@ export function ExercisePicker({
 }) {
   const t = useTranslations('exercisePicker');
   const locale = useLocale();
+  const refLabel = useRefLabel();
   const [query, setQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const results = useMemo(() => searchExercises(exercises, query, locale), [exercises, query, locale]);
@@ -222,7 +234,7 @@ export function ExercisePicker({
             <div key={ex.id} className="exercise-list-item" onClick={() => pick(ex)}>
               <b>{ex.name}</b>
               <br />
-              <small className="muted">{ex.primary_groups[0] ?? ex.category ?? t('uncategorized')}</small>
+              <small className="muted">{refLabel(ex.primary_groups[0] ?? ex.category) || t('uncategorized')}</small>
             </div>
           ))}
         </div>
