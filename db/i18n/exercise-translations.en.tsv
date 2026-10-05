@@ -13,33 +13,34 @@
 #   types   — exercise_type (strength/cardio/…); groups — категория + основные группы; public — есть ли публичное
 #   (used_by/types/groups/public — только контекст для переводчика, импорт их игнорирует)
 #
-# Набор построен по ПРОД-БД (Neon) 2026-10-05: 452 уникальных имени; 297 переводов уже импортированы в прод.
-# Пустые name_en (155) заполняет владелец (docs/i18n-plan.md §6, решение A). После заполнения:
-#   npm run db:i18n:import -- --dry-run   →   npm run db:i18n:import -- --yes
+# Набор построен по ПРОД-БД (Neon) 2026-10-05: 452 уникальных имени, все переведены (EN-черновик агента,
+# 297 импортированы ранее + 155 дописаны 2026-10-05; владелец вычитывает, docs/i18n-plan.md §6, решение A).
+# Импорт в прод выполнен 2026-10-05 (exercise_translations = 453 строки, покрытие exercises 100 %).
+# Повторный импорт идемпотентен: npm run db:i18n:import -- --dry-run → npm run db:i18n:import -- --yes
 name_ru	name_en	used_by	types	groups	public
-Американский мах гирей (над головой)		1	strength	Гири	Y
-Армейский жим штанги стоя		1	strength	Плечи	Y
-Беговая дорожка		1	cardio	Кардио	Y
-Берпи (Burpees)		1	strength	Функционал	Y
-Боковая планка		1	strength	Пресс и косые, Косые мышцы	Y
+Американский мах гирей (над головой)	American Kettlebell Swing (Overhead)	1	strength	Гири	Y
+Армейский жим штанги стоя	Standing Barbell Military Press	1	strength	Плечи	Y
+Беговая дорожка	Treadmill	1	cardio	Кардио	Y
+Берпи (Burpees)	Burpees	1	strength	Функционал	Y
+Боковая планка	Side Plank	1	strength	Пресс и косые, Косые мышцы	Y
 Боковые наклоны через «козла»	Side Bends over the Vaulting Horse	1	strength	Пресс и косые, Косые мышцы	Y
 Боковые подтягивания на простыне	Side Pull-ups on a Sheet	1	strength	Спина и шея, Широчайшие мышцы	Y
 Боковые подтягивания на TRX	Side Pull-ups on TRX	1	strength	Спина и шея, Широчайшие мышцы	Y
-Болгарские приседания		1	strength	Ягодицы, Передняя часть бедра	Y
+Болгарские приседания	Bulgarian Split Squats	1	strength	Ягодицы, Передняя часть бедра	Y
 Болгарские приседания в машине смита	Bulgarian Split Squats in Smith Machine	1	strength	Ягодицы, Передняя часть бедра	Y
 Болгарские приседания на TRX	Bulgarian Split Squats on TRX	1	strength	Ягодицы, Передняя часть бедра	Y
 Болгарские приседания с резиной	Bulgarian Split Squats with Resistance Band	1	strength	Ягодицы, Передняя часть бедра	Y
-Броски медбола в стену (Wall Balls)		1	strength	Функционал	Y
-Велотренажер		1	strength	Кардио	Y
-Взятие штанги на грудь		1	strength	Тяжелая атлетика	Y
+Броски медбола в стену (Wall Balls)	Wall Balls	1	strength	Функционал	Y
+Велотренажер	Stationary Bike	1	strength	Кардио	Y
+Взятие штанги на грудь	Clean	1	strength	Тяжелая атлетика	Y
 Вращение корпуса с резиной стоя	Standing Torso Rotation with Resistance Band	1	strength	Пресс и косые, Косые мышцы	Y
 Вращение корпуса стоя/сидя	Torso Rotation Standing/Seated	1	strength	Пресс и косые, Косые мышцы	Y
 Вращения в тренажёре	Machine Torso Rotation	1	strength	Пресс и косые, Косые мышцы	Y
-Выкатывания с роликом для пресса (Ab Wheel)		1	strength	Пресс	Y
+Выкатывания с роликом для пресса (Ab Wheel)	Ab Wheel Rollouts	1	strength	Пресс	Y
 Выпады в бок	Side Lunges	1	strength	Ягодицы, Внутренняя часть бедра	Y
 Выпады в бок с резиной	Side Lunges with Resistance Band	1	strength	Ягодицы, Внутренняя часть бедра	Y
-Выпады в петлях TRX		1	strength	TRX	Y
-Выпады в Смите		1	strength	Ноги	Y
+Выпады в петлях TRX	TRX Lunges	1	strength	TRX	Y
+Выпады в Смите	Smith Machine Lunges	1	strength	Ноги	Y
 Выпады на беговой дорожке	Lunges on the Treadmill	1	strength	Ягодицы, Передняя часть бедра	Y
 Выпады с гантелями	Dumbbell Lunges	1	strength	Ягодицы	Y
 Выпады с резиной	Resistance Band Lunges	1	strength	Ягодицы	Y
@@ -48,24 +49,24 @@ name_ru	name_en	used_by	types	groups	public
 Выпады со штангой	Barbell Lunges	1	strength	Ягодицы	Y
 Выпады со штангой в смите	Barbell Lunges in Smith Machine	1	strength	Ягодицы	Y
 Выпрыгивания со штангой	Barbell Jump Squats	1	strength	Ягодицы, Передняя часть бедра, Голень	Y
-Выходы силой на кольцах		1	strength	Функционал	Y
-Выходы силой на турнике (Muscle-ups)		1	strength	Функционал	Y
-Гиперэкстензия		1	strength	Спина и шея, Поясница	Y
+Выходы силой на кольцах	Rings Muscle-ups	1	strength	Функционал	Y
+Выходы силой на турнике (Muscle-ups)	Muscle-ups	1	strength	Функционал	Y
+Гиперэкстензия	Hyperextension	1	strength	Спина и шея, Поясница	Y
 Гоблет приседания	Goblet Squats	1	strength	Ягодицы, Передняя часть бедра	Y
-Гоблет-приседания с гирей (Кубковые)		1	strength	Гири	Y
-Голландский штурвал		1	strength	Руки, Хуй	Y
-Горизонтальный жим ногами		1	strength	Ноги	Y
-Гребля		1	cardio	Кардио	Y
-Гребной тренажер		1	cardio	Кардио	Y
-Двойные прыжки на скакалке		1	strength	Функционал	Y
-Жим Арнольда		1	strength	Плечи, Передняя дельта	Y
-Жим в грудном тренажёре сидя		1	strength	Грудь	Y
+Гоблет-приседания с гирей (Кубковые)	Kettlebell Goblet Squats	1	strength	Гири	Y
+Голландский штурвал	Dutch Windmill	1	strength	Руки, Хуй	Y
+Горизонтальный жим ногами	Horizontal Leg Press	1	strength	Ноги	Y
+Гребля	Rowing	1	cardio	Кардио	Y
+Гребной тренажер	Rowing Machine	1	cardio	Кардио	Y
+Двойные прыжки на скакалке	Double Unders	1	strength	Функционал	Y
+Жим Арнольда	Arnold Press	1	strength	Плечи, Передняя дельта	Y
+Жим в грудном тренажёре сидя	Seated Chest Press Machine	1	strength	Грудь	Y
 Жим в тренажёре на трицепс	Machine Triceps Press	1	strength	Руки, Трицепс	Y
-Жим в тренажере сидя (Хаммер)		1	strength	Грудь	Y
-Жим в тренажере Смита сидя		1	strength	Плечи	Y
+Жим в тренажере сидя (Хаммер)	Seated Hammer Strength Press	1	strength	Грудь	Y
+Жим в тренажере Смита сидя	Seated Smith Machine Press	1	strength	Плечи	Y
 Жим гантелей лёжа	Dumbbell Bench Press	1	strength	Грудь	Y
-Жим гантелей на наклонной скамье		1	strength	Грудь	Y
-Жим гантелей сидя		1	strength	Плечи, Передняя дельта	Y
+Жим гантелей на наклонной скамье	Incline Dumbbell Press	1	strength	Грудь	Y
+Жим гантелей сидя	Seated Dumbbell Press	1	strength	Плечи, Передняя дельта	Y
 Жим гантелей стоя	Standing Dumbbell Press	1	strength	Плечи, Передняя дельта	Y
 Жим гантелями лёжа под углом вверх	Incline Dumbbell Bench Press	1	strength	Грудь	Y
 Жим гантелями лёжа под углом вниз	Decline Dumbbell Bench Press	1	strength	Грудь	Y
@@ -73,11 +74,11 @@ name_ru	name_en	used_by	types	groups	public
 Жим лёжа под углом вверх в смите	Incline Bench Press in Smith Machine	1	strength	Грудь	Y
 Жим лёжа узким хватом в смите	Close-Grip Bench Press in Smith Machine	1	strength	Руки, Трицепс	Y
 Жим лёжа широким хватом в смите	Wide-Grip Bench Press in Smith Machine	1	strength	Грудь	Y
-Жим на плечи сидя в блочном тренажере		1	strength	Плечи	Y
+Жим на плечи сидя в блочном тренажере	Seated Cable Machine Shoulder Press	1	strength	Плечи	Y
 Жим ногами в тренажёре	Leg Press Machine	1	strength	Ягодицы, Передняя часть бедра	Y
-Жим ногами горизонтальный		1	strength	Ноги	Y
+Жим ногами горизонтальный	Horizontal Leg Press	1	strength	Ноги	Y
 Жим ногами статичный	Static Leg Press	1	strength	Ягодицы, Передняя часть бедра	Y
-Жим носками в тренажере "Жим ногами"		1	strength	Ноги	Y
+Жим носками в тренажере "Жим ногами"	Calf Press on the Leg Press Machine	1	strength	Ноги	Y
 Жим одной ногой в тренажёре	Single-Leg Press Machine	1	strength	Ягодицы, Передняя часть бедра	Y
 Жим перед собой с резиной	Front Press with Resistance Band	1	strength	Грудь	Y
 Жим перед собой статичный	Static Front Press	1	strength	Грудь	Y
@@ -90,41 +91,41 @@ name_ru	name_en	used_by	types	groups	public
 Жим штанги лёжа	Barbell Bench Press	1	strength	Грудь	Y
 Жим штанги лёжа под углом вверх	Incline Barbell Bench Press	1	strength	Грудь	Y
 Жим штанги лёжа под углом вниз	Decline Barbell Bench Press	1	strength	Грудь	Y
-Жим штанги лёжа узким хватом		1	strength	Руки, Трицепс	Y
-Жим штанги на наклонной скамье (вверх)		1	strength	Грудь	Y
-Жим штанги на скамье с обратным наклоном		1	strength	Грудь	Y
+Жим штанги лёжа узким хватом	Close-Grip Bench Press	1	strength	Руки, Трицепс	Y
+Жим штанги на наклонной скамье (вверх)	Incline Bench Press	1	strength	Грудь	Y
+Жим штанги на скамье с обратным наклоном	Decline Bench Press	1	strength	Грудь	Y
 Жим штанги с груди сидя	Seated Barbell Chest Press	1	strength	Плечи, Передняя дельта	Y
 Жим штанги с груди стоя	Standing Barbell Chest Press	1	strength	Плечи, Передняя дельта	Y
 Запрыгивания на «козла»	Box Jumps onto the Vaulting Horse	1	strength	Ягодицы, Передняя часть бедра	Y
-Запрыгивания на тумбу		1	strength	Функционал	Y
+Запрыгивания на тумбу	Box Jumps	1	strength	Функционал	Y
 Запрыгивания с сэндбэгом	Sandbag Jumps	1	strength	Ягодицы, Передняя часть бедра	Y
 Зашагивания на подставку с гантелями	Dumbbell Step-ups onto a Platform	1	strength	Ягодицы	Y
-Зашагивания на тумбу/платформу с весом		1	strength	Ноги	Y
-Икры сидя		1	strength	Ноги	Y
-Концентрированные сгибания с гантелью		1	strength	Руки	Y
-Махи (разведения) гантелей в стороны стоя		1	strength	Плечи	Y
+Зашагивания на тумбу/платформу с весом	Weighted Step-ups	1	strength	Ноги	Y
+Икры сидя	Seated Calf Raises	1	strength	Ноги	Y
+Концентрированные сгибания с гантелью	Dumbbell Concentration Curls	1	strength	Руки	Y
+Махи (разведения) гантелей в стороны стоя	Standing Dumbbell Lateral Raises	1	strength	Плечи	Y
 Махи вперёд одной гантелей	Single Dumbbell Front Raises	1	strength	Плечи, Передняя дельта	Y
 Махи вперёд с нижнего блока	Low Pulley Front Raises	1	strength	Плечи, Передняя дельта	Y
 Махи вперёд со штангой	Barbell Front Raises	1	strength	Плечи, Передняя дельта	Y
-Махи гантелей в стороны сидя		1	strength	Плечи	Y
+Махи гантелей в стороны сидя	Seated Dumbbell Lateral Raises	1	strength	Плечи	Y
 Махи гантели в сторону лёжа	Lying Dumbbell Side Raises	1	strength	Плечи, Средняя дельта	Y
-Махи гантелями в наклоне		1	strength	Плечи, Задняя дельта	Y
+Махи гантелями в наклоне	Bent-Over Dumbbell Raises	1	strength	Плечи, Задняя дельта	Y
 Махи гантелями в наклоне сидя	Seated Bent-Over Dumbbell Raises	1	strength	Плечи, Задняя дельта	Y
 Махи гантелями в стороны	Dumbbell Lateral Raises	1	strength	Плечи, Средняя дельта	Y
 Махи гантелями в стороны лёжа	Lying Dumbbell Lateral Raises	1	strength	Плечи, Задняя дельта	Y
 Махи гантелями вперёд	Dumbbell Front Raises	1	strength	Плечи, Передняя дельта	Y
-Махи гирей двумя руками (Русский мах)		1	strength	Гири	Y
+Махи гирей двумя руками (Русский мах)	Two-Handed Kettlebell Swing (Russian Swing)	1	strength	Гири	Y
 Махи ногой, лёжа на боку	Side-Lying Leg Raises	1	strength	Ягодицы, Наружная часть бедра	Y
 Махи перед собой с резиной	Front Raises with Resistance Band	1	strength	Плечи, Передняя дельта	Y
 Махи руками в стороны в кроссовере	Cable Crossover Lateral Raises	1	strength	Плечи, Средняя дельта	Y
-Махи руками в стороны в тренажёре		1	strength	Плечи, Средняя дельта	Y
+Махи руками в стороны в тренажёре	Machine Lateral Raises	1	strength	Плечи, Средняя дельта	Y
 Махи руками назад в кроссовере	Cable Crossover Reverse Flys	1	strength	Плечи, Задняя дельта	Y
 Махи руками с нижнего блока в наклоне	Bent-Over Low Pulley Rear Delt Flys	1	strength	Плечи, Задняя дельта	Y
 Махи рукой в наклоне с резиной	Bent-Over Single-Arm Raises with Resistance Band	1	strength	Плечи, Задняя дельта	Y
 Махи рукой в сторону с нижнего блока	Single-Arm Low Pulley Lateral Raises	1	strength	Плечи, Средняя дельта	Y
 Махи рукой в сторону с резиной	Single-Arm Lateral Raises with Resistance Band	1	strength	Плечи, Средняя дельта	Y
-Мельница с гирей		1	strength	Гири	Y
-Мертвая тяга на прямых ногах		1	strength	Ноги	Y
+Мельница с гирей	Kettlebell Windmill	1	strength	Гири	Y
+Мертвая тяга на прямых ногах	Stiff-Legged Deadlift	1	strength	Ноги	Y
 Наклоны в бок с гантелью	Dumbbell Side Bends	1	strength	Пресс и косые, Косые мышцы	Y
 Наклоны в бок с резиной стоя	Standing Side Bends with Resistance Band	1	strength	Пресс и косые, Косые мышцы	Y
 Наклоны в ГАКК тренажёре	Side Bends in the Hack Squat Machine	1	strength	Спина и шея, Поясница	Y
@@ -132,34 +133,34 @@ name_ru	name_en	used_by	types	groups	public
 Наклоны с сэндбэгом перед собой	Sandbag Side Bends	1	strength	Спина и шея, Поясница	Y
 Наклоны со штангой в смите	Barbell Side Bends in Smith Machine	1	strength	Спина и шея, Поясница	Y
 Наклоны со штангой на плечах	Barbell Side Bends with Bar on Shoulders	1	strength	Спина и шея, Поясница	Y
-Обратная гиперэкстензия		1	strength	Спина и шея, Поясница, Ягодицы	Y
+Обратная гиперэкстензия	Reverse Hyperextension	1	strength	Спина и шея, Поясница, Ягодицы	Y
 Обратная гиперэкстензия без тренажёра	Reverse Hyperextension without Machine	1	strength	Спина и шея, Поясница, Ягодицы	Y
-Обратные отжимания от скамьи		1	strength	Руки	Y
-Обратные разведения в тренажере "Бабочка" (Peck-Deck)		1	strength	Плечи	Y
-Обратные скручивания лежа		1	strength	Пресс	Y
-Орбитрек		1	cardio	Ноги	Y
-Отведение ноги в кроссовере		1	strength	Ягодицы, Наружная часть бедра	Y
-Отведение ноги в тренажёре		1	strength	Ягодицы, Наружная часть бедра	Y
+Обратные отжимания от скамьи	Bench Dips	1	strength	Руки	Y
+Обратные разведения в тренажере "Бабочка" (Peck-Deck)	Reverse Pec Deck Fly	1	strength	Плечи	Y
+Обратные скручивания лежа	Lying Reverse Crunches	1	strength	Пресс	Y
+Орбитрек	Orbitrek (Elliptical Trainer)	1	cardio	Ноги	Y
+Отведение ноги в кроссовере	Cable Hip Abduction	1	strength	Ягодицы, Наружная часть бедра	Y
+Отведение ноги в тренажёре	Machine Hip Abduction	1	strength	Ягодицы, Наружная часть бедра	Y
 Отведение ноги на четвереньках	Quadruped Hip Abduction	1	strength	Ягодицы, Наружная часть бедра	Y
 Отведение ноги на четвереньках с резиной	Quadruped Hip Abduction with Resistance Band	1	strength	Ягодицы, Наружная часть бедра	Y
 Отведение ноги с резиной	Hip Abduction with Resistance Band	1	strength	Ягодицы, Наружная часть бедра	Y
-Отведение руки в сторону в кроссовере		1	strength	Плечи	Y
+Отведение руки в сторону в кроссовере	Single-Arm Cable Lateral Raise	1	strength	Плечи	Y
 Отведение руки назад с резиной	Rear Arm Raise with Resistance Band	1	strength	Плечи, Задняя дельта	Y
-Отжимания в петлях TRX		1	strength	TRX	Y
-Отжимания в стойке на руках		1	strength	Свой вес	Y
+Отжимания в петлях TRX	TRX Push-ups	1	strength	TRX	Y
+Отжимания в стойке на руках	Handstand Push-ups	1	strength	Свой вес	Y
 Отжимания вниз головой с помощью ног	Decline Push-ups	1	strength	Плечи, Передняя дельта	Y
-Отжимания на брусьях (с акцентом на грудь)		1	strength	Грудь	Y
-Отжимания на брусьях (с акцентом на трицепс)		1	strength	Руки	Y
+Отжимания на брусьях (с акцентом на грудь)	Chest-Focused Dips	1	strength	Грудь	Y
+Отжимания на брусьях (с акцентом на трицепс)	Triceps-Focused Dips	1	strength	Руки	Y
 Отжимания на TRX узким хватом	Close-Grip TRX Push-ups	1	strength	Руки, Трицепс	Y
 Отжимания на TRX широким хватом	Wide-Grip TRX Push-ups	1	strength	Грудь	Y
 Отжимания от брусьев	Dips on Parallel Bars	1	strength	Руки, Трицепс	Y
-Отжимания от брусьев в гравитроне		1	strength	Руки, Трицепс	Y
+Отжимания от брусьев в гравитроне	Assisted Dips (Gravitron)	1	strength	Руки, Трицепс	Y
 Отжимания от брусьев вниз головой	Decline Dips	1	strength	Плечи, Передняя дельта	Y
 Отжимания от брусьев горизонтально	Horizontal Dips	1	strength	Руки, Трицепс	Y
 Отжимания от лавки сзади	Bench Dips	1	strength	Руки, Трицепс	Y
 Отжимания от лавки сзади с резиной	Bench Dips with Resistance Band	1	strength	Руки, Трицепс	Y
 Отжимания от лент / петель	Push-ups on Straps / Loops	1	strength	Грудь	Y
-Отжимания от пола (классические)		1	strength	Грудь	Y
+Отжимания от пола (классические)	Push-ups	1	strength	Грудь	Y
 Отжимания от пола с хлопками	Clap Push-ups	1	strength	Грудь	Y
 Отжимания от пола статичные	Static Push-ups	1	strength	Руки, Грудь, Трицепс	Y
 Отжимания от пола узким хв. с резиной	Close-Grip Push-ups with Resistance Band	1	strength	Руки, Трицепс	Y
@@ -170,11 +171,11 @@ name_ru	name_en	used_by	types	groups	public
 Отжимания сзади на TRX	Triceps Push-ups on TRX	1	strength	Руки, Трицепс	Y
 Отжимания узким хватом от пола	Close-Grip Push-ups	1	strength	Руки, Трицепс	Y
 Отжимания широким хватом от лавки	Wide-Grip Bench Push-ups	1	strength	Грудь	Y
-Планка классическая		1	strength	Пресс	Y
+Планка классическая	Plank	1	strength	Пресс	Y
 Повороты головы в упоре лбом	Head Rotation in Forehead Support	1	strength	Спина и шея, Передняя поверхность шеи	Y
 Подтягив. на зад. дельту на простыне	Rear Delt Pull-ups on a Sheet	1	strength	Плечи, Задняя дельта	Y
 Подтягивание ног с резиной в упоре лёжа	Lying Knee Tucks with Resistance Band	1	strength	Пресс и косые, Подвздошно-поясничная, Пресс	Y
-Подтягивания в Гравитроне		1	strength	Спина	Y
+Подтягивания в Гравитроне	Assisted Pull-ups (Gravitron)	1	strength	Спина	Y
 Подтягивания в машине смита	Pull-ups in Smith Machine	1	strength	Спина и шея, Широчайшие мышцы	Y
 Подтягивания вертикальные на TRX	Vertical TRX Pull-ups	1	strength	Спина и шея, Широчайшие мышцы	Y
 Подтягивания за голову широким хватом	Wide-Grip Behind-the-Neck Pull-ups	1	strength	Спина и шея, Широчайшие мышцы	Y
@@ -186,22 +187,22 @@ name_ru	name_en	used_by	types	groups	public
 Подтягивания на простыне	Sheet Pull-ups	1	strength	Спина и шея, Широчайшие мышцы	Y
 Подтягивания ног к груди на TRX	TRX Knee Tucks	1	strength	Пресс и косые, Пресс	Y
 Подтягивания обратным хв. в гравитроне	Reverse-Grip Assisted Pull-ups (Gravitron)	1	strength	Спина и шея, Бицепс, Широчайшие мышцы	Y
-Подтягивания обратным хватом		1	strength	Спина и шея, Бицепс, Широчайшие мышцы	Y
+Подтягивания обратным хватом	Underhand Pull-ups (Chin-ups)	1	strength	Спина и шея, Бицепс, Широчайшие мышцы	Y
 Подтягивания узким хватом	Close-Grip Pull-ups	1	strength	Спина и шея, Широчайшие мышцы	Y
 Подтягивания широким хв. в гравитроне	Wide-Grip Assisted Pull-ups (Gravitron)	1	strength	Спина и шея, Широчайшие мышцы	Y
-Подтягивания широким хватом к груди		1	strength	Спина и шея, Широчайшие мышцы	Y
-Подъем гантелей на бицепс сидя на наклонной скамье		1	strength	Руки	Y
-Подъем гантелей на бицепс стоя (с супинацией)		1	strength	Руки	Y
-Подъем гантелей перед собой		1	strength	Плечи	Y
-Подъем коленей в упоре на брусьях		1	strength	Пресс	Y
-Подъем на носки "Ослик" (с партнером или в тренажере)		1	strength	Ноги	Y
+Подтягивания широким хватом к груди	Wide-Grip Chest-to-Bar Pull-ups	1	strength	Спина и шея, Широчайшие мышцы	Y
+Подъем гантелей на бицепс сидя на наклонной скамье	Incline Seated Dumbbell Curls	1	strength	Руки	Y
+Подъем гантелей на бицепс стоя (с супинацией)	Standing Dumbbell Curls (with Supination)	1	strength	Руки	Y
+Подъем гантелей перед собой	Dumbbell Front Raises	1	strength	Плечи	Y
+Подъем коленей в упоре на брусьях	Knee Raises on Parallel Bars	1	strength	Пресс	Y
+Подъем на носки "Ослик" (с партнером или в тренажере)	Donkey Calf Raises	1	strength	Ноги	Y
 Подъём на носки в наклоне	Bent-Over Calf Raises	1	strength	Ноги, Голень	Y
-Подъём на носки в тренажёре сидя		1	strength	Ноги, Голень	Y
-Подъём на носки в тренажёре стоя		2	strength	Ноги, Голень	Y
-Подъём на носки сидя со штангой		1	strength	Ноги, Голень	Y
+Подъём на носки в тренажёре сидя	Seated Calf Raise Machine	1	strength	Ноги, Голень	Y
+Подъём на носки в тренажёре стоя	Standing Calf Raise Machine	2	strength	Ноги, Голень	Y
+Подъём на носки сидя со штангой	Seated Barbell Calf Raises	1	strength	Ноги, Голень	Y
 Подъём на носки стоя	Standing Calf Raises	1	strength	Ноги, Голень	Y
 Подъём ног в висе	Hanging Leg Raises	1	strength	Пресс и косые, Пресс, Подвздошно-поясничная	Y
-Подъем ног в висе на перекладине		1	strength	Пресс	Y
+Подъем ног в висе на перекладине	Hanging Leg Raises	1	strength	Пресс	Y
 Подъём ног в упоре	Leg Raises in Support	1	strength	Пресс и косые, Подвздошно-поясничная	Y
 Подъём ног лёжа	Lying Leg Raises	1	strength	Пресс и косые, Подвздошно-поясничная	Y
 Подъём ног лёжа с резиной	Lying Leg Raises with Resistance Band	1	strength	Пресс и косые, Подвздошно-поясничная	Y
@@ -215,10 +216,10 @@ name_ru	name_en	used_by	types	groups	public
 Подъём таза лёжа в смите	Lying Hip Thrusts in Smith Machine	1	strength	Ягодицы	Y
 Подъём таза лёжа на TRX	Lying Hip Thrusts on TRX	1	strength	Ягодицы, Задняя часть бедра	Y
 Подъём таза лёжа одной ногой	Single-Leg Lying Hip Thrusts	1	strength	Ягодицы	Y
-Подъем штанги на бицепс стоя		1	strength	Руки	Y
-Подъем штанги на скамье Скотта		1	strength	Руки	Y
-Подъем штанги перед собой		1	strength	Плечи	Y
-Подъем EZ-штанги на бицепс		1	strength	Руки	Y
+Подъем штанги на бицепс стоя	Standing Barbell Curls	1	strength	Руки	Y
+Подъем штанги на скамье Скотта	Preacher Curls	1	strength	Руки	Y
+Подъем штанги перед собой	Barbell Front Raises	1	strength	Плечи	Y
+Подъем EZ-штанги на бицепс	EZ-Bar Curls	1	strength	Руки	Y
 Приведение локтей в кроссовере	Cable Crossover Elbow Adduction	1	strength	Спина и шея, Широчайшие мышцы	Y
 Приведение ноги в кроссовере	Cable Crossover Hip Adduction	1	strength	Ноги, Внутренняя часть бедра	Y
 Приведение ноги в тренажёре	Machine Hip Adduction	1	strength	Ноги, Внутренняя часть бедра	Y
@@ -227,12 +228,12 @@ name_ru	name_en	used_by	types	groups	public
 Приведение рук снизу с гантелями	Low Dumbbell Chest Flys	1	strength	Грудь	Y
 Приведение руки с резиной	Arm Adduction with Resistance Band	1	strength	Грудь	Y
 Приведение руки снизу с резиной	Low Arm Adduction with Resistance Band	1	strength	Грудь	Y
-Приседание в ГАКК-тренажёре		1	strength	Ягодицы, Передняя часть бедра	Y
+Приседание в ГАКК-тренажёре	Hack Squats	1	strength	Ягодицы, Передняя часть бедра	Y
 Приседания «сумо» (плие) в смите	Sumo (Plié) Squats in Smith Machine	1	strength	Ягодицы, Передняя часть бедра, Внутренняя часть бедра	Y
 Приседания в Смите с ногами впереди	Smith Machine Squats with Feet Forward	1	strength	Ягодицы	Y
-Приседания в тренажере Смита		1	strength	Ноги	Y
+Приседания в тренажере Смита	Smith Machine Squats	1	strength	Ноги	Y
 Приседания между ног статичные	Static Squats with Weight Between Legs	1	strength	Ягодицы, Передняя часть бедра, Поясница, Внутренняя часть бедра	Y
-Приседания на одной ноге		1	strength	Ягодицы, Передняя часть бедра	Y
+Приседания на одной ноге	Single-Leg Squats (Pistol Squats)	1	strength	Ягодицы, Передняя часть бедра	Y
 Приседания на одной ноге с простынёй	Single-Leg Squats on a Sheet	1	strength	Ягодицы, Передняя часть бедра	Y
 Приседания на одной ноге с TRX	Single-Leg Squats on TRX	1	strength	Ягодицы, Передняя часть бедра	Y
 Приседания назад с фиксацией голени	Reverse Squats with Shin Support	1	strength	Ноги, Передняя часть бедра	Y
@@ -245,30 +246,30 @@ name_ru	name_en	used_by	types	groups	public
 Приседания со штангой	Barbell Squats	1	strength	Ягодицы, Передняя часть бедра	Y
 Приседания со штангой «сумо» (плие)	Sumo (Plié) Barbell Squats	1	strength	Ягодицы, Передняя часть бедра, Внутренняя часть бедра	Y
 Приседания со штангой в смите	Barbell Squats in Smith Machine	1	strength	Ягодицы, Передняя часть бедра	Y
-Приседания со штангой на груди		1	strength	Ягодицы, Передняя часть бедра	Y
+Приседания со штангой на груди	Front Squats	1	strength	Ягодицы, Передняя часть бедра	Y
 Приседания статичные	Static Squats	1	strength	Ягодицы, Передняя часть бедра	Y
 Приседания-выпады на одной ноге	Single-Leg Split Squats	1	strength	Ягодицы, Передняя часть бедра	Y
-Прогулка фермера		1	strength	Предплечья	Y
+Прогулка фермера	Farmer's Walk	1	strength	Предплечья	Y
 Протяжка с гантелями	Dumbbell Upright Rows	1	strength	Плечи, Передняя дельта	Y
 Протяжка с резиной	Upright Rows with Resistance Band	1	strength	Плечи, Передняя дельта	Y
 Протяжка со штангой	Barbell Upright Rows	1	strength	Плечи, Передняя дельта	Y
 Протяжка со штангой в смите	Barbell Upright Rows in Smith Machine	1	strength	Плечи, Передняя дельта	Y
-Пулловер в блочном тренажере стоя		1	strength	Спина	Y
-Пуловер в тренажере сидя		1	strength	Грудь	Y
+Пулловер в блочном тренажере стоя	Standing Cable Pullover	1	strength	Спина	Y
+Пуловер в тренажере сидя	Seated Machine Pullover	1	strength	Грудь	Y
 Пуловер лёжа с резиной	Lying Pullover with Resistance Band	1	strength	Спина и шея, Широчайшие мышцы	Y
 Пуловер лёжа со штангой	Lying Barbell Pullover	1	strength	Спина и шея, Широчайшие мышцы	Y
 Пуловер на простыне	Sheet Pullover	1	strength	Спина и шея, Широчайшие мышцы	Y
 Пуловер на TRX-петлях	TRX Pullover	1	strength	Спина и шея, Широчайшие мышцы	Y
-Пуловер с гантелей лёжа		1	strength	Спина и шея, Широчайшие мышцы	Y
-Разведение гантелей лежа		1	strength	Грудь	Y
-Разведение гантелей на наклонной скамье		1	strength	Грудь	Y
-Разведение ног		1	strength	Ноги	Y
-Разведение ног в тренажёре		1	strength	Ягодицы, Наружная часть бедра	Y
+Пуловер с гантелей лёжа	Lying Dumbbell Pullover	1	strength	Спина и шея, Широчайшие мышцы	Y
+Разведение гантелей лежа	Lying Dumbbell Flyes	1	strength	Грудь	Y
+Разведение гантелей на наклонной скамье	Incline Dumbbell Flyes	1	strength	Грудь	Y
+Разведение ног	Hip Abduction	1	strength	Ноги	Y
+Разведение ног в тренажёре	Seated Hip Abduction Machine	1	strength	Ягодицы, Наружная часть бедра	Y
 Разведение рук назад в тренажёре	Machine Reverse Flys	1	strength	Плечи, Задняя дельта	Y
 Разведение рук назад на простыне	Sheet Reverse Flys	1	strength	Плечи, Задняя дельта	Y
 Разведение рук назад на TRX	TRX Reverse Flys	1	strength	Плечи, Задняя дельта	Y
 Разведение рук назад с резиной	Reverse Flys with Resistance Band	1	strength	Плечи, Задняя дельта	Y
-Разведения рук в петлях TRX (на заднюю дельту)		1	strength	TRX	Y
+Разведения рук в петлях TRX (на заднюю дельту)	TRX Reverse Flyes	1	strength	TRX	Y
 Разводы с гантелями лёжа	Lying Dumbbell Flys	1	strength	Грудь	Y
 Разводы с гантелями под углом вверх	Incline Dumbbell Flys	1	strength	Грудь	Y
 Разгиб. бедра в кроссов. на четвереньках	Quadruped Cable Hip Extension	1	strength	Ягодицы	Y
@@ -279,38 +280,38 @@ name_ru	name_en	used_by	types	groups	public
 Разгибание бедра стоя с резиной	Standing Hip Extension with Resistance Band	1	strength	Ягодицы	Y
 Разгибание запястий сидя с резиной	Seated Wrist Extensions with Resistance Band	1	strength	Руки, Предплечья	Y
 Разгибание запястий со штангой сидя	Seated Barbell Wrist Extensions	1	strength	Руки, Предплечья	Y
-Разгибание ног		1	strength	Ноги	Y
-Разгибание ног в тренажёре		1	strength	Ноги, Передняя часть бедра	Y
-Разгибание одной руки из-за головы с гантелью		1	strength	Руки	Y
+Разгибание ног	Leg Extension	1	strength	Ноги	Y
+Разгибание ног в тренажёре	Machine Leg Extension	1	strength	Ноги, Передняя часть бедра	Y
+Разгибание одной руки из-за головы с гантелью	Single-Arm Overhead Dumbbell Extension	1	strength	Руки	Y
 Разгибание рук на простыне	Sheet Triceps Extensions	1	strength	Руки, Трицепс	Y
 Разгибание рук на TRX-петлях	TRX Triceps Extensions	1	strength	Руки, Трицепс	Y
 Разгибание рук с верх. блока хватом снизу	High Pulley Triceps Extensions (underhand grip)	1	strength	Руки, Трицепс	Y
 Разгибание рук с верхнего блока	High Pulley Triceps Extensions	1	strength	Руки, Трицепс	Y
 Разгибание рук с гантелями в наклоне	Bent-Over Dumbbell Triceps Extensions	1	strength	Руки, Трицепс	Y
-Разгибание рук с канатом из-за головы в кроссовере		1	strength	Руки	Y
+Разгибание рук с канатом из-за головы в кроссовере	Overhead Cable Rope Triceps Extension	1	strength	Руки	Y
 Разгибание рук с нижнего блока	Low Pulley Triceps Extensions	1	strength	Руки, Трицепс	Y
 Разгибание рук с резиной в наклоне	Bent-Over Triceps Extensions with Resistance Band	1	strength	Руки, Трицепс	Y
 Разгибание рук с резиной сверху	Overhead Triceps Extensions with Resistance Band	1	strength	Руки, Трицепс	Y
 Разгибание рук статичное	Static Triceps Extensions	1	strength	Руки, Трицепс	Y
 Разгибание руки с верхнего блока	Single-Arm High Pulley Triceps Extension	1	strength	Руки, Трицепс	Y
 Разгибание руки с резиной стоя	Standing Single-Arm Triceps Extension with Resistance Band	1	strength	Руки, Трицепс	Y
-Разгибание спины		1	strength	Спина	Y
-Разгибание спины в тренажёре		1	strength	Спина и шея, Поясница	Y
+Разгибание спины	Back Extension	1	strength	Спина	Y
+Разгибание спины в тренажёре	Machine Back Extension	1	strength	Спина и шея, Поясница	Y
 Разгибание шеи лёжа	Lying Neck Extensions	1	strength	Спина и шея, Задняя поверхность шеи	Y
 Разгибание шеи с лямками	Neck Extensions with Straps	1	strength	Спина и шея, Задняя поверхность шеи	Y
-Разгибание шеи с упряжью		1	strength	Шея	Y
-Разгибания рук на верхнем блоке с канатом		1	strength	Руки	Y
-Разгибания рук на верхнем блоке с прямой рукоятью		1	strength	Руки	Y
-Румынская тяга со штангой		1	strength	Ноги	Y
-Русские скручивания (с весом)		1	strength	Пресс	Y
-Рывок гири одной рукой		1	strength	Гири	Y
-Рывок штанги классический		1	strength	Тяжелая атлетика	Y
+Разгибание шеи с упряжью	Neck Extension with Harness	1	strength	Шея	Y
+Разгибания рук на верхнем блоке с канатом	Cable Rope Triceps Pushdown	1	strength	Руки	Y
+Разгибания рук на верхнем блоке с прямой рукоятью	Straight-Bar Cable Triceps Pushdown	1	strength	Руки	Y
+Румынская тяга со штангой	Romanian Deadlift	1	strength	Ноги	Y
+Русские скручивания (с весом)	Weighted Russian Twists	1	strength	Пресс	Y
+Рывок гири одной рукой	One-Arm Kettlebell Snatch	1	strength	Гири	Y
+Рывок штанги классический	Barbell Snatch	1	strength	Тяжелая атлетика	Y
 Рычажная тяга в тренажёре	Machine Lever Row	1	strength	Спина и шея, Широчайшие мышцы	Y
-Сведение ног		1	strength	Ноги	Y
-Сведение ног в тренажёре		1	strength	Ноги, Внутренняя часть бедра	Y
+Сведение ног	Hip Adduction	1	strength	Ноги	Y
+Сведение ног в тренажёре	Machine Hip Adduction	1	strength	Ноги, Внутренняя часть бедра	Y
 Сведение рук в кроссовере лёжа	Lying Cable Crossover Flys	1	strength	Грудь	Y
-Сведение рук в кроссовере снизу вверх		1	strength	Грудь	Y
-Сведение рук в кроссовере стоя		1	strength	Грудь	Y
+Сведение рук в кроссовере снизу вверх	Low-to-High Cable Flyes	1	strength	Грудь	Y
+Сведение рук в кроссовере стоя	Standing Cable Flyes	1	strength	Грудь	Y
 Сведение рук в тренажёре «бабочка»	Pec Deck Flys	1	strength	Грудь	Y
 Сведение рук в упоре лёжа	Chest Flys in Push-up Position	1	strength	Грудь	Y
 Сведение рук на простыне	Sheet Chest Flys	1	strength	Грудь	Y
@@ -321,13 +322,13 @@ name_ru	name_en	used_by	types	groups	public
 Сведение рук с резиной стоя	Standing Band Chest Flys	1	strength	Грудь	Y
 Сгибание запястий сидя с резиной	Seated Wrist Curls with Resistance Band	1	strength	Руки, Предплечья	Y
 Сгибание запястий со штангой сидя	Seated Barbell Wrist Curls	1	strength	Руки, Предплечья	Y
-Сгибание запястий со штангой хватом снизу		1	strength	Предплечья	Y
-Сгибание ног		1	strength	Ноги	Y
-Сгибание ног в тренажёре лёжа		1	strength	Ноги, Задняя часть бедра	Y
-Сгибание ног в тренажёре сидя		1	strength	Ноги, Задняя часть бедра	Y
+Сгибание запястий со штангой хватом снизу	Underhand Barbell Wrist Curls	1	strength	Предплечья	Y
+Сгибание ног	Leg Curl	1	strength	Ноги	Y
+Сгибание ног в тренажёре лёжа	Lying Leg Curl Machine	1	strength	Ноги, Задняя часть бедра	Y
+Сгибание ног в тренажёре сидя	Seated Leg Curl Machine	1	strength	Ноги, Задняя часть бедра	Y
 Сгибание ног лёжа с резиной	Lying Leg Curls with Resistance Band	1	strength	Ноги, Задняя часть бедра	Y
 Сгибание ног с фиксацией голени	Leg Curls with Shin Support	1	strength	Ноги, Задняя часть бедра	Y
-Сгибание ноги в тренажёре стоя		1	strength	Ноги, Задняя часть бедра	Y
+Сгибание ноги в тренажёре стоя	Standing Single-Leg Curl Machine	1	strength	Ноги, Задняя часть бедра	Y
 Сгибание ноги с резиной стоя	Standing Single-Leg Curl with Resistance Band	1	strength	Ноги, Задняя часть бедра	Y
 Сгибание одной руки на простыне	Single-Arm Sheet Curl	1	strength	Руки, Бицепс	Y
 Сгибание одной руки на TRX	Single-Arm TRX Curl	1	strength	Руки, Бицепс	Y
@@ -335,7 +336,7 @@ name_ru	name_en	used_by	types	groups	public
 Сгибание рук «молот» на TRX	TRX Hammer Curls	1	strength	Руки, Бицепс, Предплечья	Y
 Сгибание рук в тренажёре	Machine Biceps Curls	1	strength	Руки, Бицепс	Y
 Сгибание рук на скамье скотта	Preacher Bench Curls	1	strength	Руки, Бицепс	Y
-Сгибание рук с верх. блока в кроссовере		1	strength	Руки, Бицепс	Y
+Сгибание рук с верх. блока в кроссовере	High-Pulley Cable Biceps Curls	1	strength	Руки, Бицепс	Y
 Сгибание рук с верхнего блока за голову	Overhead Cable Curls	1	strength	Руки, Бицепс	Y
 Сгибание рук с гантелями сидя под углом	Incline Seated Dumbbell Curls	1	strength	Руки, Бицепс	Y
 Сгибание рук с нижнего блока	Low Pulley Curls	1	strength	Руки, Бицепс	Y
@@ -343,19 +344,19 @@ name_ru	name_en	used_by	types	groups	public
 Сгибание рук с резиной хватом сверху	Overhand Band Curls	1	strength	Руки, Предплечья	Y
 Сгибание рук с EZ грифом	EZ-Bar Curls	1	strength	Руки, Бицепс	Y
 Сгибание рук со штангой стоя	Standing Barbell Curls	1	strength	Руки, Бицепс	Y
-Сгибание рук со штангой хватом сверху		1	strength	Руки, Предплечья	Y
+Сгибание рук со штангой хватом сверху	Overhand Barbell Curls	1	strength	Руки, Предплечья	Y
 Сгибание рук хватом сверху на простыне	Overhand Sheet Curls	1	strength	Руки, Предплечья	Y
 Сгибание рук хватом сверху на TRX	Overhand TRX Curls	1	strength	Руки, Предплечья	Y
-Сгибание руки с гантелью в наклоне		1	strength	Руки, Бицепс	Y
+Сгибание руки с гантелью в наклоне	Bent-Over Dumbbell Curl	1	strength	Руки, Бицепс	Y
 Сгибание руки с гантелью через лавку	Dumbbell Curl over Bench	1	strength	Руки, Бицепс	Y
 Сгибание руки с резиной сверху	Overhead Band Curls	1	strength	Руки, Бицепс	Y
 Сгибание руки сидя через колено	Seated Curl over Knee	1	strength	Руки, Бицепс	Y
 Сгибание руки через колено с резиной	Band Curl over Knee	1	strength	Руки, Бицепс	Y
 Сгибание шеи лёжа	Lying Neck Curls	1	strength	Спина и шея, Передняя поверхность шеи	Y
 Сгибание шеи с лямками	Neck Curls with Straps	1	strength	Спина и шея, Передняя поверхность шеи	Y
-Сгибание шеи с упряжью		1	strength	Шея	Y
-Сгибания Зоттмана		1	strength	Предплечья	Y
-Сгибания на бицепс в тренажере (пюпитр)		1	strength	Руки	Y
+Сгибание шеи с упряжью	Neck Flexion with Harness	1	strength	Шея	Y
+Сгибания Зоттмана	Zottman Curls	1	strength	Предплечья	Y
+Сгибания на бицепс в тренажере (пюпитр)	Machine Preacher Curls	1	strength	Руки	Y
 Сгибания рук на простыне	Sheet Curls	1	strength	Руки, Бицепс	Y
 Сгибания рук на TRX-петлях	TRX Curls	1	strength	Руки, Бицепс	Y
 Сгибания рук с гантелями «молот»	Dumbbell Hammer Curls	1	strength	Руки, Бицепс, Предплечья	Y
@@ -363,22 +364,22 @@ name_ru	name_en	used_by	types	groups	public
 Сгибания рук с резиной стоя	Standing Band Curls	1	strength	Руки, Бицепс	Y
 Сгибания рук с сэндбэгом	Sandbag Curls	1	strength	Руки, Бицепс	Y
 Сгибания рук статичные	Static Curls	1	strength	Руки, Бицепс	Y
-Ситапы (Полные подъемы туловища)		1	strength	Пресс	Y
-Складка (V-ups)		1	strength	Пресс	Y
+Ситапы (Полные подъемы туловища)	Sit-ups	1	strength	Пресс	Y
+Складка (V-ups)	V-ups	1	strength	Пресс	Y
 Скручивания в висе вниз головой	Inverted Hanging Crunches	1	strength	Пресс и косые, Пресс	Y
 Скручивания в римском стуле	Roman Chair Crunches	1	strength	Пресс и косые, Пресс	Y
-Скручивания классические (Кранчи)		1	strength	Пресс	Y
+Скручивания классические (Кранчи)	Crunches	1	strength	Пресс	Y
 Скручивания лёжа на боку	Side-Lying Crunches	1	strength	Пресс и косые, Косые мышцы	Y
 Скручивания лёжа на полу	Floor Crunches	1	strength	Пресс и косые, Пресс	Y
 Скручивания лёжа на полу с резиной	Floor Crunches with Resistance Band	1	strength	Пресс и косые, Пресс	Y
 Скручивания на наклонной лавке	Incline Bench Crunches	1	strength	Пресс и косые, Пресс	Y
-Скручивания на пресс в тренажере (Торс-машина)		1	strength	Пресс	Y
-Скручивания на тренажёре		1	strength	Пресс и косые, Пресс	Y
+Скручивания на пресс в тренажере (Торс-машина)	Machine Crunches (Torso Machine)	1	strength	Пресс	Y
+Скручивания на тренажёре	Machine Crunches	1	strength	Пресс и косые, Пресс	Y
 Скручивания с верхнего блока	High Pulley Crunches	1	strength	Пресс и косые, Пресс	Y
 Скручивания сидя с резиной	Seated Band Crunches	1	strength	Пресс и косые, Пресс	Y
 Скручивания c роликом для пресса	Ab Wheel Rollouts	1	strength	Пресс и косые, Пресс	Y
 Становая тяга «сумо»	Sumo Deadlift	1	strength	Спина и шея, Поясница	Y
-Становая тяга (классическая)		1	strength	Спина	Y
+Становая тяга (классическая)	Deadlift	1	strength	Спина	Y
 Становая тяга на одной ноге в смите	Single-Leg Deadlift in Smith Machine	1	strength	Спина и шея, Ягодицы, Поясница, Задняя часть бедра	Y
 Становая тяга на одной ноге с гантелями	Single-Leg Dumbbell Deadlift	1	strength	Спина и шея, Ягодицы, Поясница, Задняя часть бедра	Y
 Становая тяга на одной ноге с резиной	Single-Leg Deadlift with Resistance Band	1	strength	Спина и шея, Ягодицы, Поясница, Задняя часть бедра	Y
@@ -391,17 +392,17 @@ name_ru	name_en	used_by	types	groups	public
 Становая тяга статичная	Static Deadlift	1	strength	Спина и шея, Поясница	Y
 Становая тяга стоя на подставке	Deficit Deadlift (on a Platform)	1	strength	Спина и шея, Поясница, Ягодицы, Передняя часть бедра	Y
 Статичное разведение рук в стороны	Static Lateral Raises	1	strength	Плечи, Задняя дельта	Y
-Степпер (Эскалатор)		1	strength	Кардио	Y
-Толкание саней (Sled Push)		1	strength	Функционал	Y
-Толчок гирь по длинному циклу		1	strength	Гири	Y
-Толчок штанги классический		1	strength	Тяжелая атлетика	Y
-Трастеры со штангой (Thrusters)		1	strength	Функционал	Y
-Турецкий подъем с гирей		1	strength	Гири	Y
+Степпер (Эскалатор)	Stair Climber	1	strength	Кардио	Y
+Толкание саней (Sled Push)	Sled Push	1	strength	Функционал	Y
+Толчок гирь по длинному циклу	Kettlebell Long Cycle Clean and Jerk	1	strength	Гири	Y
+Толчок штанги классический	Barbell Clean and Jerk	1	strength	Тяжелая атлетика	Y
+Трастеры со штангой (Thrusters)	Thrusters	1	strength	Функционал	Y
+Турецкий подъем с гирей	Turkish Get-up	1	strength	Гири	Y
 Тяга в наклоне с нижнего блока	Bent-Over Low Pulley Row	1	strength	Спина и шея, Широчайшие мышцы, Верх спины	Y
 Тяга в наклоне с резиной	Bent-Over Band Row	1	strength	Спина и шея, Широчайшие мышцы	Y
-Тяга в рычажном тренажере (Хаммер на спину)		1	strength	Спина	Y
-Тяга в тренажере с упором в грудь (Chest-supported row)		1	strength	Спина	Y
-Тяга верхнего блока V-рукоятью		1	strength	Спина	Y
+Тяга в рычажном тренажере (Хаммер на спину)	Hammer Strength Machine Row	1	strength	Спина	Y
+Тяга в тренажере с упором в грудь (Chest-supported row)	Chest-Supported Row	1	strength	Спина	Y
+Тяга верхнего блока V-рукоятью	V-Bar Lat Pulldown	1	strength	Спина	Y
 Тяга гантелей в наклоне	Bent-Over Dumbbell Row	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга гантелей лёжа	Lying Dumbbell Row	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга горизонтальная с полотенцем	Horizontal Row with Towel	1	strength	Спина и шея, Широчайшие мышцы	Y
@@ -410,39 +411,39 @@ name_ru	name_en	used_by	types	groups	public
 Тяга горизонтальная статичная	Static Horizontal Row	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга горизонтального блока	Seated Cable Row	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга к груди с верх. бл. обратным хватом	Reverse-Grip Lat Pulldown to Chest	1	strength	Спина и шея, Бицепс, Широчайшие мышцы	Y
-Тяга к груди с верх. блока широким хватом		1	strength	Спина и шея, Широчайшие мышцы, Верх спины	Y
-Тяга каната к лицу (Face Pull)		1	strength	Плечи	Y
+Тяга к груди с верх. блока широким хватом	Wide-Grip Lat Pulldown	1	strength	Спина и шея, Широчайшие мышцы, Верх спины	Y
+Тяга каната к лицу (Face Pull)	Face Pull	1	strength	Плечи	Y
 Тяга лёжа с нижнего блока	Lying Low Pulley Row	1	strength	Спина и шея, Широчайшие мышцы, Верх спины	Y
 Тяга Ли Хейни в смите	Lee Haney Row in Smith Machine	1	strength	Плечи, Задняя дельта	Y
 Тяга Ли Хейни со штангой	Lee Haney Barbell Row	1	strength	Плечи, Задняя дельта	Y
-Тяга нижнего блока к поясу сидя		1	strength	Спина	Y
-Тяга одной гантели в наклоне		1	strength	Спина и шея, Широчайшие мышцы	Y
+Тяга нижнего блока к поясу сидя	Seated Cable Row	1	strength	Спина	Y
+Тяга одной гантели в наклоне	One-Arm Dumbbell Row	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга одной рукой в наклоне в смите	Single-Arm Bent-Over Row in Smith Machine	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга одной рукой в наклоне с резиной	Single-Arm Bent-Over Band Row	1	strength	Спина и шея, Широчайшие мышцы	Y
-Тяга петель TRX (Австралийские подтягивания)		1	strength	TRX	Y
+Тяга петель TRX (Австралийские подтягивания)	TRX Rows (Australian Pull-ups)	1	strength	TRX	Y
 Тяга резины сверху на прямых руках	Straight-Arm Band Pulldown	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга резины снизу в наклоне	Bent-Over Low Band Row	1	strength	Спина и шея, Широчайшие мышцы, Верх спины	Y
 Тяга рукой в наклоне с нижнего блока	Single-Arm Bent-Over Low Pulley Row	1	strength	Спина и шея, Широчайшие мышцы	Y
-Тяга рывковая		1	strength	Тяжелая атлетика	Y
+Тяга рывковая	Snatch Pull	1	strength	Тяжелая атлетика	Y
 Тяга рычажная вертикальная	Vertical Lever Row	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга с верх. блока на заднюю дельту	High Pulley Rear Delt Row	1	strength	Плечи, Задняя дельта	Y
 Тяга с верхнего блока на прямых руках	Straight-Arm Pulldown	1	strength	Спина и шея, Широчайшие мышцы	Y
-Тяга с верхнего блока узким хватом		1	strength	Спина и шея, Широчайшие мышцы	Y
+Тяга с верхнего блока узким хватом	Close-Grip Lat Pulldown	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга с резиной на заднюю дельту	Band Rear Delt Row	1	strength	Плечи, Задняя дельта	Y
-Тяга саней к себе (Sled Pull)		1	strength	Функционал	Y
+Тяга саней к себе (Sled Pull)	Sled Pull	1	strength	Функционал	Y
 Тяга сэндбэга в наклоне	Bent-Over Sandbag Row	1	strength	Спина и шея, Широчайшие мышцы	Y
-Тяга Т-грифа (в тренажере или со штангой)		1	strength	Спина	Y
+Тяга Т-грифа (в тренажере или со штангой)	T-Bar Row	1	strength	Спина	Y
 Тяга Т-грифа в наклоне	Bent-Over T-Bar Row	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга Т-грифа лёжа	Lying T-Bar Row	1	strength	Спина и шея, Широчайшие мышцы	Y
-Тяга толчковая		1	strength	Тяжелая атлетика	Y
+Тяга толчковая	Clean Pull	1	strength	Тяжелая атлетика	Y
 Тяга штанги в наклоне	Bent-Over Barbell Row	1	strength	Спина и шея, Широчайшие мышцы	Y
 Тяга штанги в наклоне в смите	Bent-Over Barbell Row in Smith Machine	1	strength	Спина и шея, Широчайшие мышцы	Y
-Тяга штанги в наклоне обратным хватом		1	strength	Спина	Y
-Тяга штанги к подбородку (протяжка)		1	strength	Плечи	Y
-Удары боевыми канатами (Battle Ropes)		1	strength	Функционал	Y
-Удержание блинов щипковым хватом		1	strength	Предплечья	Y
-Упражнение "Дровосек" на верхнем блоке		1	strength	Пресс	Y
-Упражнение "Молот" (Хаммеры) с гантелями		1	strength	Руки	Y
+Тяга штанги в наклоне обратным хватом	Underhand Barbell Row	1	strength	Спина	Y
+Тяга штанги к подбородку (протяжка)	Barbell Upright Row	1	strength	Плечи	Y
+Удары боевыми канатами (Battle Ropes)	Battle Rope Waves	1	strength	Функционал	Y
+Удержание блинов щипковым хватом	Plate Pinch Hold	1	strength	Предплечья	Y
+Упражнение "Дровосек" на верхнем блоке	Cable Woodchopper	1	strength	Пресс	Y
+Упражнение "Молот" (Хаммеры) с гантелями	Dumbbell Hammer Curls	1	strength	Руки	Y
 Упражнение «велосипед»	Bicycle Crunch	1	strength	Пресс и косые, Пресс	Y
 Упражнение «Гильотина»	Guillotine Press	1	strength	Грудь	Y
 Упражнение «Крест» с гирями/гантелями	Iron Cross with Kettlebells/Dumbbells	1	strength	Плечи, Средняя дельта	Y
@@ -453,19 +454,19 @@ name_ru	name_en	used_by	types	groups	public
 Французский жим в тренажёре	Machine French Press	1	strength	Руки, Трицепс	Y
 Французский жим с гантелей	Dumbbell French Press	1	strength	Руки, Трицепс	Y
 Французский жим с гантелью 1-й рукой	Single-Arm Dumbbell French Press	1	strength	Руки, Трицепс	Y
-Французский жим с гантелью из-за головы сидя		1	strength	Руки	Y
+Французский жим с гантелью из-за головы сидя	Seated Overhead Dumbbell Triceps Extension	1	strength	Руки	Y
 Французский жим с гантелями лёжа	Lying Dumbbell French Press	1	strength	Руки, Трицепс	Y
 Французский жим с резиной лёжа	Lying Band French Press	1	strength	Руки, Трицепс	Y
 Французский жим с резиной стоя	Standing Band French Press	1	strength	Руки, Трицепс	Y
 Французский жим сидя в смите	Seated French Press in Smith Machine	1	strength	Руки, Трицепс	Y
-Французский жим со штангой лёжа		1	strength	Руки, Трицепс	Y
+Французский жим со штангой лёжа	Lying Barbell Triceps Extension (Skull Crushers)	1	strength	Руки, Трицепс	Y
 Французский жим со штангой сидя/стоя	Barbell French Press Seated/Standing	1	strength	Руки, Трицепс	Y
-Швунг жимовой		1	strength	Тяжелая атлетика	Y
-Швунг толчковый		1	strength	Тяжелая атлетика	Y
+Швунг жимовой	Push Press	1	strength	Тяжелая атлетика	Y
+Швунг толчковый	Push Jerk	1	strength	Тяжелая атлетика	Y
 Шраги в смите стоя	Standing Shrugs in Smith Machine	1	strength	Спина и шея, Верх спины	Y
 Шраги в тренажёре	Machine Shrugs	1	strength	Спина и шея, Верх спины	Y
-Шраги с гантелями стоя		1	strength	Спина и шея, Верх спины	Y
+Шраги с гантелями стоя	Standing Dumbbell Shrugs	1	strength	Спина и шея, Верх спины	Y
 Шраги с резиной	Band Shrugs	1	strength	Спина и шея, Верх спины	Y
-Шраги со штангой стоя		1	strength	Спина и шея, Верх спины	Y
-Эллиптический тренажер		1	strength	Кардио	Y
-Ягодичный мостик со штангой (Hip Thrust)		1	strength	Ноги	Y
+Шраги со штангой стоя	Standing Barbell Shrugs	1	strength	Спина и шея, Верх спины	Y
+Эллиптический тренажер	Elliptical Trainer	1	strength	Кардио	Y
+Ягодичный мостик со штангой (Hip Thrust)	Barbell Hip Thrust	1	strength	Ноги	Y
