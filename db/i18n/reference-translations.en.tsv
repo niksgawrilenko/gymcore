@@ -64,6 +64,13 @@ category	Ноги	Legs	db:exercises.category	db:reference_translations
 category	Ягодицы	Glutes	db:exercises.category	db:reference_translations
 category	Спина	Back	db:exercises.category	db:reference_translations
 category	Пресс	Abs	db:exercises.category	db:reference_translations
+category	Гири	Kettlebells	db:exercises.category (значения из прод-базы, 2026-10-05)	db:reference_translations
+category	Кардио	Cardio	db:exercises.category (значения из прод-базы, 2026-10-05)	db:reference_translations
+category	Свой вес	Bodyweight	db:exercises.category (значения из прод-базы, 2026-10-05)	db:reference_translations
+category	Тяжелая атлетика	Olympic weightlifting	db:exercises.category (значения из прод-базы, 2026-10-05)	db:reference_translations
+category	Функционал	Functional	db:exercises.category (значения из прод-базы, 2026-10-05)	db:reference_translations
+category	Шея	Neck	db:exercises.category (значения из прод-базы, 2026-10-05)	db:reference_translations
+primary_group	Хуй		db:exercises.primary_groups (единственная запись в прод-базе; осознанно без перевода — фолбэк на русское)	db:reference_translations
 equipment	Тренажер	Machine	db:exercises.equipment	db:reference_translations
 equipment	Собственный вес	Bodyweight	db:exercises.equipment	db:reference_translations
 equipment	Резина	Resistance band	db:exercises.equipment	db:reference_translations
