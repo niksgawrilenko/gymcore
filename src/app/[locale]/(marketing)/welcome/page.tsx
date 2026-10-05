@@ -60,8 +60,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t('title'),
     description: t('description'),
-    // Search engines mostly ignore keywords, but Yandex and a few others still read them.
-    keywords: t('keywords').split(',').map((word) => word.trim()),
     alternates,
     openGraph: {
       type: 'website',

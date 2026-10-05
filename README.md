@@ -53,12 +53,12 @@ npm run dev                     # http://localhost:3000
   (обе локали + `alternates.languages`), `src/app/manifest.ts` (PWA-установка).
 - Canonical и hreflang (`en`/`ru`/`x-default`) — `localizedAlternates()` в `src/i18n/server.ts`.
 - OG/Twitter-картинка (`welcome/opengraph-image.tsx`), JSON-LD `SoftwareApplication` + `FAQPage` + `WebSite` +
-  `Organization`, keywords для Яндекса, `llms.txt` для ИИ-краулеров.
+  `Organization`, `llms.txt` для ИИ-краулеров.
 - Локализованные 404 (`not-found.tsx`) и экран ошибки (`error.tsx`) внутри приложения.
 
 **Чек-лист после первого деплоя:** задать домен и `NEXT_PUBLIC_SITE_URL`, отправить `https://домен/sitemap.xml`
-в Google Search Console, Bing Webmaster Tools и Яндекс.Вебмастер, проверить `robots.txt` и OG-карточку
-(например, в валидаторе Facebook/Telegram), затем проверить `/en/exercises`, `/ru/exercises` под логином.
+в Google Search Console, проверить `robots.txt` и OG-карточку (например, в валидаторе Facebook/Telegram),
+затем проверить `/en/exercises`, `/ru/exercises` под логином.
 
 ### Как попасть в индекс поисковиков
 
@@ -67,19 +67,16 @@ npm run dev                     # http://localhost:3000
 `FAQPage`, `WebSite`, `Organization`) и `llms.txt` для ИИ-ассистентов. Приложение за логином закрыто от
 индексации намеренно — индексируются только публичные страницы.
 
-1. **Подтвердить владение домена.** Присвойте в Vercel переменные `GOOGLE_SITE_VERIFICATION`,
-   `YANDEX_VERIFICATION`, `BING_SITE_VERIFICATION` (значения из консолей) — теги попадут в `<head>`
-   автоматически (`src/app/[locale]/layout.tsx`). Альтернатива — DNS TXT-запись или HTML-файл в `public/`.
+1. **Подтвердить владение домена.** Присвойте в Vercel переменную `GOOGLE_SITE_VERIFICATION` (значение из
+   консоли) — тег попадёт в `<head>` автоматически (`src/app/[locale]/layout.tsx`). Альтернатива — DNS
+   TXT-запись или HTML-файл в `public/`.
 2. **Google Search Console:** добавить ресурс → «Файлы Sitemap» → `sitemap.xml` → «Проверка URL» →
    «Запросить индексирование» для `/welcome` и `/privacy` (для русской версии — `/ru/welcome`, `/ru/privacy`).
-3. **Яндекс.Вебмастер:** «Индексирование → Файлы Sitemap» → `sitemap.xml`, затем «Переобход страниц» для тех же URL.
-4. **Bing Webmaster Tools:** «Sitemaps» → `sitemap.xml` (можно импортировать ресурс из GSC).
-5. **Проверить, что в выдаче правильный домен:** в `robots.txt` и `sitemap.xml` не должно быть `localhost` —
+3. **Проверить, что в выдаче правильный домен:** в `robots.txt` и `sitemap.xml` не должно быть `localhost` —
    значит `NEXT_PUBLIC_SITE_URL` задан (или сработал фолбэк на домен Vercel).
-6. **Ускорить индексацию:** внешние ссылки на сайт (профиль GitHub, соцсети, каталоги приложений,
-   Product Hunt / Reddit / профильные форумы), плюс опционально IndexNow (Bing + Яндекс) для мгновенного
-   уведомления об изменениях.
-7. **Смотреть метрики раз в 1–2 недели:** «Покрытие»/«Страницы в индексе». Локализованный 404 на битых
+4. **Ускорить индексацию:** внешние ссылки на сайт (профиль GitHub, соцсети, каталоги приложений,
+   Product Hunt / Reddit / профильные форумы) — по ним краулер доходит до страниц быстрее.
+5. **Смотреть метрики раз в 1–2 недели:** «Покрытие»/«Страницы в индексе». Локализованный 404 на битых
    ссылках — норма; «Обнаружено, но не проиндексировано» на `/welcome` означает нехватку внешних ссылок.
 
 ## Структура
