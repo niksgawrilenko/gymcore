@@ -145,6 +145,15 @@ export const templateExercisesRelations = relations(templateExercises, ({ one, m
   templateSets: many(templateSets),
 }));
 
+// Reverse sides of the `many(...)` above: drizzle 0.45 infers a `many` relation from the paired
+// `one` relation (fields/references) on the referenced table, so these definitions are required.
+export const templateSetsRelations = relations(templateSets, ({ one }) => ({
+  templateExercise: one(templateExercises, {
+    fields: [templateSets.templateExerciseId],
+    references: [templateExercises.id],
+  }),
+}));
+
 export const workoutsRelations = relations(workouts, ({ many }) => ({
   workoutExercises: many(workoutExercises),
 }));
@@ -153,4 +162,12 @@ export const workoutExercisesRelations = relations(workoutExercises, ({ one, man
   workout: one(workouts, { fields: [workoutExercises.workoutId], references: [workouts.id] }),
   exercise: one(exercises, { fields: [workoutExercises.exerciseId], references: [exercises.id] }),
   sets: many(sets),
+}));
+
+// Reverse side of workoutExercises.sets (see the note above): required by drizzle to infer `many`.
+export const setsRelations = relations(sets, ({ one }) => ({
+  workoutExercise: one(workoutExercises, {
+    fields: [sets.workoutExerciseId],
+    references: [workoutExercises.id],
+  }),
 }));
