@@ -18,23 +18,26 @@ export async function saveExercise(input: ExerciseInput, id?: number): Promise<A
   if (!parsed.success) return fail(firstError(parsed.error));
   const e = parsed.data;
 
-  const values = {
-    name: e.name,
+  const shared = {
     category: e.primary_groups[0],
     exerciseType: e.exercise_type,
     primaryGroups: e.primary_groups,
     secondaryMuscles: e.secondary_muscles,
   };
-
+  // The original name lives in exercises.name (the "data language"). An edit in another locale must not
+  // overwrite it — the new name goes into exercise_translations instead (docs/i18n-plan.md §2.1, §6).
   const [row] = id
-    ? await db.update(exercises).set(values).where(and(eq(exercises.id, id), eq(exercises.userId, user.id))).returning()
-    : await db.insert(exercises).values({ ...values, userId: user.id }).returning();
+    ? await db
+        .update(exercises)
+        .set(locale === 'ru' ? { ...shared, name: e.name } : shared)
+        .where(and(eq(exercises.id, id), eq(exercises.userId, user.id)))
+        .returning()
+    : await db.insert(exercises).values({ ...shared, name: e.name, userId: user.id }).returning();
 
   if (!row) return fail('noPermission');
 
-  // i18n: the Russian original lives in exercises.name (the "data language"); every other locale is
-  // stored as a translation (docs/i18n-plan.md §5). A Russian edit updates the original itself.
-  if (locale !== 'ru') {
+  if (id && locale !== 'ru') {
+    // Renaming an existing exercise outside the data language: store the translation, keep the original.
     await db
       .insert(exerciseTranslations)
       .values({ exerciseId: row.id, locale, name: e.name })
@@ -45,7 +48,9 @@ export async function saveExercise(input: ExerciseInput, id?: number): Promise<A
   }
 
   revalidatePath('/', 'layout');
-  return ok(toExerciseInfo(row));
+  // The caller re-renders the list from this payload: return the name the user just typed — for
+  // non-data locales the original stored in exercises.name intentionally stays untouched.
+  return ok({ ...toExerciseInfo(row), name: e.name });
 }
 
 // WARNING: the foreign key is ON DELETE CASCADE — the whole workout history of an exercise goes with it.
