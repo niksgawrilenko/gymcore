@@ -48,7 +48,8 @@ npm run dev                     # http://localhost:3000
 - Сессия — подписанный JWT (HS256) в httpOnly-cookie; владелец данных проверяется в каждой Server Action.
 
 **SEO и продвижение.**
-- `src/app/robots.ts` (индексируются только `/welcome`, `/privacy`, `/llms.txt`), `src/app/sitemap.ts`
+- `src/app/robots.ts` (индексируются только `/welcome`, `/privacy`, `/llms.txt` и их RU-варианты
+  `/ru/welcome`, `/ru/privacy`; голые `/` и `/ru` разрешены только как редиректы на лендинг), `src/app/sitemap.ts`
   (обе локали + `alternates.languages`), `src/app/manifest.ts` (PWA-установка).
 - Canonical и hreflang (`en`/`ru`/`x-default`) — `localizedAlternates()` в `src/i18n/server.ts`.
 - OG/Twitter-картинка (`welcome/opengraph-image.tsx`), JSON-LD `SoftwareApplication` + `FAQPage` + `WebSite` +
@@ -61,10 +62,13 @@ npm run dev                     # http://localhost:3000
 
 ### Как попасть в индекс поисковиков
 
-Со стороны сайта всё готово: `robots.txt` пускает только `/welcome`, `/privacy`, `/llms.txt`; `sitemap.xml`
-отдаёт обе локали с hreflang (`en`, `ru`, `x-default`); есть OG-картинка, JSON-LD (`SoftwareApplication`,
-`FAQPage`, `WebSite`, `Organization`) и `llms.txt` для ИИ-ассистентов. Приложение за логином закрыто от
-индексации намеренно — индексируются только публичные страницы.
+Со стороны сайта всё готово: `robots.txt` пускает только `/welcome`, `/privacy`, `/llms.txt` (и их RU-версии
+`/ru/welcome`, `/ru/privacy`); `sitemap.xml` отдаёт обе локали с hreflang (`en`, `ru`, `x-default`); есть
+OG-картинка, JSON-LD (`SoftwareApplication`, `FAQPage`, `WebSite`, `Organization`) и `llms.txt` для
+ИИ-ассистентов. Приложение за логином закрыто от индексации намеренно — индексируются только публичные
+страницы. Голый корень `/` — это редирект на лендинг (`/` → `/welcome`, `/ru` → `/ru/welcome`), поэтому в
+«Проверке URL» для него Google покажет редирект, а не «Заблокировано»; запрашивать индексирование нужно для
+URL лендинга.
 
 1. **Подтвердить владение доменом.** Токен Google уже вшит в проект (константа в
    `src/app/[locale]/layout.tsx`) и выводится `<meta name="google-site-verification">` на всех страницах.
