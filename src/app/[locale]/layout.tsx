@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { BottomNav, LegacyHashRedirect, ThemeToggle, TzProvider } from '@/components/Chrome';
+import { DemoBanner } from '@/components/DemoBanner';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { RefsProvider } from '@/components/RefsProvider';
 import { Link } from '@/i18n/navigation';
@@ -83,6 +84,7 @@ export default async function LocaleLayout({ children, params }: LocaleParams & 
                   <ThemeToggle />
                 </div>
               </header>
+              <DemoBanner />
               <main className="app-content">{children}</main>
               <BottomNav />
               <LegacyHashRedirect />

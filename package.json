@@ -12,6 +12,7 @@
     "db:i18n:import": "node db/i18n/import-translations.mjs",
     "db:i18n:export-refs": "node db/i18n/export-references.mjs",
     "db:i18n:import-refs": "node db/i18n/import-references.mjs",
+    "db:demo:seed": "node db/demo/seed.mjs",
     "verify": "powershell -NoProfile -ExecutionPolicy Bypass -File .cline/skills/gymcore-verify/scripts/verify.ps1"
   },
   "dependencies": {

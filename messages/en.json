@@ -36,6 +36,9 @@
     "haveAccount": "Already have an account?",
     "create": "Create",
     "signIn": "Log in",
+    "or": "or",
+    "tryDemo": "Try the demo",
+    "demoNote": "A temporary account with sample data is created for you. It is deleted automatically after a day.",
     "errors": {
       "usernameTaken": "That username is already taken",
       "credentialsRequired": "Enter your username and password",
@@ -50,6 +53,7 @@
     "heroTitle": "A free workout journal — no ads, no subscriptions",
     "heroLead": "Log sets and supersets in a couple of seconds, follow your progress on charts, record body measurements and build programs. Every feature is unlocked right after sign-up, and the built-in AI coach will suggest a new template for your goal.",
     "ctaStart": "Start for free",
+    "ctaDemo": "Try the demo",
     "ctaHow": "How it works",
     "heroNote": "No card and no trial period. Your AI key stays in your browser.",
     "preview": {
@@ -541,5 +545,15 @@
     "text": "The page failed to load. Please try again — your data is safe.",
     "retry": "Try again",
     "home": "Main page"
+  },
+  "demo": {
+    "cta": "Try the demo",
+    "pending": "Preparing the demo…",
+    "bannerText": "Demo mode: this is a temporary account with sample data.",
+    "exit": "Exit demo",
+    "errors": {
+      "unavailable": "The demo is unavailable right now. Please try again later.",
+      "tooManyAttempts": "Too many demo sessions started. Please try again in an hour."
+    }
   }
 }

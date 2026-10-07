@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { localeHref, localizedAlternates } from '@/i18n/server';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
+import { DemoButton } from '@/components/DemoButton';
 
 // The markup holds icons and keys only; every label lives in messages('welcome').
 const PAINS = [
@@ -131,6 +132,7 @@ export default async function WelcomePage() {
             <Link href="/login?mode=register" className="btn btn-accent mkt-btn">
               {t('ctaStart')}
             </Link>
+            <DemoButton className="btn mkt-btn" label={t('ctaDemo')} />
             <Link href="#how" className="btn mkt-btn">
               {t('ctaHow')}
             </Link>
@@ -287,6 +289,7 @@ export default async function WelcomePage() {
           <Link href="/login?mode=register" className="btn">
             {t('final.ctaCreate')}
           </Link>
+          <DemoButton className="btn mkt-btn" label={t('ctaDemo')} />
           <Link href="/login" className="btn">
             {t('final.ctaLogin')}
           </Link>

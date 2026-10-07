@@ -17,6 +17,8 @@ export const RATE_LIMITS = {
   registerIp: { limit: 5, windowMs: 60 * 60_000 },
   /** Cloudinary upload signatures — each one spends the operator's storage quota. */
   uploadUser: { limit: 60, windowMs: 60 * 60_000 },
+  /** Demo starts — each one clones a whole account, so cap them per address. */
+  demoIp: { limit: 15, windowMs: 60 * 60_000 },
 } satisfies Record<string, RateLimitRule>;
 
 const buckets = new Map<string, { count: number; resetAt: number }>();

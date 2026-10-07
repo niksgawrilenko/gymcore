@@ -2,6 +2,7 @@
 import { useTranslations } from 'next-intl';
 import { useActionState, useState } from 'react';
 import { authenticate } from '@/actions/auth';
+import { DemoButton } from '@/components/DemoButton';
 
 export function LoginForm({ next, initialMode = 'login' }: { next: string; initialMode?: 'login' | 'register' }) {
   const t = useTranslations('login');
@@ -11,7 +12,8 @@ export function LoginForm({ next, initialMode = 'login' }: { next: string; initi
   const isLogin = mode === 'login';
 
   return (
-    <form action={action} className="card" style={{ width: '100%', maxWidth: 400, padding: 25 }}>
+    <div style={{ width: '100%', maxWidth: 400 }}>
+      <form action={action} className="card" style={{ padding: 25 }}>
       <h2 className="center mb">{isLogin ? t('headingLogin') : t('headingRegister')}</h2>
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="next" value={next} />
@@ -45,6 +47,12 @@ export function LoginForm({ next, initialMode = 'login' }: { next: string; initi
           {isLogin ? t('create') : t('signIn')}
         </button>
       </div>
-    </form>
+      </form>
+
+      {/* Ephemeral demo: a throwaway account pre-filled with sample data — no sign-up needed. */}
+      <div className="center small muted" style={{ marginTop: 18, marginBottom: 10 }}>{t('or')}</div>
+      <DemoButton block label={t('tryDemo')} />
+      <p className="center small muted" style={{ marginTop: 8 }}>{t('demoNote')}</p>
+    </div>
   );
 }
