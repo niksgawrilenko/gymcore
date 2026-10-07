@@ -10,7 +10,7 @@ import { RefsProvider } from '@/components/RefsProvider';
 import { Link } from '@/i18n/navigation';
 import { isLocale } from '@/i18n/routing';
 import { getTz, loadRefDict } from '@/lib/data';
-import { SITE_URL } from '@/lib/site';
+import { SITE_NAME, SITE_URL } from '@/lib/site';
 import { parseTheme, THEME_COOKIE } from '@/lib/theme';
 import '../globals.css';
 import '../app.css';
@@ -22,6 +22,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // iOS Safari: opt into edge-to-edge so env(safe-area-inset-*) reports real values — the header
+  // inset and the bottom nav's home-indicator padding depend on it (see globals.css :root).
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f2f2f7' },
     { media: '(prefers-color-scheme: dark)', color: '#000000' },
@@ -50,6 +53,8 @@ export async function generateMetadata({ params }: LocaleParams): Promise<Metada
     title: t('title'),
     description: t('description'),
     verification: { google: googleVerification },
+    // iOS home-screen launch: standalone display and a status bar that blends with the app background.
+    appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: 'default' },
   };
 }
 

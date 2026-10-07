@@ -1,7 +1,7 @@
 /* Классы новой версии (вместо сотен инлайн-стилей старых View). Базовый стиль — globals.css. */
 a { color: inherit; }
-.page { padding-bottom: 90px; }
-.page.no-nav { padding-bottom: 40px; }
+.page { padding-bottom: calc(var(--bottom-nav-total) + 26px); }
+.page.no-nav { padding-bottom: calc(40px + var(--safe-bottom)); }
 .row { display: flex; align-items: center; gap: 8px; }
 .row-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .wrap { flex-wrap: wrap; }
@@ -72,7 +72,7 @@ a { color: inherit; }
 .title-input { font-size: 18px; font-weight: bold; margin-bottom: 10px; text-align: left; }
 .error-box { color: #ff3b30; font-size: 14px; margin-bottom: 12px; text-align: center; }
 
-.search-bar { position: sticky; top: 72px; z-index: 10; background: var(--bg-color); padding: 5px 0 10px; }
+.search-bar { position: sticky; top: calc(var(--app-header-h) + var(--safe-top)); z-index: 10; background: var(--bg-color); padding: 5px 0 10px; }
 .filters-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
 .chip-btn {
     padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--surface-color);
@@ -128,7 +128,7 @@ a { color: inherit; }
 }
 .media-thumb .badge { position: absolute; bottom: 2px; right: 2px; font-size: 10px; background: var(--accent-color); color: #fff; padding: 1px 4px; border-radius: 4px; }
 
-.modal-content.auto { height: auto; max-height: 90vh; }
+.modal-content.auto { height: auto; max-height: 90vh; max-height: 90dvh; }
 .modal-list { overflow-y: auto; flex-grow: 1; }
 .info-row { margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
 
@@ -170,7 +170,7 @@ details.card[open] > summary { margin-bottom: 12px; }
 .chat-template-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-color); }
 .chat-template-row.ss { padding-left: 10px; border-left: 3px solid var(--accent-color); }
 .chat-input {
-    position: sticky; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: flex-end;
+    position: sticky; bottom: calc(var(--bottom-nav-total) + 16px); display: flex; gap: 8px; align-items: flex-end;
     padding: 10px; margin-top: 10px; border: 1px solid var(--border-color);
 }
 .chat-input textarea { resize: none; }

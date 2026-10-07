@@ -10,6 +10,18 @@
     --accent-hover: #0056b3;
     --border-color: #e5e5ea;
     --shadow: 0 2px 8px rgba(0,0,0,0.04);
+
+    /* Safe areas (iOS Safari). Real values only when the viewport meta carries viewport-fit=cover
+       (set in src/app/[locale]/layout.tsx). The UI is edge-to-edge; these keep it clear of the notch
+       and home indicator and let surfaces (bottom nav, header) reach the screen edge. */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    /* Layout metrics shared by the header offset, the bottom nav and the page bottom padding. */
+    --app-header-h: 74px;                               /* keep in sync with .app-header content height */
+    --bottom-nav-h: 64px;                               /* bottom nav height above the home indicator */
+    --bottom-nav-total: calc(var(--bottom-nav-h) + var(--safe-bottom));
 }
 
 [data-theme="dark"] {
@@ -57,12 +69,15 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    min-height: 100dvh; /* iOS Safari: height of the *visible* area (toolbars expanded/collapsed) */
     overflow-x: hidden;
+    -webkit-text-size-adjust: 100%; /* stop Safari inflating text in landscape */
 }
 
 body.modal-open {
     overflow: hidden; 
-    height: 100vh;    
+    height: 100vh;
+    height: 100dvh;
 }
 /* ==========================================================================
    ФИКС ДЛЯ ПОЛЕЙ ВВОДА ДАТЫ НА iOS
@@ -97,6 +112,9 @@ input[type="datetime-local"] {
     justify-content: space-between;
     align-items: center;
     padding: 20px;
+    padding-top: calc(20px + var(--safe-top));
+    padding-left: calc(20px + var(--safe-left));
+    padding-right: calc(20px + var(--safe-right));
     background-color: var(--bg-color);
     position: sticky;
     top: 0;
@@ -119,7 +137,12 @@ input[type="datetime-local"] {
     color: var(--text-secondary);
 }
 .locale-btn.active { background: var(--accent-color); color: #fff; }
-.app-content { padding: 0 20px 20px 20px; flex-grow: 1; }
+.app-content {
+    padding: 0 20px 20px 20px;
+    padding-left: calc(20px + var(--safe-left));
+    padding-right: calc(20px + var(--safe-right));
+    flex-grow: 1;
+}
 .section-title { margin: 25px 0 15px 0; font-size: 20px; font-weight: 600; }
 
 .card {
@@ -177,9 +200,10 @@ input[type="datetime-local"] {
 
 .modal-content {
     background-color: var(--bg-color);
-    width: 100%; height: 80vh;
+    width: 100%; height: 80vh; height: 80dvh;
     border-radius: 20px 20px 0 0;
     padding: 20px;
+    padding-bottom: calc(20px + var(--safe-bottom));
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
     display: flex; flex-direction: column;
@@ -307,9 +331,13 @@ input[type="datetime-local"] {
     border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: space-around;
-    padding-top: 12px; /* Воздух сверху над иконками */
-    /* МАГИЯ ДЛЯ iOS: Базовый отступ 15px ПЛЮС высота полоски (Home Indicator) */
-    padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px)); 
+    align-items: center;
+    /* Fixed inner height; the home indicator is reserved by padding-bottom, so the nav background
+       stays edge-to-edge on iOS. Geometry comes from --bottom-nav-total (see :root). */
+    height: var(--bottom-nav-total);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+    padding-bottom: var(--safe-bottom);
     z-index: 900;
 }
 
@@ -348,7 +376,7 @@ input[type="datetime-local"] {
 .global-active-workout {
     position: fixed;
     /* Поднимаем виджет выше с учетом нового высокого бара */
-    bottom: calc(85px + env(safe-area-inset-bottom, 0px)); 
+    bottom: calc(var(--bottom-nav-total) + 12px);
     left: 15px;
     right: 15px;
     background: var(--surface-color);
