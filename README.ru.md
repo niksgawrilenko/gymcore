@@ -1,11 +1,11 @@
 # GymCore — бесплатный дневник тренировок, без рекламы и подписок
 
-[![Live demo](https://img.shields.io/badge/live_demo-gymcore--omega.vercel.app-22c55e?logo=vercel&logoColor=white)](https://gymcore-omega.vercel.app/)
+[![Live demo](https://img.shields.io/badge/live_demo-gymcore.site-22c55e?logo=vercel&logoColor=white)](https://gymcore.site/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/niksgawrilenko/gymcore/issues)
 
-**▶ Попробовать: [gymcore-omega.vercel.app](https://gymcore-omega.vercel.app/)** &nbsp;·&nbsp; [English version →](README.md)
+**▶ Попробовать: [gymcore.site](https://gymcore.site/)** &nbsp;·&nbsp; [English version →](README.md)
 
 Записывай подходы и суперсеты за пару секунд, следи за прогрессом в графиках, веди замеры тела и
 собирай программы. Все функции — статистика, замеры, шаблоны и ИИ-тренер — открыты сразу после
@@ -13,13 +13,13 @@
 
 ## Скриншоты
 
-[![Лендинг GymCore — бесплатный дневник тренировок без рекламы и подписок](docs/screenshots/welcome-desktop-ru.png)](https://gymcore-omega.vercel.app/)
+[![Лендинг GymCore — бесплатный дневник тренировок без рекламы и подписок](docs/screenshots/welcome-desktop-ru.png)](https://gymcore.site/)
 
 Сделано для телефона — одно и то же приложение на русском и английском:
 
 <p>
-  <a href="https://gymcore-omega.vercel.app/ru/welcome"><img src="docs/screenshots/welcome-mobile-ru.png" alt="GymCore — дневник тренировок на телефоне (русская версия)" width="215"></a>
-  <a href="https://gymcore-omega.vercel.app/"><img src="docs/screenshots/welcome-mobile-en.png" alt="GymCore workout journal on a phone (English)" width="215"></a>
+  <a href="https://gymcore.site/ru/welcome"><img src="docs/screenshots/welcome-mobile-ru.png" alt="GymCore — дневник тренировок на телефоне (русская версия)" width="215"></a>
+  <a href="https://gymcore.site/"><img src="docs/screenshots/welcome-mobile-en.png" alt="GymCore workout journal on a phone (English)" width="215"></a>
 </p>
 
 ## Что внутри
@@ -70,7 +70,7 @@ Next.js 16 (App Router, Server Actions) · React 19 · TypeScript · Drizzle ORM
 ## Помоги проекту (бесплатно)
 
 - ⭐ **Поставь звезду репозиторию** — самый простой способ поддержать маленький бесплатный проект.
-- 🔗 **Поделись ссылкой** [gymcore-omega.vercel.app](https://gymcore-omega.vercel.app/) с тем, у кого блокнот
+- 🔗 **Поделись ссылкой** [gymcore.site](https://gymcore.site/) с тем, у кого блокнот
   всё ещё лежит на стойке, или отправь ему **ссылку на программу** прямо из приложения.
 - 🐞 **Нашёл баг или нужна функция?** Открой issue.
 

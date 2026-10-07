@@ -15,7 +15,7 @@
 | Лендинг, десктоп | `docs/screenshots/welcome-desktop-en.png`, `...-ru.png` |
 | Лендинг, телефон | `docs/screenshots/welcome-mobile-en.png`, `...-ru.png` |
 
-**Ссылки:** приложение — https://gymcore-omega.vercel.app/ · код — https://github.com/niksgawrilenko/gymcore ·
+**Ссылки:** приложение — https://gymcore.site/ · код — https://github.com/niksgawrilenko/gymcore ·
 после включения Pages — зеркало лендинга https://niksgawrilenko.github.io/gymcore/
 
 ## Приоритет каналов
@@ -67,7 +67,7 @@ Body:
 > 312 exercises with anatomy diagrams. Optional AI coach with your own key (stored only in your browser).
 > Full JSON export any time. English and Russian. Installs to the phone home screen.
 >
-> Link: https://gymcore-omega.vercel.app/ — source (MIT): https://github.com/niksgawrilenko/gymcore
+> Link: https://gymcore.site/ — source (MIT): https://github.com/niksgawrilenko/gymcore
 >
 > Happy to hear what to add next — especially from people who train with barbells.
 
@@ -75,7 +75,7 @@ Body:
 
 > 1/ I built a workout journal that is actually free: no ads, no subscriptions, no premium tiers.
 > Sets and supersets in seconds, charts per exercise, measurements, program sharing — all unlocked at sign-up.
-> https://gymcore-omega.vercel.app/
+> https://gymcore.site/
 >
 > 2/ Built with Next.js 16 App Router, Server Actions, Drizzle ORM and PostgreSQL. MIT licensed and
 > self-hostable — docs/DEV.md has the details.
@@ -91,7 +91,7 @@ Body:
 > GymCore logs sets and supersets in seconds, keeps a full history with charts and measurements, shares
 > programs by link and exports all your data to JSON. It is open source (MIT) and built with Next.js 16,
 > Drizzle ORM and PostgreSQL. Interface in English and Russian.
-> Try it: https://gymcore-omega.vercel.app/ · Code: https://github.com/niksgawrilenko/gymcore
+> Try it: https://gymcore.site/ · Code: https://github.com/niksgawrilenko/gymcore
 
 ### Product Hunt (когда будет готов галерейный набор)
 
@@ -106,7 +106,7 @@ Description: rewrite of the first Reddit paragraph. В галерею кладё
 > Сделал GymCore — бесплатный дневник тренировок, без рекламы и подписок. Подходы и суперсеты
 > записываются за пару секунд, есть графики прогресса, замеры тела, шаблоны программ и 312 упражнений
 > с анатомией. Интерфейс на русском, ставится на домашний экран телефона.
-> https://gymcore-omega.vercel.app/
+> https://gymcore.site/
 
 ### Telegram — для тематических каналов (сначала договориться с админом)
 
@@ -116,7 +116,7 @@ Description: rewrite of the first Reddit paragraph. В галерею кладё
 > за всю историю, замеры тела с историей изменений, шаблоны программ и обмен программой по ссылке,
 > библиотека 312 упражнений с анатомией, ИИ-тренер со своим ключом (ключ хранится в браузере),
 > экспорт всей истории в JSON.
-> Приложение: https://gymcore-omega.vercel.app/ · Код: https://github.com/niksgawrilenko/gymcore
+> Приложение: https://gymcore.site/ · Код: https://github.com/niksgawrilenko/gymcore
 
 ### VC.ru / Habr — заголовки и план статьи
 
