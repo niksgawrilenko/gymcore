@@ -105,6 +105,8 @@ try {
   }
 
   // Демо-пользователь: создаём или помечаем ролью demo (пароль существующего не перезаписываем).
+  // dry-run: пользователя вставляем в транзакции и тут же откатываем — «показать план» не пишет в БД.
+  if (dryRun) await client.query('BEGIN');
   const { rows: demoUser } = await client.query(
     `INSERT INTO users (username, password_hash, role) VALUES ($1, $2, 'demo')
      ON CONFLICT (username) DO UPDATE SET role = 'demo'
@@ -115,6 +117,7 @@ try {
   console.log(`Демо-пользователь '${DEMO_USERNAME}' → id ${demoId}`);
 
   if (dryRun) {
+    await client.query('ROLLBACK');
     console.log('[dry-run] в БД ничего не записано');
   } else {
     await client.query('BEGIN');
