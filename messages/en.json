@@ -466,7 +466,8 @@
       "add": "📥 Add to my programs",
       "program": "Workout program",
       "content": "PROGRAM CONTENT:",
-      "sets": "{count} sets"
+      "sets": "{count} sets",
+      "note": "Exercises you don't have yet will be added to your library."
     }
   },
   "editor": {

@@ -1,11 +1,12 @@
 'use server';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
 import { exerciseTranslations, exercises } from '@/db/schema';
 import { requireUser } from '@/lib/auth';
 import { getSharedExercise, toExerciseInfo } from '@/lib/data';
+import { copyExerciseForUser } from '@/lib/exercise-copy';
 import type { ExerciseInfo } from '@/lib/types';
 import { exerciseInput, firstError, type ExerciseInput } from '@/lib/validation';
 import { currentLocale, localeHref } from '@/i18n/server';
@@ -72,26 +73,11 @@ export async function submitExerciseForModeration(id: number): Promise<ActionRes
 }
 
 export async function importSharedExercise(shareId: string) {
-  await requireUser();
+  const user = await requireUser();
   // No locale: the copy is created under the original (Russian) name — the "data language".
   const ex = await getSharedExercise(shareId);
   if (!ex) return fail('exerciseNotFound');
-  const res = await saveExercise({
-    name: ex.name,
-    exercise_type: ex.exercise_type === 'cardio' ? 'cardio' : 'strength',
-    primary_groups: ex.primary_groups.length ? ex.primary_groups : [ex.category ?? 'Другое'],
-    secondary_muscles: ex.secondary_muscles,
-  });
-  if (!res.ok) return res;
-
-  // Copy the source translations, otherwise an English user sees the Russian original.
-  await db.execute(sql`
-    insert into exercise_translations (exercise_id, locale, name, updated_at)
-    select ${res.data.id}, locale, name, CURRENT_TIMESTAMP
-    from exercise_translations
-    where exercise_id = ${ex.id}
-    on conflict (exercise_id, locale) do nothing
-  `);
-
+  await copyExerciseForUser(user.id, ex);
+  revalidatePath('/', 'layout');
   redirect(await localeHref('/exercises'));
 }

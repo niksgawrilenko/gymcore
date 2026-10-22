@@ -6,9 +6,10 @@ import { db } from '@/db';
 import { templateExercises, templateSets, templates } from '@/db/schema';
 import { requireUser } from '@/lib/auth';
 import { getSharedTemplate } from '@/lib/data';
+import { copyExerciseForUser } from '@/lib/exercise-copy';
 import { assignSupersetIds, firstError, templateInput, type TemplateInput } from '@/lib/validation';
 import { localeHref } from '@/i18n/server';
-import { exercisesVisible, fail, ok, type ActionResult } from './_shared';
+import { exercisesVisible, fail, ok, visibleExerciseIds, type ActionResult } from './_shared';
 
 export async function saveTemplate(input: TemplateInput, id?: number): Promise<ActionResult<{ id: number }>> {
   const user = await requireUser();
@@ -83,10 +84,18 @@ export async function submitTemplateForModeration(id: number): Promise<ActionRes
 
 /** A copy of a shared template, together with its sets and supersets. */
 export async function importSharedTemplate(shareId: string) {
-  await requireUser();
+  const user = await requireUser();
   // locale is not needed here: only exercise ids are copied (names come from the shared template as is).
   const tpl = await getSharedTemplate(shareId, 'ru');
   if (!tpl) return fail('templateNotFound');
+
+  // The author's private exercises are invisible to everybody else, so they cannot be referenced:
+  // each of them is first copied into the importer's own library (otherwise the whole import fails).
+  const visible = await visibleExerciseIds(user.id, tpl.exercises.map((ex) => ex.id));
+  const copyOf = new Map<number, number>();
+  for (const ex of tpl.exercises) {
+    if (!visible.has(ex.id)) copyOf.set(ex.id, await copyExerciseForUser(user.id, ex));
+  }
 
   let prev: string | null = null;
   const res = await saveTemplate({
@@ -95,7 +104,7 @@ export async function importSharedTemplate(shareId: string) {
     exercises: tpl.exercises.map((ex) => {
       const isSuperset = !!ex.superset_id && ex.superset_id === prev;
       prev = ex.superset_id;
-      return { id: ex.id, isSuperset, sets: ex.sets.map((s) => ({ weight: s.weight, reps: s.reps })) };
+      return { id: copyOf.get(ex.id) ?? ex.id, isSuperset, sets: ex.sets.map((s) => ({ weight: s.weight, reps: s.reps })) };
     }),
   });
   if (!res.ok) return res;

@@ -17,6 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useMemo, useState, useSyncExternalStore, type HTMLAttributes } from 'react';
 import {
   emptySet,
+  fmtNum,
   groupExercises,
   newKey,
   type EditorExercise,
@@ -105,11 +106,18 @@ export function ExerciseListEditor({ exercises, onChange, editing, showChecks = 
     onChange([...exercises, { ...ex, key: newKey(), isSuperset: false, sets: [emptySet()] }]);
   }
 
-  // The key and the superset link are kept. Sets are carried over when the exercise type matches
-  // (strength/cardio), otherwise the same number of empty ones: kilograms and minutes are not interchangeable.
+  // Sets belong to the exercise, not to its position: after a replacement they are taken from the new
+  // exercise's own last result (its set count, weights and reps). Without history the count is kept but
+  // the numbers are cleared; a type change (strength <-> cardio) starts from a single empty set, because
+  // kilograms and minutes are not interchangeable.
   function replaceExercise(index: number, ex: ExerciseInfo) {
     const old = exercises[index];
-    const sets = ex.exercise_type === old.exercise_type ? old.sets : old.sets.map(emptySet);
+    const prev = prevSets?.[String(ex.id)];
+    const sets = prev?.length
+      ? prev.map((s) => ({ weight: fmtNum(s.weight), reps: fmtNum(s.reps), completed: false }))
+      : ex.exercise_type === old.exercise_type
+        ? old.sets.map(emptySet)
+        : [emptySet()];
     update(index, { ...ex, sets });
   }
 

@@ -43,6 +43,9 @@ export default async function SharedTemplatePage({ params }: PageProps<'/[locale
           loggedIn={!!user}
           next={`/shared/template/${shareId}`}
         />
+        <p className="muted small" style={{ marginTop: 12 }}>
+          {t('template.note')}
+        </p>
       </div>
     </section>
   );
